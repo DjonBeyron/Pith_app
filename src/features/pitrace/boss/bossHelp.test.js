@@ -8,7 +8,13 @@ describe('финал: помощь Пита перед колкостью Мии
     const t = Object.fromEntries(RACE_LINES.map(l => [l.id, l.text]))
     expect(HELP_LINES.map(id => t[id])).toEqual(['это значит', 'переводится', 'правильно будет'])
   })
-  it('Мия подкалывает только после помощи Пита: MISS_AT с запасом на фразу и слово', () => { expect(BOSS.MISS_AT).toBeGreaterThanOrEqual(2500) })
+  it('порядок сменился (владелец 2026-11-22): Мия подкалывает ПЕРВОЙ, помощь Пита («это значит» + слово) — следом за ней в одной очереди речи; запаса MISS_AT больше нет', async () => {
+    const { reduceMia, miaInit } = await import('../mia/raceMia.js')
+    const stage = { mia: 'round', silent: true, act: 'boss', words: [{ text: 'a', translation: 'а' }, { text: 'b', translation: 'б' }] }
+    const m = reduceMia({ ...miaInit(), phase: 'in', act: 'boss' }, { t: 'enter', stage }).mia
+    expect(reduceMia(m, { t: 'fail', stage, idx: 0 }).say.map(c => [c.who, c.id, c.delay])).toEqual([['mia', 'mia_miss_1', 0], ['pit', HELP_LINES[0], 0], ['pit', 'boss_pit_next', 0]])
+    expect(BOSS.MISS_AT).toBeUndefined()
+  })
 })
 
 import { bossShift } from '../mia/raceMia.js'

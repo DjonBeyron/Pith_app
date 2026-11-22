@@ -94,16 +94,16 @@ describe('эпилог финала кончается, когда догово�
 })
 
 describe('финал: колкость после ошибки, порог «хоть одно неверное», линия у конвейера', () => {
-  it('ошибка (miss): только красный счёт, без речи (ученик успеет поправиться); «пилюля ушла» (fail): Мия коротко подкалывает один раз на слово, с задержкой', async () => {
-    const { reduceMia, miaInit, BOSS } = await import('../mia/raceMia.js')
+  it('ошибка (miss): только красный счёт, без речи (ученик успеет поправиться); «пилюля ушла» (fail): Мия коротко подкалывает один раз на слово — первой и сразу, за ней Пит (верное слово, «следующее слово»)', async () => {
+    const { reduceMia, miaInit } = await import('../mia/raceMia.js')
     const stage = { mia: 'round', silent: true, act: 'boss', words: [1, 2, 3, 4, 5, 6].map(i => ({ text: 'w' + i })) }
     const m = reduceMia({ ...miaInit(), phase: 'in', act: 'boss' }, { t: 'enter', stage }).mia
     const a = reduceMia(m, { t: 'miss', stage, idx: 0 })
     expect(a.say).toEqual([]); expect(a.mia.reds).toBe(1)
     const b = reduceMia(a.mia, { t: 'fail', stage, idx: 0 })
-    expect(b.say).toHaveLength(1); expect(b.say[0]).toMatchObject({ who: 'mia', delay: BOSS.MISS_AT }); expect(b.say[0].id).toMatch(/^mia_miss/); expect(b.mia.reds).toBe(1) // красных по-прежнему одно слово
+    expect(b.say.map(c => c.who)).toEqual(['mia', 'pit', 'pit']); expect(b.say[0]).toMatchObject({ who: 'mia', delay: 0 }); expect(b.say[0].id).toMatch(/^mia_miss/); expect(b.say[1]).toMatchObject({ id: 'boss_help_1', word: 'w1' }); expect(b.say[2].id).toBe('boss_pit_next'); expect(b.mia.reds).toBe(1) // красных по-прежнему одно слово; было: одна колкость с задержкой MISS_AT (после слова Пита)
     expect(reduceMia(b.mia, { t: 'fail', stage, idx: 0 }).say).toEqual([]) // та же пилюля — вторая колкость не нужна
-    expect(reduceMia(b.mia, { t: 'fail', stage, idx: 1 }).say).toHaveLength(1)
+    expect(reduceMia(b.mia, { t: 'fail', stage, idx: 1 }).say.filter(c => c.who === 'mia')).toHaveLength(1)
   })
   it('Пит остаётся, когда хоть одно слово финала неверно или не названо (v3.3.295, было — красных больше половины)', async () => {
     const { keepNeed, bossEnd } = await import('../mia/raceMia.js')
@@ -115,7 +115,8 @@ describe('финал: колкость после ошибки, порог «х�
   })
   it('Пит говорит верное слово, когда пилюля ушла (после ошибки тоже: ученик успевает поправиться), один раз на слово; линия шкалы упирается в левую полосу конвейера; колонки без жёлтой заливки', () => {
     const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')
-    expect(src).toContain("if (kind === 'fail' && running.act === 'boss') { sayCorrect(info?.idx); redAlarm() }"); expect(src).toContain("if (kind === 'miss' && running.act === 'boss') redAlarm()"); expect(src).toContain('toldRef.current !== `${running.sid}:${idx}`')
+    expect(src).toContain("if (kind === 'fail' && running.act === 'boss') redAlarm()"); expect(src).toContain("if (kind === 'miss' && running.act === 'boss') redAlarm()"); expect(src).not.toContain('sayCorrect') // верное слово теперь ставит в очередь машина Мии (один раз на слово: dug), после колкости
+    expect(readFileSync(new URL('../mia/raceMia.js', import.meta.url), 'utf8')).toContain("const dig = t === 'fail' && !m.dug?.[gi]")
     expect(readFileSync(new URL('./RaceBossScale.jsx', import.meta.url), 'utf8')).toContain("setProperty('--bl'")
     expect(readFileSync(new URL('../../../styles/player/modules/race-boss.css', import.meta.url), 'utf8')).toMatch(/\.wlBossLine \{[^}]*left: var\(--bl, 0px\)/)
   })

@@ -7,11 +7,12 @@
 // reduceMia(m, ev) → { mia, say, boost, log? }: say — реплики (id, who, delay от события, мс), boost — новое k для step.boost (null — без изменений).
 // ev: { t: 'enter' | 'win' | 'miss' | 'fail' | 'zone', stage, now, zone? }.
 import { variantOf } from './miaLines.js'
+import { HELP_LINES } from '../boss/bossHelp.js'
 
 export const MIA = { BOOST: 1.15, STREAK_LEAVE: 3, OK_EVERY: 3, DROP_AT: 1200, EXIT_MS: 250, LEAVE_JUMP_MS: 1200, PUSH_AT: 1800, PANIC_AT: 4600, ANNOUNCE_AT: 6500, REPLY_AT: 8800, ANNOUNCE2_AT: 10800, ANNOUNCE3_AT: 13000, BACK_AT: 2600, BACK2_AT: 5200 }
 
 const PIT_IN_BOX_MS = 1350 // v3.3.280 (владелец: «Пит говорит в коробке — она должна упасть ДО его слов»): коробка падает сразу (DROP_AT), реплика Пита начинается после удара (DROP_AT + IMPACT ≈ 1,45 с), остальное сдвинуто на столько же
-export const BOSS = { DROP_AT: 500, JUMP: 6.4, KEEP_REDS: 5, MISS_AT: 2900, AFTER_PIT_MS: 450, PIT1_AT: 300 + PIT_IN_BOX_MS, JUMP_ABS: 6900 + PIT_IN_BOX_MS, HUSH_AT: 5200 + PIT_IN_BOX_MS, LOOK_AT: 8000 + PIT_IN_BOX_MS } // объяснение шкалы идёт подряд, без пауз: с LOOK_AT реплики look → think → green → yellow → red → five → Пит стоят в очереди одна за другой (очередь речи сама держит паузу GAP_MS), путь пилюли примера считается по их длительности (bossScale.demoPlan) // финал «Шкала памяти»: падение коробки, прыжок Мии (с от падения), порог красных слов, сроки реплик (мс от входа)
+export const BOSS = { DROP_AT: 500, JUMP: 6.4, KEEP_REDS: 5, AFTER_PIT_MS: 450, PIT1_AT: 300 + PIT_IN_BOX_MS, JUMP_ABS: 6900 + PIT_IN_BOX_MS, HUSH_AT: 5200 + PIT_IN_BOX_MS, LOOK_AT: 8000 + PIT_IN_BOX_MS } // объяснение шкалы идёт подряд, без пауз: с LOOK_AT реплики look → think → green → yellow → red → five → Пит стоят в очереди одна за другой (очередь речи сама держит паузу GAP_MS), путь пилюли примера считается по их длительности (bossScale.demoPlan) // финал «Шкала памяти»: падение коробки, прыжок Мии (с от падения), порог красных слов, сроки реплик (мс от входа)
 
 export const miaInit = () => ({ done: {}, phase: 'off', act: '', fast: false, jump: null, total: 0, won: {}, reds: 0, redWins: 0, failed: {}, dug: {}, keep: false, rtotal: 0, rwon: {}, solo: null, soloAt: 0, alone: false, used: {}, streak: 0, wins: 0, hits: 0, seq: 0, at: 0, why: '' })
 
@@ -55,7 +56,7 @@ export function reduceMia(m, ev) {
       if (stage.act !== 'boss') return circleEnd(m, now, ev) // круг с Мией (v3.3.297): коробка улетает, только если ВСЕ слова круга названы верно
       const { won, reds, missed, keep } = bossEnd(m) // красные — все слова, кроме верно названных не в красной зоне (молчание и ошибки тоже красные, даже если события «не успел» не дошли)
       const log = `финал кончился: слов ${m.total}, названо верно ${won} (из них в красной зоне ${m.redWins}), неверно или не названо ${missed} (нужно ${keepNeed()}), красных ${reds} — ${keep ? 'Пит остаётся в коробке' : 'Мия отпускает Пита'}`
-      if (keep) return { mia: { ...m, reds, keep, fast: false, solo: 'keep', soloAt: now + (ev.keepMs ?? 3500), seq: m.seq + 1 }, say: [line('boss_mia_keep', 'mia')], boost: 1, log } // v3.3.290: Мия договаривает и выпрыгивает ОДНА (soloAt), коробка остаётся на Пите: он просит помочь (stuck), ученик снимает её касаниями (free)
+      if (keep) return { mia: { ...m, reds, keep, fast: false, seq: m.seq + 1 }, say: [line('boss_mia_stay', 'mia')], boost: 1, log } // владелец 2026-11-22: в экзамене Мия НЕ говорит «а я пошла» и остаётся на коробке, Пит наружу не просится (solo не ставится: try / stuck / free молчат) — коробка с Мией стоит под итогом. Снятие коробки учеником осталось у круга «Допрос у Мии» (circleEnd)
       return { ...leave({ ...m, reds, keep }, now, 'end', [line('boss_mia_free', 'mia'), line('boss_pit_free', 'pit', 2800)]), log }
     }
     if (m.phase === 'in' && m.keep && m.act === 'boss') return none(m) // Пит остался в коробке: она стоит под итогом до конца игры (раньше убиралась на экране итога — Пит на миг мигал без коробки)
@@ -71,9 +72,9 @@ export function reduceMia(m, ev) {
       return { mia: { ...m, won: { ...m.won, [gi]: true }, streak, wins, hits: say.length && streak !== 2 ? m.hits + 1 : m.hits }, say, boost: null }
     }
     if (t === 'zone') return { mia: { ...m, redWins: m.redWins + (ev.zone === 'slow' ? 1 : 0) }, say: [], boost: null }
-    if (t === 'miss' || t === 'fail') { // miss — слово сказано неверно (пилюля ещё едет, ученик может поправиться: только красный счёт); fail — пилюля ушла: Пит говорит верное слово (директор), следом Мия коротко подкалывает (через MISS_AT, Пит успевает начать; она ждёт, пока он договорит), и только потом новое слово; на слово — одна колкость
-      const dig = t === 'fail' && !m.dug?.[gi], failed = { ...m.failed, [gi]: true }
-      const say = dig ? [{ ...line(variantOf('mia_miss', m.hits + 1), 'mia'), delay: BOSS.MISS_AT }] : []
+    if (t === 'miss' || t === 'fail') { // miss — слово сказано неверно (пилюля ещё едет, ученик может поправиться: только красный счёт); fail — пилюля ушла: порядок речи (владелец 2026-11-22) — Мия коротко подкалывает → Пит «это значит» + верное слово (одна реплика очереди: word) → Пит «следующее слово» (если в блоке есть ещё слово) → новая пилюля и её слово; на слово — один раз
+      const dig = t === 'fail' && !m.dug?.[gi], failed = { ...m.failed, [gi]: true }, w = stage.words?.[ev.idx ?? 0], ru = stage.step?.lang === 'ru', told = ru ? w?.translation : w?.text
+      const say = dig ? [line(variantOf('mia_miss', m.hits + 1), 'mia'), ...(told ? [{ ...line(HELP_LINES[Object.keys(m.dug ?? {}).length % HELP_LINES.length], 'pit'), word: told, ...(ru ? { ru: true } : {}) }] : []), ...((ev.idx ?? 0) + 1 < (stage.words?.length ?? 0) ? [line('boss_pit_next', 'pit')] : [])] : []
       return { mia: { ...m, streak: 0, hits: dig ? m.hits + 1 : m.hits, dug: dig ? { ...m.dug, [gi]: true } : m.dug, failed, reds: Object.keys(failed).length + m.redWins }, say, boost: null }
     }
     return none(m)

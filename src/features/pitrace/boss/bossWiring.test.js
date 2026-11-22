@@ -19,8 +19,9 @@ describe('финал «Шкала памяти»: подключение', () =>
   })
   it('Пит произносит верный ответ только когда слово не названо / ошибка (fail), верно названное не повторяет; «занят» держится до конца — следующая пилюля после него; красное слово пугает Пита (зрачки)', () => {
     const src = read('../useRaceActs.js')
-    expect(src).toContain("running?.act === 'boss' && running.type === 'student' && toldRef.current !== `${running.sid}:${idx}` ? running.words?.[idx] : null"); expect(src).toContain("word = ru ? w.translation : w.text"); expect(src).toContain("{ ru: true, hold: true } : { hold: true }"); expect(src).toContain("HELP_LINES[helpN.current++ % HELP_LINES.length]"); expect(src).toContain("sayRef.current.sayLine?.(hid, null, { pause: 60, onEnd: () => sayRef.current.sayText?.(word, o) })") // v3.3.280: «это значит» + верное слово
-    expect(src).toContain('speech.claim(praiseRef.current); praiseRef.current = null }'); expect(src).not.toContain('sayCorrect(rep?.idx)'); expect(src).toContain("if (kind === 'fail' && running.act === 'boss') { sayCorrect(info?.idx); redAlarm() }"); expect(src).toContain("if (z === 'slow') redAlarm()")
+    const mia = read('../mia/raceMia.js'), sp = read('../mia/miaSpeech.js') // владелец 2026-11-22: «это значит» + верное слово идёт ПОСЛЕ колкости Мии — его ставит в очередь речи машина Мии (было: директор говорил сам сразу, sayCorrect)
+    expect(mia).toContain("ru = stage.step?.lang === 'ru', told = ru ? w?.translation : w?.text"); expect(mia).toContain('HELP_LINES[Object.keys(m.dug ?? {}).length % HELP_LINES.length]'); expect(sp).toContain("src.sayText?.(c.word, { hold: true, ...(c.ru ? { ru: true } : {})"); expect(sp).toContain('c.word ? { onEnd: word, pause: 60 }') // v3.3.280: «это значит» + верное слово без паузы
+    expect(src).toContain('speech.claim(praiseRef.current); praiseRef.current = null }'); expect(src).not.toContain('sayCorrect'); expect(src).toContain("if (kind === 'fail' && running.act === 'boss') redAlarm()"); expect(src).toContain("if (z === 'slow') redAlarm()")
     expect(read('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain('alarm={f.rh.miaAlarm}'); expect(read('../RaceMia.jsx')).toContain('pupil: (m.eyes.pupil ?? 1) * (1 - 0.58 * fear)'); expect(read('../mia/boxArt.js')).toContain("class=\"bxPupil\"")
   })
 })
