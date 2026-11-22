@@ -13,7 +13,7 @@ import { createGame2Listener } from '../game2/game2Listen.js'
 import { createWordListener } from '../player/modules/rotate-phone/wordLaneListen.js'
 import { createDraftHold, PEAK_MIN, DRAFT_KEEP_MS } from './racePhraseDraftHold.js'
 import { createTailHold, cutTail, holdLast, TAIL_HOLD_MS } from './racePhraseTailHold.js'
-import { unglue } from './racePhraseGlue.js'
+import { unglue } from './racePhraseGlue.js'; import { createSticky } from './racePhraseSticky.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { scorePhrases, pickPhrase, unionWords, earLine, PHRASE_OK, PHRASE_GAP, cleanHeard as clean, normPhrases as norm } from './racePhraseScore.js'
 import { GATE_RMS } from '../../shared/lib/vosk/voskGate.js'
@@ -64,7 +64,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
   let gen = 0
   const voice = createEarVoice({ now })
   const hold = createDraftHold({ now }) // громкость захода и возраст чернового слова (racePhraseDraftHold.js)
-  const tail = createTailHold({ now }) // последнее слово фразы хвостом черновика — только устоявшееся (racePhraseTailHold.js)
+  const sticky = createSticky({ now, keepMs: JOIN_MS, log }), tail = createTailHold({ now }) // последнее слово фразы хвостом черновика — только устоявшееся (racePhraseTailHold.js) // ↓ sticky — проход 2: слово, услышанное в заходе и потерянное Vosk в тексте, остаётся сказанным
   let loneTimer = 0 // черновик из одного «[unk]» при голосе: через UNK_FINAL_MS просим итог (неверное слово не должно молчать до конца захода)
   let unkTimer = 0 // слово за «[unk]» ждёт итог: через UNK_FINAL_MS просим итог захода сами
   let tailTimer = 0, tailLogged = false, curDraft = false // curDraft — текущий текст захода ещё черновик
@@ -74,9 +74,9 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
   let disposed = false
 
   const baseOf = key => { const g = sent.get(key); let k = 0; while (g?.get(k) === true) k++; return k } // сколько слов с начала подтверждено итогом (непрерывно)
-  const score = (heard, open = false) => scorePhrases(phrases, heard, wordByWord ? { strict: true, base: baseOf, open } : true) // проход 1 — строгая цепочка (strictHits, v3.3.306): неверное слово линию не двигает, слова за ним не запоминаются; проход 2 — по порядку (orderedHits). Прежний комментарий: слова только по порядку (racePhraseScore.orderedHits) в ОБОИХ проходах (v3.3.302, журнал владельца: «nice you meet to» засчитало фразу на 100 %, заливка дошла до конца); раньше проход 2 считал набором слов, порядок не важен
+  const score = (heard, open = false) => (wordByWord ? scorePhrases(phrases, heard, { strict: true, base: baseOf, open }) : sticky.merge(scorePhrases(phrases, heard, true), key => phrases.find(p => p.key === key)?.words ?? [])) // проход 1 — строгая цепочка (strictHits, v3.3.306): неверное слово линию не двигает, слова за ним не запоминаются; проход 2 — по порядку (orderedHits). Прежний комментарий: слова только по порядку (racePhraseScore.orderedHits) в ОБОИХ проходах (v3.3.302, журнал владельца: «nice you meet to» засчитало фразу на 100 %, заливка дошла до конца); раньше проход 2 считал набором слов, порядок не важен
   const heardNow = (cur = current) => { const t = now(); past = past.filter(p => t - p.at <= (wordByWord ? JOIN_WBW_MS : JOIN_MS)); return [...past.filter(p => !wordByWord || p.at >= cutAt).map(p => p.text), cur].filter(Boolean).join(' ') }
-  const clearState = () => { hold.clear(); tail.clear(); clearTimer(tailTimer); tailTimer = 0; clearTimer(unkTimer); unkTimer = 0; clearTimer(loneTimer); loneTimer = 0; tailLogged = false; curDraft = false; noiseLogged = false; progressed = false; curRaw = ''; past = []; cutAt = -Infinity; cutVisit = false; current = ''; sent = new Map(); clearTimer(settleTimer); settleTimer = 0; clearTimer(quietTimer); quietTimer = 0; clearTimer(gateTimer); gateTimer = 0; clearTimer(muteTimer); muteTimer = 0; throughBy = ''; throughAt = null; firstAt = null; zero = now(); sameAt = -Infinity; pauseMax = 0 }
+  const clearState = () => { hold.clear(); sticky.clear(); tail.clear(); clearTimer(tailTimer); tailTimer = 0; clearTimer(unkTimer); unkTimer = 0; clearTimer(loneTimer); loneTimer = 0; tailLogged = false; curDraft = false; noiseLogged = false; progressed = false; curRaw = ''; past = []; cutAt = -Infinity; cutVisit = false; current = ''; sent = new Map(); clearTimer(settleTimer); settleTimer = 0; clearTimer(quietTimer); quietTimer = 0; clearTimer(gateTimer); gateTimer = 0; clearTimer(muteTimer); muteTimer = 0; throughBy = ''; throughAt = null; firstAt = null; zero = now(); sameAt = -Infinity; pauseMax = 0 }
   const quietMs = () => quietLimit(pauseMax, wordByWord)
   const rel = () => `+${Math.round(now() - (firstAt ?? zero))} мс`
   const settle = (ms, mine) => { if (wordByWord) { ms = Math.max(ms, SETTLE_WBW_MS); settleLast = true } clearTimer(settleTimer); settleTimer = setTimer(() => { settleTimer = 0; if (mine !== gen) return; if (throughBy) through(throughBy); decide(true) }, ms) }
@@ -120,7 +120,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       const got = sent.get(s.key) ?? new Map()
       sent.set(s.key, got)
       const p = phrases.find(x => x.key === s.key), say = (index, d, gone = false) => onWord?.({ phraseKey: s.key, index, text: p.words[index], draft: d, ...(gone ? { gone } : {}) })
-      if (!wordByWord) { s.hits.forEach((ok, index) => { if (ok && (!got.has(index) || (!draft && !got.get(index)))) { got.set(index, !draft); say(index, draft) } }); continue }
+      if (!wordByWord) { s.hits.forEach((ok, index) => { if (ok && (!got.has(index) || (!draft && !got.get(index)))) { got.set(index, !draft); sticky.add(s.key, index); say(index, draft) } }); continue } // sticky — слово, отданное сцене, остаётся сказанным и для зачёта (racePhraseSticky.js)
       const base = baseOf(s.key)
       const emptyFinal = !draft && !s.hits.some((h, i) => h && i >= base) && !curRaw.includes('[unk]') // v3.3.318: итог «[unk]» — не пустой: Vosk услышал ЧУЖОЕ слово, черновое слово этого захода было догадкой — откатываем // итог без единого слова цели («итог «»»: короткое «to» Vosk не подтвердил) — ничего не говорит о черновых словах: не откатываем (владелец v3.3.283: «откинуло прогресс пилюли назад»)
       if (!emptyFinal) for (const [index, kept] of got) if (!kept && !s.hits[index]) { got.delete(index); hold.forget(s.key, index); progressed = false; log(`[phrase-ear] слово ${index + 1} «${p.words[index]}» откат (${s.key}): в услышанном по порядку его нет ${rel()}`); say(index, true, true) }
@@ -208,7 +208,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       if (kind === 'final' && !wordByWord && !settleTimer && score(heardNow()).some(s => s.ratio >= PHRASE_OK - 1e-9)) settle(SETTLE_MS, mine) // итог захода с неполным совпадением (3 из 4: «nice to meet to» вместо «you») решается через SETTLE_MS и без события конца захода — заливка не застревает на 97 % (журнал 2026-11-15)
     } else if (kind === 'session-end') {
       if (wordByWord) log(`[phrase-ear] заход закрыт: raw «${curRaw}», пик ${hold.peak().toFixed(4).replace('.', ',')}, новых слов ${progressed ? 'принято' : 'нет'}${hold.noise() ? ', шум' : ''}, подтверждено слов ${[...sent.values()].reduce((m, g) => Math.max(m, [...g.values()].filter(Boolean).length), 0)} ${rel()}`) // сводка захода для разбора «что пошло не так»
-      if (current && !(wordByWord && cutVisit)) past.push({ text: current, at: now() }); cutVisit = false
+      if (current && !(wordByWord && cutVisit)) past.push({ text: current, at: now() }); cutVisit = false; sticky.close()
       current = ''; curDraft = false; clearTimer(unkTimer); unkTimer = 0; clearTimer(loneTimer); loneTimer = 0; tail.clear(); tailLogged = false; clearTimer(tailTimer); tailTimer = 0; textAt = now(); gateOpen = true; hold.capture(); noiseLogged = false; blockedLogged = false; progressed = false; curRaw = ''; clearTimer(muteTimer); muteTimer = 0 // следующий заход Vosk (wordLaneListen перезапускает сам): голос в нём — ещё не в черновике
       const heard = heardNow()
       if (!heard && !(wordByWord && [...sent.values()].some(g => g.size))) return
