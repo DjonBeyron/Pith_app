@@ -40,6 +40,7 @@ const silentBlock = (m, stage) => {
 export function reduceMia(m, ev) {
   const { t, stage, now = 0 } = ev
   // Пит в коробке без Мии (финал пройден плохо, v3.3.290): stuck — Мия выпрыгнула, Пит просит помочь; faster — одно касание без второго; free — коробка снята: отлетает без Мии (alone), Пит благодарит
+  if (m.act === 'boss' && ['try', 'stuck', 'faster', 'free'].includes(t)) return none(m) // экзамен (владелец 2026-11-22): снятия коробки касанием нет никогда — исходов два: Мия убегает с коробкой или Мия и коробка остаются
   if (t === 'try') return m.solo === 'keep' ? { mia: m, say: [line('boss_pit_try', 'pit')], boost: null } : none(m) // Мия ушла, Пит: «Она ушла? Попробую выбраться», потом трясёт коробку (RaceMia: try → rave)
   if (t === 'stuck') return m.solo === 'keep' ? { mia: { ...m, solo: 'stuck' }, say: [line('boss_pit_stuck', 'pit')], boost: null } : none(m)
   if (t === 'faster') return m.solo === 'stuck' ? { mia: m, say: [line('boss_pit_faster', 'pit')], boost: null } : none(m)
@@ -47,7 +48,7 @@ export function reduceMia(m, ev) {
   if (t === 'enter') {
     if (stage?.mia === 'ann') { // церемония: Пит начинает репликой стадии, через DROP_AT падает коробка (at — момент падения), Мия запрыгивает, вступительные реплики (три ноты ждут их конца)
       // повторный вход в ту же стадию (пауза и «Продолжить», перезапуск ступени): церемония начинается заново — реплики снова в очереди, коробка падает снова (раньше такой вход ничего не делал: оба молчали, пример не шёл)
-      return { mia: { ...m, phase: 'in', act: stage.act, used: { ...m.used, [stage.act]: true }, streak: 0, wins: 0, seq: m.seq + 1, at: now + (ev.dropAt ?? stage.dropAt ?? MIA.DROP_AT), why: '', fast: false, jump: ev.jumpAt ?? stage.jumpAt ?? null, total: 0, won: {}, done: {}, reds: 0, redWins: 0, failed: {}, dug: {}, keep: false }, say: stage.script === 'boss' ? bossCeremony(!Object.keys(m.used ?? {}).some(k => k !== 'boss'), ev.bossShift ?? 0) : ceremony(), boost: null }
+      return { mia: { ...m, phase: 'in', act: stage.act, used: { ...m.used, [stage.act]: true }, streak: 0, wins: 0, seq: m.seq + 1, at: now + (ev.dropAt ?? stage.dropAt ?? MIA.DROP_AT), why: '', fast: false, jump: ev.jumpAt ?? stage.jumpAt ?? null, total: 0, won: {}, done: {}, reds: 0, redWins: 0, failed: {}, dug: {}, keep: false, solo: null, alone: false }, say: stage.script === 'boss' ? bossCeremony(!Object.keys(m.used ?? {}).some(k => k !== 'boss'), ev.bossShift ?? 0) : ceremony(), boost: null }
     }
     if (stage?.mia === 'round') return m.phase === 'in' && m.act === stage.act ? { mia: m.fast && (!stage.silent || m.total === (stage.offset ?? 0) + (stage.words?.length ?? 0)) ? m : { ...m, fast: true, ...(stage.silent ? silentBlock(m, stage) : { rtotal: stage.words?.length ?? 0, rwon: {} }) }, say: [], boost: stage.noBoost ? null : MIA.BOOST } : none(m) // круг с Мией: дорожка быстрее и меняет цвет (fast) — с этого круга, а не с церемонии
     if (stage?.mia === 'hold') return m.phase === 'in' && m.act === stage.act ? { mia: m, say: stage.say ? [line(stage.say, 'mia')] : [], boost: null } : none(m) // служебная стадия внутри эпизода (финал: переключение слуха между блоками): Мия остаётся, говорит свою реплику
@@ -56,7 +57,7 @@ export function reduceMia(m, ev) {
       if (stage.act !== 'boss') return circleEnd(m, now, ev) // круг с Мией (v3.3.297): коробка улетает, только если ВСЕ слова круга названы верно
       const { won, reds, missed, keep } = bossEnd(m) // красные — все слова, кроме верно названных не в красной зоне (молчание и ошибки тоже красные, даже если события «не успел» не дошли)
       const log = `финал кончился: слов ${m.total}, названо верно ${won} (из них в красной зоне ${m.redWins}), неверно или не названо ${missed} (нужно ${keepNeed()}), красных ${reds} — ${keep ? 'Пит остаётся в коробке' : 'Мия отпускает Пита'}`
-      if (keep) return { mia: { ...m, reds, keep, fast: false, seq: m.seq + 1 }, say: [line('boss_mia_stay', 'mia')], boost: 1, log } // владелец 2026-11-22: в экзамене Мия НЕ говорит «а я пошла» и остаётся на коробке, Пит наружу не просится (solo не ставится: try / stuck / free молчат) — коробка с Мией стоит под итогом. Снятие коробки учеником осталось у круга «Допрос у Мии» (circleEnd)
+      if (keep) return { mia: { ...m, reds, keep, fast: false, seq: m.seq + 1 }, say: [line('boss_mia_stay', 'mia'), line('boss_pit_keep', 'pit')], boost: 1, log } // владелец 2026-11-22: в экзамене Мия НЕ говорит «а я пошла» и остаётся на коробке, Пит наружу не просится (solo не ставится: try / stuck / free молчат) — коробка с Мией стоит под итогом. Снятие коробки учеником осталось у круга «Допрос у Мии» (circleEnd)
       return { ...leave({ ...m, reds, keep }, now, 'end', [line('boss_mia_free', 'mia'), line('boss_pit_free', 'pit', 2800)]), log }
     }
     if (m.phase === 'in' && m.keep && m.act === 'boss') return none(m) // Пит остался в коробке: она стоит под итогом до конца игры (раньше убиралась на экране итога — Пит на миг мигал без коробки)
@@ -133,5 +134,6 @@ export function applyMia(mb, r, stage) {
   if (r.boost === 1) { if (mb.step?.boost) mb.step.boost.k = 1; mb.step = null }
   else if (r.boost != null && stage?.step?.boost) { stage.step.boost.k = r.boost; mb.step = stage.step }
   if (r.say.length) mb.key += 1
+  if (r.say.some(c => c.id === 'boss_pit_next')) mb.next = true // прозвучит «Следующее слово»: слово следующей пилюли идёт сразу за ним (boss/bossLead.leadAfter)
   return { mia: r.mia, cues: r.say, key: mb.key }
 }

@@ -80,7 +80,7 @@ describe('конец экзамена: Мия не «уходит», Пит не
   }
   it('экзамен с неверным словом: Мия остаётся на коробке и говорит вердикт без «а я пошла»; режим «коробку снимает ученик» не включается', () => {
     const r = finish('boss', [{ t: 'win', idx: 0 }, { t: 'fail', idx: 1 }])
-    expect(r.say.map(c => c.id)).toEqual(['boss_mia_stay'])
+    expect(r.say.map(c => c.id)).toEqual(['boss_mia_stay', 'boss_pit_keep'])
     expect(miaLine('boss_mia_stay')).toMatchObject({ who: 'mia' }); expect(miaLine('boss_mia_stay').text).not.toMatch(/пошла|ушла|ухожу/)
     expect(r.mia).toMatchObject({ phase: 'in', keep: true }); expect(r.mia.solo).toBeFalsy()
     for (const t of ['try', 'stuck', 'faster', 'free']) { const x = reduceMia(r.mia, { t, now: 2000 }); expect(x.say).toEqual([]); expect(x.mia).toBe(r.mia) }
@@ -103,6 +103,37 @@ describe('конец экзамена: Мия не «уходит», Пит не
     expect(endHoldMs({ act: 'boss', mia: 'end', ms: 18000, preWait: 500 }, { m: boss }, sp)).toBeGreaterThanOrEqual(3500)
     expect(endHoldMs({ act: 'boss', mia: 'end', ms: 18000 }, { m: boss }, sp)).toBeLessThanOrEqual(18000)
     expect(endHoldMs({ act: 'catch', mia: 'end', ms: 18000, preWait: 500 }, { m: cat }, sp)).toBe(1100)
+  })
+  it('А. два исхода и только они (владелец 2026-11-22): успех — Мия убегает ВМЕСТЕ с коробкой, даже если в этой игре коробку уже снимали касаниями в «Допросе»; провал — Мия и коробка остаются; снятия коробки касанием в экзамене нет никогда', () => {
+    const after = { ...miaInit(), phase: 'out', act: 'catch', alone: true, solo: 'stuck', used: { catch: true } } // след «Допроса»: коробку сняли (alone) или не дождались (solo)
+    const ann = reduceMia(after, { t: 'enter', stage: { mia: 'ann', act: 'boss', script: 'boss' }, now: 0 }).mia
+    expect(ann).toMatchObject({ phase: 'in', act: 'boss', alone: false, solo: null })
+    const run = evs => { const st = exam(); let m = reduceMia(ann, { t: 'enter', stage: st }).mia; for (const e of evs) m = reduceMia(m, { ...e, stage: st }).mia; return reduceMia(m, { t: 'enter', stage: { mia: 'end', act: 'boss', ms: 18000 }, now: 1000 }) }
+    const ok = run([0, 1, 2].map(idx => ({ t: 'win', idx })))
+    expect(ok.mia).toMatchObject({ phase: 'out', why: 'end', alone: false, solo: null, keep: false }) // alone: false — на картинке коробка улетает с Мией (RaceMia: без Мии только при alone)
+    const bad = run([{ t: 'fail', idx: 0 }])
+    expect(bad.mia).toMatchObject({ phase: 'in', keep: true, alone: false, solo: null })
+    for (const m of [ok.mia, bad.mia, { ...bad.mia, solo: 'keep' }, { ...bad.mia, solo: 'stuck' }]) for (const t of ['try', 'stuck', 'faster', 'free']) { const x = reduceMia(m, { t, now: 5 }); expect(x.say).toEqual([]); expect(x.mia).toBe(m) } // даже с чужой отметкой solo экзамен коробку не отдаёт
+  })
+  it('Б. провал: после вердикта Мии Пит из коробки говорит, что ждёт завтра, чтобы ему помогли выбраться; стадия-конец ждёт обе реплики (итог не выезжает поверх)', () => {
+    const r = finish('boss', [{ t: 'fail', idx: 0 }])
+    expect(r.say.map(c => [c.who, c.id])).toEqual([['mia', 'boss_mia_stay'], ['pit', 'boss_pit_keep']])
+    expect(miaLine('boss_pit_keep').text).toMatch(/завтра/); expect(miaLine('boss_pit_keep').text).toMatch(/вытащи|выбраться/); expect(miaLine('boss_pit_keep').text).toMatch(/ждать|жду/)
+    const sp = { msOf: (id, who) => (id === 'boss_mia_stay' ? 3000 : id === 'boss_pit_keep' && who === 'pit' ? 5000 : 1000) }
+    expect(endHoldMs({ act: 'boss', mia: 'end', ms: 18000, preWait: 500 }, { m: r.mia }, sp)).toBeGreaterThanOrEqual(500 + 3000 + 5000)
+    expect(finish('boss', [0, 1, 2].map(idx => ({ t: 'win', idx }))).say.map(c => c.id)).not.toContain('boss_pit_keep')
+  })
+  it('В. слово сразу после «Следующее слово»: пилюля, перед которой оно прозвучало, не ждёт выезда наполовину (слово — в миг выезда); первое слово блока и слово после верного ответа — как раньше (v3.3.270)', async () => {
+    const { applyMia, makeMiaBox } = await import('./raceMia.js'); const { leadAfter, bossLeadMs } = await import('../boss/bossLead.js')
+    const st = exam(), mb = makeMiaBox(); mb.m = start(st)
+    expect(leadAfter(mb, 'boss', 0.5)).toBe(bossLeadMs('boss', 0.5)); expect(bossLeadMs('boss', 0.5)).toBeGreaterThan(800) // первое слово блока
+    applyMia(mb, reduceMia(mb.m, { t: 'win', stage: st, idx: 0 }), st)
+    expect(leadAfter(mb, 'boss', 0.5)).toBe(bossLeadMs('boss', 0.5)) // после верного ответа
+    applyMia(mb, reduceMia(mb.m, { t: 'fail', stage: st, idx: 1 }), st)
+    expect(leadAfter(mb, 'boss', 0.5)).toBe(0); expect(leadAfter(mb, 'boss', 0.5)).toBe(bossLeadMs('boss', 0.5)) // одна пилюля — потом снова как раньше
+    applyMia(mb, reduceMia(mb.m, { t: 'fail', stage: st, idx: 2 }), st) // последнее слово блока: «следующее слово» не звучало
+    expect(leadAfter(mb, 'boss', 0.5)).toBe(bossLeadMs('boss', 0.5))
+    expect(readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')).toContain('lead.run(leadAfter(mb, act, rep?.speed)')
   })
   it('директор: верное слово Пит говорит через очередь речи Мии (после колкости), а не сам сразу', () => {
     const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')

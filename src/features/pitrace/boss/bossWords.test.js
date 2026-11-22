@@ -106,7 +106,7 @@ describe('финал: сценарий Мии, красные слова, «ос
   })
   const finish = events => { let m = reduceMia(start().mia, { t: 'enter', stage: round }).mia; for (const e of events) m = reduceMia(m, { stage: round, ...e }).mia; return reduceMia(m, { t: 'enter', stage: end, now: 9000 }) }
   it('ничего не ответил на все слова — Пит остаётся внутри (красные считаются от слов, которых не назвали верно: события «не успел» не нужны)', () => {
-    const r = finish([]); expect(r.mia).toMatchObject({ phase: 'in', reds: 6, keep: true }); expect(ids(r)).toEqual(['boss_mia_stay']); expect(r.mia.solo).toBeFalsy(); // владелец 2026-11-22: в экзамене Мия остаётся на коробке и про уход не говорит, Пит наружу не просится (было с v3.3.290: boss_mia_keep + solo keep)
+    const r = finish([]); expect(r.mia).toMatchObject({ phase: 'in', reds: 6, keep: true }); expect(ids(r)).toEqual(['boss_mia_stay', 'boss_pit_keep']); expect(r.mia.solo).toBeFalsy(); // + Пит «приходи завтра, вытащи меня» // владелец 2026-11-22: в экзамене Мия остаётся на коробке и про уход не говорит, Пит наружу не просится (было с v3.3.290: boss_mia_keep + solo keep)
     expect(r.log).toContain('неверно или не названо 6 (нужно 1)'); expect(r.log).toContain('красных 6'); expect(r.log).toContain('Пит остаётся в коробке')
   })
   it('хоть одно слово неверно или не названо (v3.3.295) — Пит остаётся (Мия сидит на коробке); все названы верно — Мия отпускает; верный ответ в красной зоне — верный', () => {

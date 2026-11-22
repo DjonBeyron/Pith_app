@@ -33,7 +33,7 @@ import { createMiaSpeech, GAP_MS } from './mia/miaSpeech.js'
 import { audioPulse } from '../../shared/lib/gameAudioPulse.js'
 import { useMiaEnter } from './mia/useMiaEnter.js'
 import { miaAfterPass, miaSkip } from './mia/miaRound.js'
-import { afterLeaveSpeech } from './mia/miaLeave.js'; import { revBack } from './raceReverseTurn.js'; import { createLeadTimer, bossLeadMs } from './boss/bossLead.js'; import { revTimes, convSpeed } from './raceReverseTimes.js'; import { REV_START_SLACK_MS } from './raceReverseTurn.js'; import { useMiaPlate } from './mia/useMiaPlate.js'; import { sceneRun, sceneStage, sceneAsk } from '../player/modules/rotate-phone/wordLaneSceneTrace.js'
+import { afterLeaveSpeech } from './mia/miaLeave.js'; import { revBack } from './raceReverseTurn.js'; import { createLeadTimer, leadAfter } from './boss/bossLead.js'; import { revTimes, convSpeed } from './raceReverseTimes.js'; import { REV_START_SLACK_MS } from './raceReverseTurn.js'; import { useMiaPlate } from './mia/useMiaPlate.js'; import { sceneRun, sceneStage, sceneAsk } from '../player/modules/rotate-phone/wordLaneSceneTrace.js'
 import { bossFill } from './boss/bossWords.js'
 import { DEMO_START, DEMO_IDS, demoPlan } from './boss/bossScale.js'
 import { playWordSlot, hasWordSlot, wordBufferMs } from '../player/modules/rotate-phone/wordLaneClips.js'
@@ -217,7 +217,7 @@ export function useRaceActs(args) {
       if (ruOn) { listenerRef?.current?.resetSaid?.(); ru.start(rep?.idx) } // новое слово прохода B: журнал слушает его с чистого листа
       const said = rep?.say ?? rep?.cap // проход A: Пит говорит перевод (rep.say); надпись пилюли (rep.cap) в тапе английская — её не озвучиваем (v3.3.127)
       const act = running?.act
-      surface.run(e?.wait, () => lead.run(bossLeadMs(act, rep?.speed), () => { // финал: слово после выезда пилюли (bossLead.js) // e.wait — «Говорю»: Пит ещё ныряет / прыгает к дорожке этой пилюли; слово — когда он на месте (одна точка ожидания, журнал «[dodge] речь ждала…»)
+      surface.run(e?.wait, () => lead.run(leadAfter(mb, act, rep?.speed), () => { // финал: слово после выезда пилюли (bossLead.js) // e.wait — «Говорю»: Пит ещё ныряет / прыгает к дорожке этой пилюли; слово — когда он на месте (одна точка ожидания, журнал «[dodge] речь ждала…»)
         if ((act === 'sprint' || (act === 'boss' && running?.step?.lang !== 'ru')) && said) speakTranslation(speech, o => sayRef.current.sayText?.(said, { ru: true, ...o }))
         else if ((act === 'catch' || act === 'boss') && rep?.say) speakTranslation(speech, o => sayRef.current.sayText?.(rep.say, { hold: true, ...o }))
         else speech.translation(0) // говорить нечего: пилюля выезжает сразу

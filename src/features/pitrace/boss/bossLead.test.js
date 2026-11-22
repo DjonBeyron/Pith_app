@@ -20,7 +20,7 @@ describe('финал: пилюля выезжает до слова Пита', (
   })
   it('проводка: pre() ждёт выезда пилюли, ответ и смена стадии снимают слово', () => {
     const src = rd('../useRaceActs.js')
-    expect(src).toContain('lead.run(bossLeadMs(act, rep?.speed)'); expect(src).toContain('lead.cancel(); tr.last();'); expect(src).toContain('surface.cancel(); lead.cancel()')
+    expect(src).toContain('lead.run(leadAfter(mb, act, rep?.speed)'); // было bossLeadMs(act, …): после «Следующее слово» слово не ждёт выезда (leadAfter → 0), иначе — прежний bossLeadMs expect(src).toContain('lead.cancel(); tr.last();'); expect(src).toContain('surface.cancel(); lead.cancel()')
   })
 })
 

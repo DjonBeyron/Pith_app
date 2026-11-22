@@ -17,7 +17,7 @@ describe('снятие коробки с Пита', () => {
 
 describe("Мия выпрыгивает одна, коробка остаётся на Пите (машина Мии)", async () => {
   const { reduceMia, miaInit } = await import('./raceMia.js')
-  const keepState = () => ({ ...miaInit(), phase: 'in', act: 'boss', keep: true, solo: 'keep', reds: 6, total: 6 })
+  const keepState = () => ({ ...miaInit(), phase: 'in', act: 'catch', keep: true, solo: 'keep', reds: 6, total: 6 }) // было act: 'boss' — снятие коробки касанием осталось только у круга «Допрос у Мии»; в экзамене его нет никогда (владелец 2026-11-22, examOrder.test.js)
   it('stuck: Пит просит помочь; free: коробка отлетает без Мии (phase out, alone), keep снят, Пит благодарит; faster — «быстрее»', () => {
     const a = reduceMia(keepState(), { t: 'stuck', now: 1000 })
     expect(a.mia.solo).toBe('stuck'); expect(a.say.map(l => l.id)).toEqual(['boss_pit_stuck'])
