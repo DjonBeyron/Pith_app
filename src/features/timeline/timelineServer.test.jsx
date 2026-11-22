@@ -95,7 +95,7 @@ describe('экран: выбор «сервер / это устройство» 
 
   it('сервер читается только экраном таймлайна: старт приложения и игра строку не читают; кнопка админки передаёт экрану чтение и запись', () => {
     const read = p => readFileSync(new URL(p, import.meta.url), 'utf8')
-    expect(read('./TimelineOpenButton.jsx')).toMatch(/const SERVER = \{ read: \(\) => readTimelines\(\), save: run => saveTimeline\(packRun\(run\)\) \}/)
+    expect(read('./TimelineOpenButton.jsx')).toMatch(/const SERVER = \{ read: \(\) => readTimelines\(\), save: run => saveTimeline\(packRun\(run\)\), saveEdits: /) // v3.3.340: у сервера появилась третья операция — черновик правок монтажа
     expect(read('./timelineAutosave.js')).not.toContain('readTimelines'); expect(read('../../app/App.jsx')).not.toContain('timelineApi')
     expect(read('./useTimelineServer.js')).toMatch(/useEffect\(\(\) => \{ if \(server && !initial\) fetchNow\(\) \}/)
   })

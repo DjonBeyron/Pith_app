@@ -38,3 +38,22 @@ export function axisTicks(win, scale, durMs, minGap = 64) {
 
 /** Прокрутка, при которой момент t (мс) стоит на трети ширины окна */
 export const scrollFor = (t, width, scale) => Math.max(0, t * scale - width / 3)
+
+// ── «Монтаж» (montage/TimelineMontage.jsx): масштаб вокруг момента, подпись клипа по ширине, мини-карта ──
+export const CLIP_TEXT_PX = 40   // клип шире — на нём текст реплики (переносится по строкам) и длительность
+export const CLIP_DUR_PX = 26    // шире этого, но уже CLIP_TEXT_PX — только длительность («1,8 с»); уже — без подписи (подсказка при наведении)
+/** Что писать на клипе шириной px: 'text' | 'dur' | 'none' */
+export const labelMode = px => (px >= CLIP_TEXT_PX ? 'text' : px >= CLIP_DUR_PX ? 'dur' : 'none')
+/** Масштаб в допустимые пределы: не мельче «вся игра» (fit) и не крупнее MAX_SCALE */
+export const clampScale = (scale, fit) => Math.min(MAX_SCALE, Math.max(fit, scale))
+/** Новая прокрутка после смены масштаба: момент t остаётся на том же месте экрана (x — где он стоял, px от левого края дорожек) */
+export const scrollAfterZoom = (t, x, next) => Math.max(0, t * next - x)
+/** Масштаб «этап во всю ширину» (с полями по 5 %) */
+export const spanScale = (span, width, fit) => clampScale((Math.max(200, width) * 0.9) / Math.max(500, span.end - span.t), fit)
+/** Мини-карта: видимое окно → прямоугольник { x, w } в px мини-карты шириной miniW */
+export function miniRect(left, width, scale, durMs, miniW) {
+  const k = miniW / Math.max(1, durMs), x = Math.min(miniW, (left / scale) * k)
+  return { x, w: Math.max(6, Math.min(miniW - x, (width / scale) * k)) }
+}
+/** Мини-карта: px мини-карты (центр окна) → прокрутка */
+export const scrollFromMini = (px, miniW, durMs, scale, width) => Math.max(0, (px / Math.max(1, miniW)) * durMs * scale - width / 2)

@@ -1,0 +1,36 @@
+/* «Монтаж» таймлайна, режим «✎ Правка» (features/timeline/montage/MontageEditsPanel.jsx, MontageBar.jsx): клип тянется по горизонтали, сдвинутые клипы помечены, список правок сбоку,
+   вопрос о найденном черновике, подсказка «упёрся». Каркас — timeline-montage.css, клипы — timeline-montage-clips.css. */
+.mtg[data-edit='1'] .mtgScroll { border-color: #6b4a1c; box-shadow: 0 0 0 1px #6b4a1c; }
+.mtgClip[data-edit='1'] { cursor: ew-resize; touch-action: none; user-select: none; -webkit-user-select: none; }
+.mtgClip[data-moved='1'] { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #f2a65a; z-index: 3; }
+.mtgClip[data-warn='1'] { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--tl-dead); }
+.mtgClip[data-drag='1'] { z-index: 5; filter: brightness(1.15); box-shadow: 0 0 0 2px #fff, 0 6px 16px rgba(0, 0, 0, 0.6); }
+.mtgClip[data-hit='1'] { box-shadow: 0 0 0 2px #fff, 0 0 0 5px var(--tl-dead); }
+.mtg[data-drag='1'] { user-select: none; -webkit-user-select: none; }
+
+.mtgEditRow { padding: 6px 8px; border: 1px solid #6b4a1c; border-radius: 10px; background: #1f1a12; }
+.mtgSum { color: #fff; font-variant-numeric: tabular-nums; }
+.mtgWarn { margin: 0; color: #ffb3b6; font-size: 12px; }
+.mtgPending { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; padding: 8px 10px; border: 1px solid #5b7bd6; border-radius: 10px; background: #1a2238; color: #dfe6fb; }
+
+.mtgHonest { margin: 0; padding: 7px 9px; border-radius: 8px; background: #2a2212; border: 1px solid #6b4a1c; color: #f6d9a8; font-size: 12px; }
+.mtgMutedLine { margin: 0; color: #9aa0ac; font-size: 12px; overflow-wrap: anywhere; }
+.mtgSumLine { margin: 0; color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; }
+.mtgGapEd { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid #2c3039; border-radius: 8px; background: #191c23; }
+.mtgEdTitle { margin: 0; overflow-wrap: anywhere; }
+.mtgEdTitle b[data-who='pit'] { color: var(--tl-pit); }
+.mtgEdTitle b[data-who='mia'] { color: var(--tl-mia); }
+.mtgEdTitle b[data-who='dictor'] { color: var(--tl-dictor); }
+.mtgEdRow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0; }
+.mtgInput { appearance: none; font: inherit; width: 66px; box-sizing: border-box; padding: 6px 8px; min-height: 32px; border-radius: 8px; border: 1px solid #3a3f4b; background: #0e1013; color: #fff; font-variant-numeric: tabular-nums; }
+.mtgEditList { margin: 0; padding: 0; list-style: none; counter-reset: ed; display: flex; flex-direction: column; gap: 4px; }
+.mtgEditList li { counter-increment: ed; display: flex; gap: 6px; align-items: flex-start; padding: 6px; border: 1px solid #2c3039; border-radius: 8px; background: #191c23; }
+.mtgEditList li[data-missing='1'] { opacity: 0.6; }
+.mtgEditGo { appearance: none; flex: 1 1 auto; min-width: 0; margin: 0; padding: 0; border: 0; background: none; color: #e0e0e0; font: inherit; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.mtgEditGo::before { content: counter(ed) '. '; color: #f2a65a; font-weight: 700; }
+.mtgEditGo small { color: #8a8f9a; font-size: 11px; }
+.mtgEditDel { flex: none; padding: 4px 8px; min-height: 28px; }
+.mtgBox { position: relative; }
+.mtgToast { position: absolute; z-index: 8; left: calc(var(--mtg-toast-left, 100px)); right: 10px; top: 34px; margin: 0; padding: 6px 10px; border-radius: 8px; background: #3a1418; border: 1px solid var(--tl-dead); color: #ffd0d2; font-size: 12px; pointer-events: none; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5); }
+.mtgEditList { max-height: 38vh; overflow-y: auto; }
+@media (max-width: 899px) { .mtgToast { left: 8px; right: 8px; } .mtgEditList { max-height: none; } }

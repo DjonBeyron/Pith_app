@@ -1,0 +1,94 @@
+/* Вкладка «Монтаж» таймлайна (features/timeline/montage/TimelineMontage.jsx): каркас монтажного стола — панель инструментов, стол с дорожками на всю высоту окна, мини-карта, боковая панель.
+   Клипы, зазоры, этапы — timeline-montage-clips.css; режим «Правка» и список правок — timeline-montage-edit.css. Цвета говорящих — переменные .tl (timeline.css).
+   Телефон 375×812: прокрутка по времени ВНУТРИ .mtgScroll, страница вбок не едет; боковая панель уходит под стол. */
+.tlBody > .mtg { flex: 1 1 auto; min-height: 430px; }
+.mtg { display: flex; flex-direction: column; gap: 8px; min-width: 0; --mtg-anim: #f5c451; --mtg-tech: #5b8def; }
+.mtgBar { display: flex; flex-direction: column; gap: 6px; flex: none; }
+.mtgBarRow { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.mtgEditBtn { font-weight: 600; }
+.mtgEditBtn[aria-pressed='true'], .tlChip[aria-pressed='true'] { background: #4a3413; border-color: #f2a65a; color: #fff; }
+.mtgHow { margin: 0; color: #cfd3dc; font-size: 12px; flex: 1 1 260px; min-width: 0; }
+.mtgHow b { color: #fff; }
+.mtgKeys { color: #8a8f9a; white-space: nowrap; }
+.mtgLegend { margin: 0; display: flex; flex-wrap: wrap; gap: 3px 12px; color: #9aa0ac; font-size: 12px; }
+.mtgLegend i { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; box-sizing: border-box; }
+.mtgLegend i[data-k='pit'] { background: var(--tl-pit); }
+.mtgLegend i[data-k='mia'] { background: var(--tl-mia); }
+.mtgLegend i[data-k='dictor'] { background: var(--tl-dictor); }
+.mtgLegend i[data-k='silent'] { background: repeating-linear-gradient(135deg, #8a8f9a 0 2px, transparent 2px 5px); border: 1px dashed #b9bdc7; }
+.mtgLegend i[data-k='dead'] { background: rgba(229, 72, 77, 0.55); border: 1px solid var(--tl-dead); }
+.mtgLegend i[data-k='player'] { background: rgba(160, 166, 178, 0.35); border: 1px solid #8a8f9a; }
+.mtgLegend i[data-k='anim'] { background: rgba(245, 196, 81, 0.4); border: 1px solid var(--mtg-anim); }
+.mtgLegend i[data-k='count'] { background: rgba(91, 141, 239, 0.4); border: 1px solid var(--mtg-tech); }
+
+.mtgMain { flex: 1 1 auto; min-height: 0; display: flex; gap: 10px; align-items: stretch; }
+.mtgBox { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.mtgScroll {
+  flex: 1 1 auto; min-height: 330px; overflow-x: auto; overflow-y: hidden; border: 1px solid #23262d; border-radius: 10px; background: #111318;
+  -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; touch-action: pan-x; cursor: grab;
+}
+.mtgScroll[data-pan='1'] { cursor: grabbing; user-select: none; }
+.mtgCanvas { position: relative; z-index: 0; min-width: 100%; height: 100%; display: grid; grid-template-columns: max-content; grid-template-rows: 28px 40px repeat(3, minmax(52px, 1fr)) 46px 36px; }
+.mtgRow { grid-column: 1; display: flex; min-height: 0; border-bottom: 1px solid #1d2027; pointer-events: none; }
+.mtgRow[data-row='ruler'] { background: #171a20; pointer-events: auto; cursor: col-resize; touch-action: none; }
+.mtgRow[data-row='stages'] { background: #14171d; }
+.mtgRow[data-row='pit'] { background: rgba(242, 166, 90, 0.045); }
+.mtgRow[data-row='mia'] { background: rgba(199, 155, 242, 0.045); }
+.mtgRow[data-row='dictor'] { background: rgba(111, 179, 255, 0.045); }
+.mtgRow[data-row='marks'] { border-bottom: 0; }
+.mtgLabel {
+  position: sticky; left: 0; z-index: 6; flex: none; width: var(--mtg-label); box-sizing: border-box; padding: 0 8px; display: flex; align-items: center; pointer-events: auto; cursor: default;
+  background: #1b1e25; border-right: 1px solid #2c3039; color: #dfe3ea; font-size: 12px; font-weight: 600; line-height: 1.15; overflow: hidden;
+}
+.mtgRow[data-row='pit'] .mtgLabel { box-shadow: inset 4px 0 0 var(--tl-pit); }
+.mtgRow[data-row='mia'] .mtgLabel { box-shadow: inset 4px 0 0 var(--tl-mia); }
+.mtgRow[data-row='dictor'] .mtgLabel { box-shadow: inset 4px 0 0 var(--tl-dictor); }
+.mtgRow[data-row='ruler'] .mtgLabel, .mtgRow[data-row='pills'] .mtgLabel, .mtgRow[data-row='marks'] .mtgLabel { color: #9aa0ac; font-weight: 400; font-size: 11px; }
+.mtgLane { position: relative; flex: none; height: 100%; }
+.mtgLane > * { pointer-events: auto; }
+.mtgTick { position: absolute; top: 0; bottom: 0; padding-left: 5px; border-left: 1px solid #3a3f4b; color: #b9bdc7; font-size: 11px; line-height: 28px; font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none; }
+.mtgOver { grid-column: 1; position: relative; margin-left: var(--mtg-label); pointer-events: none; min-height: 0; }
+.mtgLines { z-index: 4; }
+.mtgStageLine { position: absolute; top: 28px; bottom: 0; width: 0; border-left: 1px dashed rgba(223, 227, 234, 0.45); }
+.mtgPlayhead { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px solid #fff; filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.9)); }
+.mtgPlayhead b {
+  position: absolute; top: 3px; left: 3px; padding: 2px 6px; border-radius: 6px; background: #fff; color: #111; font: 600 11px/1.3 system-ui, sans-serif;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.mtgMany { position: absolute; top: 30%; bottom: 30%; border-radius: 3px; background: #3a3f4b; color: #cfd3dc; font: normal 10px/1 system-ui, sans-serif; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+
+/* Мини-карта всей игры */
+.mtgMini { position: relative; flex: none; height: 30px; border: 1px solid #23262d; border-radius: 8px; background: #14161b; overflow: hidden; cursor: pointer; touch-action: none; }
+.mtgMini > i { position: absolute; top: 0; bottom: 0; }
+.mtgMiniStage { top: 4px !important; bottom: 4px !important; opacity: 0.75; box-shadow: inset 1px 0 0 #0e1013; }
+.mtgMiniDead { top: 18px !important; background: var(--tl-dead); border-radius: 1px; }
+.mtgMiniPh { width: 0; border-left: 2px solid #fff; }
+.mtgMiniWin { border: 2px solid #fff; border-radius: 5px; background: rgba(255, 255, 255, 0.14); box-sizing: border-box; }
+.mtgMiniEnd { position: absolute; right: 5px; top: 1px; font-size: 10px; color: #cfd3dc; text-shadow: 0 0 3px #000; pointer-events: none; }
+
+/* Боковая панель: «в этот момент» и список правок */
+.mtgSide { flex: none; width: 330px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; }
+.mtgNow, .mtgEdits { border: 1px solid #23262d; border-radius: 10px; background: #14161b; padding: 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.mtgH { margin: 0; font-size: 13px; font-weight: 600; color: #fff; }
+.mtgH small { color: #8a8f9a; font-weight: 400; }
+.mtgNowRows { margin: 0; display: grid; gap: 5px; }
+.mtgNowRows > div { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 8px; }
+.mtgNowRows dt { color: #8a8f9a; font-size: 12px; }
+.mtgNowRows dd { margin: 0; overflow-wrap: anywhere; }
+.mtgNowRows small { color: #8a8f9a; font-size: 11px; display: block; }
+.mtgNowRows [data-who='pit'] b { color: var(--tl-pit); }
+.mtgNowRows [data-who='mia'] b { color: var(--tl-mia); }
+.mtgNowRows [data-who='dictor'] b { color: var(--tl-dictor); }
+.mtgNowRows [data-kind='dead'] b { color: #ff8f93; }
+.mtgNowRows [data-kind='anim'] b { color: var(--mtg-anim); }
+
+@media (max-width: 899px) {
+  .mtgMain { flex-direction: column; }
+  .mtgSide { width: auto; overflow: visible; }
+  .mtgScroll { flex: none; height: 372px; min-height: 0; }
+  .mtgKeys { display: none; }
+  .mtgLabel { padding: 0 5px; font-size: 11px; }
+  .mtgRow[data-row='ruler'] .mtgLabel, .mtgRow[data-row='pills'] .mtgLabel, .mtgRow[data-row='marks'] .mtgLabel { font-size: 9px; }
+  .mtgLegend, .mtgHow { font-size: 11px; }
+  .tlBody > .mtg { flex: none; min-height: 0; }
+}

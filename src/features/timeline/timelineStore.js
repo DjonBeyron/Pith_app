@@ -43,7 +43,7 @@ export function savedWhen(iso, now = new Date()) {
 
 /**
  * Общий список прохождений для экрана: сначала сохранённые на сервере (старые первыми), потом этого устройства. Повторы убраны: запись сервера, совпавшая с прохождением этого устройства, не показывается
- * (у него пометка saved), одинаковые записи сервера (id + savedAt) — один раз. → [{ key, src: 'local' | 'server', run, saved, label }]
+ * (у него пометка saved), одинаковые записи сервера (id + savedAt) — один раз. → [{ key, src: 'local' | 'server', run, saved, label, rid (id прохождения — ключ черновика правок монтажа), edits (черновик правок с сервера или null) }]
  */
 export function sourceList(local = [], server = [], now = new Date()) {
   const mine = local.filter(hasScene), seen = new Set(), out = []
@@ -51,11 +51,11 @@ export function sourceList(local = [], server = [], now = new Date()) {
     const key = `s:${r.id}|${r.savedAt}`
     if (seen.has(key) || mine.some(l => sameRun(l, r))) continue
     seen.add(key)
-    out.push({ key, src: 'server', run: r, saved: true, label: ['сервер', r.device, savedWhen(r.savedAt, now), r.appVersion ? `v${r.appVersion}` : '', game(r.meta), `${r.events.length} соб.`].filter(Boolean).join(' · ') })
+    out.push({ key, src: 'server', run: r, saved: true, rid: r.id, edits: r.edits ?? null, label: ['сервер', r.device, savedWhen(r.savedAt, now), r.appVersion ? `v${r.appVersion}` : '', game(r.meta), `${r.events.length} соб.`].filter(Boolean).join(' · ') })
   }
   for (const r of mine) {
-    const saved = server.some(s => sameRun(r, s))
-    out.push({ key: `l:${r.id}`, src: 'local', run: r, saved, label: ['это устройство', `№${r.id}`, r.at ? hhmm(new Date(r.at)) : '', game(r.meta), `${r.events.length} соб.`, saved ? '☁ на сервере' : ''].filter(Boolean).join(' · ') })
+    const twin = server.find(s => sameRun(r, s)) ?? null, saved = !!twin
+    out.push({ key: `l:${r.id}`, src: 'local', run: r, saved, rid: twin?.id ?? serverId(r), edits: twin?.edits ?? null, label: ['это устройство', `№${r.id}`, r.at ? hhmm(new Date(r.at)) : '', game(r.meta), `${r.events.length} соб.`, saved ? '☁ на сервере' : ''].filter(Boolean).join(' · ') })
   }
   return out
 }

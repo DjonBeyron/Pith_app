@@ -2,7 +2,8 @@ import { supabase } from './supabase.js'
 import { dbg, pLog } from '../lib/debug.js'
 
 // «Таймлайн игры»: последние прохождения на сервере, чтобы сыграть на телефоне, а смотреть на ПК (CONCEPT_TIMELINE.md, «Последние игры на сервере»). Одна строка app_settings, ключ race_timeline_last:
-// { v: 1, runs: [ { id, savedAt (ISO), at, device, appVersion, meta, events, dropped } ] } — последние TIMELINE_KEEP прохождений, новые в конце. Новой таблицы и миграции нет (образец — catLinesApi.js).
+// { v: 1, runs: [ { id, savedAt (ISO), at, device, appVersion, meta, events, dropped, edits? } ] } — последние TIMELINE_KEEP прохождений, новые в конце.
+// edits (с v3.3.340, необязательное) — черновик правок монтажа этого прохождения { v: 1, savedAt, edits: […] } (features/timeline/montage): начать на ПК, продолжить на другом устройстве. Старые записи без поля читаются как раньше. Новой таблицы и миграции нет (образец — catLinesApi.js).
 // Пишет только админ (RLS app_settings_write_admin; .select() обязателен — отсечённая политикой запись иначе выглядела бы успехом). Читает админ: ключа нет в белом списке app_settings_public_keys.
 // Строку НИКТО не читает на старте приложения: только экран таймлайна при открытии и запись перед тем, как дописать своё прохождение («прочитать → добавить → оставить последние 3 → записать»).
 // Гонку двух устройств не решаем: прав последний записавший. Ни одна функция не бросает наружу — игра от сервера не зависит: ошибки уходят в журнал (pLog) и в результат { ok: false, error }.
@@ -23,8 +24,9 @@ export const runsOf = value => (Array.isArray(value?.runs) ? value.runs.filter(r
 
 /** Значение строки + новое прохождение → новое значение: то же id заменяется (повторное сохранение), остаются последние keep, новые в конце */
 export function mergeRuns(value, run, keep = TIMELINE_KEEP) {
-  const rest = runsOf(value).filter(r => r.id !== run.id)
-  return { v: 1, runs: [...rest, trimRun(run)].slice(-keep) }
+  const all = runsOf(value), old = all.find(r => r.id === run.id), rest = all.filter(r => r.id !== run.id)
+  const next = trimRun(run.edits == null && old?.edits != null ? { ...run, edits: old.edits } : run) // повторное сохранение прохождения не стирает его черновик правок
+  return { v: 1, runs: [...rest, next].slice(-keep) }
 }
 
 /** Прочитать сохранённые прохождения. → { runs, error } (error — текст для экрана или null); не бросает */
@@ -56,5 +58,25 @@ export async function saveTimeline(run, { client = supabase, log = pLog } = {}) 
   } catch (e) {
     try { log(`[timeline] прохождение НЕ сохранено на сервер: ${msgOf(e)} — игра от сервера не зависит, таймлайн этого сеанса остаётся на устройстве`) } catch { /* журнал не мешает */ }
     return { ok: false, error: msgOf(e), bytes: 0, count: 0, events: 0 }
+  }
+}
+
+/**
+ * Записать черновик правок монтажа draft ({ v, savedAt, edits }) к прохождению run (запись сервера или упакованное прохождение — timelineStore.packRun). Прохождения на сервере ещё нет — оно дописывается вместе
+ * с черновиком. Конфликт двух устройств не решаем: прав последний записавший. → { ok, error }; не бросает.
+ */
+export async function saveTimelineEdits(run, draft, { client = supabase, log = pLog } = {}) {
+  try {
+    const cur = await client.from('app_settings').select('value').eq('key', TIMELINE_KEY).maybeSingle()
+    if (cur.error) throw cur.error
+    const value = mergeRuns(cur.data?.value, { ...(runsOf(cur.data?.value).find(r => r.id === run.id) ?? run), edits: draft })
+    dbg('[DB WRITE] app_settings', TIMELINE_KEY, 'черновик правок монтажа')
+    const { data, error } = await client.from('app_settings').upsert({ key: TIMELINE_KEY, value, updated_at: new Date().toISOString() }, { onConflict: 'key' }).select('key')
+    if (error) throw error
+    if (!data?.length) throw new Error('сервер не подтвердил запись (нужны права админа)')
+    return { ok: true, error: null, count: draft?.edits?.length ?? 0 }
+  } catch (e) {
+    try { log(`[timeline] черновик правок монтажа НЕ сохранён на сервер: ${msgOf(e)} — он остаётся на этом устройстве`) } catch { /* журнал не мешает */ }
+    return { ok: false, error: msgOf(e), count: 0 }
   }
 }

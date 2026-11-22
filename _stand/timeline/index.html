@@ -4,7 +4,9 @@
 <script type="module">
 // Стенд «Таймлайна игры» (dev, в сборку не входит): экран features/timeline/TimelineScreen.jsx на фикстуре событий трассы, без сети и без игры.
 //  • ?fixture=long — длинное прохождение (600 слов, ≈ 3000 событий: проверка, что в DOM не тысячи узлов); ?fixture=empty — игр на этом устройстве нет; ?fixture=rev — игра с разворотом конвейера и Мией;
-//  • ?tab=pauses | ribbon | list — вкладка (по умолчанию «Паузы»);
+//  • ?fixture=real — вырезка НАСТОЯЩЕЙ игры владельца с iPhone (timelineFixtureReal.js: первые ≈ 2 мин прохождения из журнала) — проверка «Монтажа» на реальных длинах звука и зазорах;
+//  • ?tab=montage | pauses | ribbon | list — вкладка (по умолчанию: ширина окна от 900 px — «Монтаж», уже — «Паузы»); ?edit=1 — «Монтаж» сразу в режиме «✎ Правка».
+//    Черновик правок хранится в localStorage этого стенда (ключ pithy.timeline.edits.<id прохождения>) — перезагрузка страницы его не теряет; ?server=1 — ещё и в подставном «сервере» (runs[i].edits);
 //  • ?server=1 — подставной «сервер»: два сохранённых прохождения с других устройств (Android и iPhone), «☁ Сохранить на сервер» пишет в память страницы; ?server=empty — на сервере пусто;
 //    ?server=error — сеть недоступна; ?server=slow — ответ через 4 с (состояние загрузки). Без ?server — сервера нет (кнопок сервера нет).
 import React from 'react'
@@ -12,17 +14,20 @@ import { createRoot } from 'react-dom/client'
 import TimelineScreen from '/src/features/timeline/TimelineScreen.jsx'
 import { fixtureEvents, longFixture } from '/src/features/timeline/timelineFixture.js'
 import { reverseEvents, serverRuns } from '/src/features/timeline/timelineFixtureServer.js'
+import { realEvents } from '/src/features/timeline/timelineFixtureReal.js'
 import { packRun } from '/src/features/timeline/timelineStore.js'
 
 const q = new URLSearchParams(location.search), kind = q.get('fixture') || 'game', mode = q.get('server')
-const events = kind === 'long' ? longFixture() : kind === 'rev' ? reverseEvents() : fixtureEvents()
-const runs = kind === 'empty' ? [] : [{ id: 1, at: Date.now() - 600000, meta: { game: 'race', only: 'pingpong', seed: 'r0' }, events: longFixture(40), dropped: 0 }, { id: 2, at: Date.now(), meta: { game: 'race', only: 'stages', seed: 'r1' }, events, dropped: 0 }]
+const events = kind === 'long' ? longFixture() : kind === 'rev' ? reverseEvents() : kind === 'real' ? realEvents() : fixtureEvents()
+const AT = 1795000000000 // время старта прохождений стенда постоянное: id прохождения (ключ черновика правок) не меняется между перезагрузками
+const runs = kind === 'empty' ? [] : [{ id: 1, at: AT - 600000, meta: { game: 'race', only: 'pingpong', seed: 'r0' }, events: longFixture(40), dropped: 0 }, { id: kind === 'real' ? 3 : kind === 'long' ? 4 : kind === 'rev' ? 5 : 2, at: AT, meta: { game: 'race', only: 'stages', seed: 'r1' }, events, dropped: 0 }]
 let value = { v: 1, runs: mode === '1' || mode === 'slow' ? serverRuns() : [] }
 const wait = ms => new Promise(r => setTimeout(r, ms))
 const server = mode ? {
   read: async () => { await wait(mode === 'slow' ? 4000 : 250); return mode === 'error' ? { runs: [], error: 'TypeError: Failed to fetch' } : { runs: value.runs, error: null } },
   save: async run => { await wait(250); if (mode === 'error') return { ok: false, error: 'TypeError: Failed to fetch' }; const mine = packRun(run); value = { v: 1, runs: [...value.runs.filter(r => r.id !== mine.id), mine].slice(-3) }; // как timelineApi.mergeRuns: то же id заменяется, остаются последние 3
     return { ok: true, bytes: JSON.stringify(value).length, count: value.runs.length } },
+  saveEdits: async (run, draft) => { await wait(250); if (mode === 'error') return { ok: false, error: 'TypeError: Failed to fetch' }; const mine = run.savedAt ? run : packRun(run); value = { v: 1, runs: [...value.runs.filter(r => r.id !== mine.id), { ...mine, edits: draft }].slice(-3) }; window.__srvEdits = draft; return { ok: true } },
 } : null
-createRoot(document.getElementById('root')).render(React.createElement(TimelineScreen, { runs, server, tab0: q.get('tab') || 'pauses', onClose: () => { document.title = 'closed' } }))
+createRoot(document.getElementById('root')).render(React.createElement(TimelineScreen, { runs, server, tab0: q.get('tab') || null, edit0: q.get('edit') === '1', onClose: () => { document.title = 'closed' } }))
 </script></body></html>

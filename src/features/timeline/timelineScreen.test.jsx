@@ -35,9 +35,9 @@ describe('экран «Таймлайн игры»', () => {
     expect(s).toContain('долгих пауз 3'); expect(s).toContain('Прохождение <b>91,9 с</b>')
   })
 
-  it('три вкладки «Паузы · Лента · Список», экран открывается на «Паузы»; сводка по этапам с названиями для админа; порог 1 / 1,5 / 2 с', () => {
+  it('четыре вкладки «Монтаж · Паузы · Лента · Список», без ширины окна (телефон, тесты разметки) экран открывается на «Паузы»; сводка по этапам с названиями для админа; порог 1 / 1,5 / 2 с', () => {
     const s = html()
-    expect([...s.matchAll(/role="tab" aria-selected="(true|false)"[^>]*>([^<]+)</g)].map(x => `${x[2]}:${x[1]}`)).toEqual(['Паузы:true', 'Лента:false', 'Список:false'])
+    expect([...s.matchAll(/role="tab" aria-selected="(true|false)"[^>]*>([^<]+)</g)].map(x => `${x[2]}:${x[1]}`)).toEqual(['Монтаж:false', 'Паузы:true', 'Лента:false', 'Список:false']) // v3.3.340: добавилась вкладка «Монтаж» (на ПК открывается первой — montageScreen.test.jsx)
     expect(s).toContain('data-testid="tl-pauses"'); expect(s).not.toContain('data-testid="tl-ribbon"'); expect(s).not.toContain('data-testid="tl-list"')
     expect(count(s, /data-testid="tl-pause"/g)).toBe(3)
     expect(s).toContain('<span class="tlActName">Конвейер слов — реверс</span>')

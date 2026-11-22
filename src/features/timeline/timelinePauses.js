@@ -10,7 +10,7 @@ import { stageTitle } from './timelineStageNames.js'
 import { markers, insideOf, SIDE_START, SIDE_END } from './timelinePauseSides.js'
 
 export const MIN_PIECE_MS = 40 // куски короче — шум округления, не показываем
-const ORDER = ['paused', 'player', 'count', 'wait'] // кто главнее, когда причины накладываются
+export const ORDER = ['paused', 'player', 'count', 'wait'] // кто главнее, когда причины накладываются
 const EDGE_MS = 30 // событие «на границе» куска: в пределах стольких мс
 
 /** Когда игра ждёт игрока: пилюля от появления до принятия слова (или исхода), ход фразы целиком, стадия ученика без единой пилюли */
@@ -23,7 +23,7 @@ export function playerSpans(m) {
   return unionSpans(spans)
 }
 
-const cutBy = (pieces, spans, kind) => { // куски без причины режутся отрезками spans: пересечение получает причину kind
+export const cutBy = (pieces, spans, kind) => { // куски без причины режутся отрезками spans: пересечение получает причину kind
   const out = []
   for (const p of pieces) {
     if (p.kind) { out.push(p); continue }
@@ -39,13 +39,16 @@ const cutBy = (pieces, spans, kind) => { // куски без причины р�
   return out
 }
 
+/** Чем игра занята, пока никто не говорит: отрезки по причинам (их же режет «Монтаж» — montage/montageModel.js) */
+export const causeSpans = m => ({ paused: unionSpans(m.holds), player: playerSpans(m), count: unionSpans(m.counts), wait: unionSpans(m.waits) })
+
 /** Модель → куски пауз по времени: [{ t, end, ms, kind, long, sid, act, stage, before, after, saidBefore, saidAfter, mid, inside }]. threshold — порог «долгой» для dead, мс */
 export function buildPauses(m, threshold = DEFAULT_THRESHOLD) {
   const speech = unionSpans(m.lines)
   let pieces = [], at = 0
   for (const s of speech) { if (s.t > at) pieces.push({ t: at, end: s.t, kind: null }); at = Math.max(at, s.end) }
   if (m.dur > at) pieces.push({ t: at, end: m.dur, kind: null })
-  const by = { paused: unionSpans(m.holds), player: playerSpans(m), count: unionSpans(m.counts), wait: unionSpans(m.waits) }
+  const by = causeSpans(m)
   for (const k of ORDER) pieces = cutBy(pieces, by[k], k)
   const marks = markers(m), lineEnds = marks.filter(x => x.rank === 0 && x.edge === 'end'), lineStarts = marks.filter(x => x.rank === 0 && x.edge === 'start')
   const firstFrom = (list, t) => { let lo = 0, hi = list.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (list[mid].t < t) lo = mid + 1; else hi = mid } return lo } // индекс первого события с t ≥ заданного

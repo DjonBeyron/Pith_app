@@ -1,0 +1,84 @@
+/* «Монтаж» таймлайна: то, что лежит на дорожках, — клипы реплик (MontageClip.jsx), зазоры тишины (MontageGap.jsx), этапы, пилюли и ответы, ноты и ожидания (MontageTracks.jsx).
+   Ширина каждого блока задаётся в px по времени (style) — здесь только вид. Каркас стола — timeline-montage.css. */
+
+/* Клип: фон — полупрозрачный «хвост», сплошная часть .mtgClipSound — сколько реально звучало аудио */
+.mtgClip {
+  appearance: none; position: absolute; top: 5px; bottom: 5px; z-index: 2; box-sizing: border-box; margin: 0; padding: 3px 6px; border: 0; border-radius: 6px; cursor: pointer; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: center; gap: 2px; text-align: left; color: #14110c; font: 12px/1.15 system-ui, -apple-system, 'Segoe UI', sans-serif; min-width: 3px;
+}
+.mtgClip[data-who='pit'] { --c: var(--tl-pit); }
+.mtgClip[data-who='mia'] { --c: var(--tl-mia); }
+.mtgClip[data-who='dictor'] { --c: var(--tl-dictor); }
+.mtgClip { background: color-mix(in srgb, var(--c) 30%, transparent); }
+.mtgClipSound { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; background: var(--c); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35); }
+.mtgClip[data-silent='1'] .mtgClipSound { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--c) 55%, transparent) 0 4px, transparent 4px 9px); box-shadow: inset 0 0 0 1px var(--c); }
+.mtgClip[data-silent='1'] { color: #f1f3f7; }
+.mtgClipText, .mtgClipDur { position: relative; overflow: hidden; pointer-events: none; flex: none; }
+.mtgClipText { font-weight: 500; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto; }
+.mtgClipDur { white-space: nowrap; text-overflow: ellipsis; }
+.mtgClipDur { font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; opacity: 0.85; }
+.mtgClip[data-mode='dur'] { padding: 3px 2px; align-items: center; }
+.mtgClip[data-mode='dur'] .mtgClipDur { font-size: 10px; opacity: 1; }
+.mtgClip[data-mode='none'] { padding: 0; }
+.mtgClip[data-on='1'] { outline: 2px solid #fff; outline-offset: 1px; z-index: 3; }
+.mtgClip:hover { filter: brightness(1.08); }
+
+/* Зазор: колонка тишины через три дорожки речи, сверху скобка с числом секунд */
+.mtgGap {
+  appearance: none; position: absolute; top: 0; bottom: 0; box-sizing: border-box; margin: 0; padding: 14px 0 0; border: 0; pointer-events: auto; cursor: pointer; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; color: #cfd3dc; font: 11px/1.15 system-ui, sans-serif; --g: #8f96a3; background: repeating-linear-gradient(135deg, rgba(143, 150, 163, 0.16) 0 6px, rgba(143, 150, 163, 0.07) 6px 12px);
+}
+.mtgGap[data-kind='dead'][data-long='1'] { --g: var(--tl-dead); background: rgba(229, 72, 77, 0.24); color: #ffd0d2; }
+.mtgGap[data-kind='player'] { --g: #a0a6b2; background: rgba(160, 166, 178, 0.14); color: #b9bdc7; }
+.mtgGap[data-kind='anim'] { --g: var(--mtg-anim); background: rgba(245, 196, 81, 0.16); color: #f8dc94; }
+.mtgGap[data-kind='count'], .mtgGap[data-kind='wait'] { --g: var(--mtg-tech); background: rgba(91, 141, 239, 0.15); color: #b7ccf8; }
+.mtgGap[data-kind='paused'] { --g: #8a8f9a; background: repeating-linear-gradient(135deg, rgba(138, 143, 154, 0.22) 0 5px, transparent 5px 11px); }
+.mtgGapBr { position: absolute; left: 1px; right: 1px; top: 4px; height: 7px; box-sizing: border-box; border: 1.5px solid var(--g); border-bottom: 0; border-radius: 2px 2px 0 0; }
+.mtgGap b { font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; color: #f1f3f7; }
+.mtgGap[data-long='1'] b { font-size: 13px; color: #fff; }
+.mtgGap span { white-space: nowrap; font-size: 10px; opacity: 0.9; }
+.mtgGap[data-on='1'] { box-shadow: inset 0 0 0 2px #fff; }
+.mtgGap:hover { filter: brightness(1.25); }
+.mtgGapMany { position: absolute; top: 0; bottom: 0; background: rgba(107, 114, 128, 0.12); }
+
+/* Этапы: цветной отрезок на всю длину этапа, название не уезжает за левый край при прокрутке */
+.mtgStage {
+  position: absolute; top: 4px; bottom: 4px; box-sizing: border-box; border-radius: 0 6px 6px 0; border-left: 3px solid var(--a, #7f8796); background: color-mix(in srgb, var(--a, #7f8796) 32%, #14171d);
+  color: #f1f3f7; font: normal 12px/1.15 system-ui, sans-serif; overflow: hidden; display: flex; align-items: center;
+}
+.mtgStage span { position: sticky; left: calc(var(--mtg-label) + 6px); padding: 0 6px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.mtgStage em { font-style: normal; font-weight: 400; color: #cfd3dc; font-variant-numeric: tabular-nums; }
+.mtgStage[data-type='announce'] { background: color-mix(in srgb, var(--a, #7f8796) 16%, #14171d); border-left-style: dashed; }
+.mtg [data-act='sprint'] { --a: #4f9bd9; }
+.mtg [data-act='catch'] { --a: #2fb8a0; }
+.mtg [data-act='phrases'] { --a: #7fc24f; }
+.mtg [data-act='climb'] { --a: #d9a441; }
+.mtg [data-act='descent'] { --a: #b98ae0; }
+.mtg [data-act='boss'] { --a: #e0709b; }
+.mtg [data-act='summary'] { --a: #8a8f9a; }
+.mtgStageLine[data-act] { border-left-color: color-mix(in srgb, var(--a) 75%, transparent); }
+.mtgMiniStage { background: var(--a, #7f8796); }
+
+/* Пилюли и ответы игрока */
+.mtgPill {
+  position: absolute; top: 4px; bottom: 16px; box-sizing: border-box; border-radius: 999px; padding: 0 8px; border: 1px solid #5d6472; background: #262a33; color: #e0e0e0;
+  font: normal 11px/1 system-ui, sans-serif; display: flex; align-items: center; overflow: hidden; white-space: nowrap;
+}
+.mtgPill span { overflow: hidden; text-overflow: ellipsis; }
+.mtgPill[data-res='win'], .mtgPill[data-res='late'] { border-color: var(--tl-ok); }
+.mtgPill[data-res='miss'], .mtgPill[data-res='fail'] { border-color: var(--tl-warn); border-style: dashed; }
+.mtgAns { position: absolute; bottom: 1px; z-index: 3; transform: translateX(-50%); width: 14px; height: 14px; border-radius: 50%; background: var(--tl-ok); color: #0e1013; font: normal 700 9px/14px system-ui, sans-serif; text-align: center; }
+.mtgAns[data-res='miss'], .mtgAns[data-res='fail'], .mtgAns[data-res='none'] { background: var(--tl-warn); }
+
+/* Ноты и ожидания */
+.mtgMark {
+  position: absolute; top: 7px; bottom: 7px; box-sizing: border-box; border-radius: 5px; padding: 0 6px; background: rgba(91, 141, 239, 0.22); border: 1px solid var(--mtg-tech); color: #cdd9f7;
+  font: normal 11px/1 system-ui, sans-serif; display: flex; align-items: center; overflow: hidden; white-space: nowrap;
+}
+.mtgMark[data-kind='hold'] { background: repeating-linear-gradient(135deg, rgba(138, 143, 154, 0.3) 0 5px, transparent 5px 11px); border-color: #8a8f9a; color: #cfd3dc; }
+.mtgMark[data-kind='wait'] { border-style: dashed; }
+.mtgNote { position: absolute; top: 50%; transform: translate(-50%, -50%); color: #f5c451; font: normal 13px/1 system-ui, sans-serif; z-index: 2; }
+
+@media (max-width: 899px) {
+  .mtgClip { font-size: 11px; padding: 2px 4px; }
+}
