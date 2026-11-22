@@ -21,6 +21,7 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
     if (!stage || !field) return undefined
     let raf = 0, tr = null, topShown = -1, blShown = -1, last = 0, fadedId = -1, exitId = -1 // exitId — пилюля, чья линия уже уходит слева направо;
     let fd = { id: null, from: null, p: 1 } // выцветание маркера последнего законченного слова (фиолетовый → серый, пока следующая пилюля не станет видна целиком)
+    let lost = -1 // слово, кончившееся без верного ответа: его треугольник гаснет у низа шкалы
     let slots = [] // маркеры слов (bossScale.marksStep): у каждого слова свой, живых не больше двух
     const trail = createTrail() // путь линии текущего слова по кадрам: по нему отметка встаёт на место ответа (bossAnswer.js)
     const frame = now => {
@@ -48,6 +49,7 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
       tr = trackStep(tr, pills, H, now)
       if (tr && !tr.done) { if (tr.id !== was?.id) takeBossAnswerAt(); trail.push(tr.id, now, tr.y) } // след линии этого слова; у нового слова чужой (не забранный) момент ответа сброшен
       else if (tr && was !== tr && pills.find(p => p.el === tr.el)?.locked) { tr = lockAtAnswer(tr, trail, takeBossAnswerAt()); if (tr.fixed) setBossZoneNow(zoneAt(Math.min(1, Math.max(0, tr.y / H)))) } // слово принято: линия, треугольник и зона — там, где пилюля была, когда ученик НАЧАЛ отвечать, а не в миг зачёта по итогу Vosk (bossAnswer.js)
+      if (tr && tr.done && was !== tr && !pills.find(p => p.el === tr.el)?.locked) lost = tr.id // «не успел» / ушло вниз: верного ответа не было
       const el = line.current
       if (!el) return
       if (tr && tr.done && was !== tr && pills.find(p => p.el === tr.el)?.locked) clock.current.onZone?.(zoneAt(Math.min(1, Math.max(0, tr.y / H)))) // слово принято: его зона уходит в машину Мии (не принятые — красные по событиям движка)
@@ -71,7 +73,7 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
         el.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`
         el.dataset.zone = zoneAt(y / H)
       }
-      slots = marksStep(slots, { id: tr ? tr.id : null, y: tr ? Math.min(1, Math.max(0, tr.y / H)) : 0, now, set: !!tr?.fixed && was !== tr }) // слово взято в работу (линия коснулась шкалы) — у него маркер; он идёт за линией и замирает на ответе
+      slots = marksStep(slots, { id: tr ? tr.id : null, y: tr ? Math.min(1, Math.max(0, tr.y / H)) : 0, now, set: !!tr?.fixed && was !== tr, drop: !!tr && tr.id === lost }) // слово взято в работу (линия коснулась шкалы) — у него маркер; он идёт за линией и замирает на ответе
       if (tr?.done && fd.id !== tr.id) fd = { id: tr.id, from: null, p: 0 } // слово закончено (принято / «не успел» / ушло вниз): маркер начинает выцветать
       if (fd.id != null && fd.p < 1) {
         const cur = tr && !tr.done && tr.id !== fd.id ? pills.find(x => x.el === tr.el) : nextPill(pills, H) // следующая пилюля: уже взятая линией или ближайшая к шкале
