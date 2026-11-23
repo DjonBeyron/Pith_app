@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react'
-import { lineVoiceState, isSpeaker } from './timelineLineEdit.js'
+import { lineVoiceState, isSpeaker, mouthState } from './timelineLineEdit.js'
 
 // Правка реплики в карточке блока (TimelineCard): «📋 Копировать текст» и «📋 id»; для реплик Пита и Мии — статус озвучки (тот же, что в таблице «Озвучка Пита»), поле с текстом ИЗ НАСТРОЕК НА СЕЙЧАС
-// (если в этой игре звучал другой — показаны оба), «Сохранить» с подтверждением («текст изменится везде…», где реплика звучит), «🎙 Озвучить заново», «📁 Выбрать файл…», «↶ Вернуть прежний текст».
+// (если в этой игре звучал другой — показаны оба), строка «👄 …» — размечен ли рот по словам (свой файл размечается в браузере при загрузке; «🔁 Разметить рот заново» — для файла без разметки), «Сохранить» с подтверждением («текст изменится везде…», где реплика звучит), «🎙 Озвучить заново», «📁 Выбрать файл…», «↶ Вернуть прежний текст».
 // Слова диктора — только копирование: это слова урока из библиотеки слов, они правятся не здесь. edit — useLineEdit (null — правки на экране нет: остаётся копирование).
-const WHAT = { text: 'сохраняю текст…', voice: 'озвучиваю… (ElevenLabs → файл → настройки)', file: 'загружаю файл…', restore: 'возвращаю прежний текст…' }
+const WHAT = { text: 'сохраняю текст…', voice: 'озвучиваю… (ElevenLabs → файл → настройки)', file: 'загружаю файл…', restore: 'возвращаю прежний текст…', mouth: 'размечаю рот…' }
 const fallbackCopy = async t => { try { await navigator.clipboard.writeText(t); return true } catch { return false } }
 
 export default function TimelineLineEditor({ line, edit = null }) {
@@ -13,6 +13,7 @@ export default function TimelineLineEditor({ line, edit = null }) {
   const [copied, setCopied] = useState('')
   const file = useRef(null)
   const st = lineVoiceState(line, edit?.audit), id = line.id
+  const mouth = mouthState(edit?.lines?.[id])
   const cur = st.now || line.text || '', text = draft ?? cur, dirty = draft != null && draft.trim() !== cur.trim()
   const busy = edit?.busy?.id === id ? edit.busy.what : null, off = !!edit?.busy
   const copy = async (what, t) => { const ok = await (edit?.copy ?? fallbackCopy)(t); setCopied(ok ? `✓ ${what} скопирован` : '✗ буфер обмена недоступен — выдели текст вручную') }
@@ -30,6 +31,7 @@ export default function TimelineLineEditor({ line, edit = null }) {
   return (
     <section className="tlLe" data-testid="tl-le" data-who={line.who} data-status={st.status}>
       <p className="tlLeStatus" data-mark={st.mark} data-testid="tl-le-status">{st.label}{st.status === 'stale' && st.was ? <small> — файл говорит «{st.was}»</small> : null}</p>
+      {mouth && <p className="tlLeNote" data-kind={mouth.kind} data-testid="tl-le-mouth">{mouth.text}</p>}
       {st.differs && <p className="tlLeNote" data-testid="tl-le-differs">в этой игре звучало: «{line.text}» · сейчас в настройках: «{st.now}»</p>}
       <label className="tlLeLabel">Текст реплики (сейчас в настройках)
         <textarea className="tlLeText" rows={3} value={text} disabled={off} onChange={e => { setDraft(e.target.value); setAsk(false) }} data-testid="tl-le-text" />
@@ -54,6 +56,7 @@ export default function TimelineLineEditor({ line, edit = null }) {
       <div className="tlLeRow">
         <button type="button" className="tlBtn" disabled={off || dirty || st.status === 'skip'} onClick={() => edit.voice(id)} title={dirty ? 'Сначала сохрани текст' : 'Озвучить текущий текст заново (ElevenLabs)'} data-testid="tl-le-voice">🎙 Озвучить заново</button>
         <button type="button" className="tlBtn" disabled={off || dirty} onClick={() => file.current?.click()} title={dirty ? 'Сначала сохрани текст' : 'Загрузить свой аудиофайл для этой реплики'} data-testid="tl-le-file">📁 Выбрать файл…</button>
+        {mouth?.redo && edit.realign && <button type="button" className="tlBtn" disabled={off || dirty || st.status !== 'ok'} onClick={() => edit.realign(id)} title="Скачать файл озвучки и расставить слова по звуку заново (Vosk в браузере)" data-testid="tl-le-realign">🔁 Разметить рот заново</button>}
         <input ref={file} type="file" accept="audio/*" hidden onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) edit.setFile(id, f) }} data-testid="tl-le-file-input" />
       </div>
       {busy && <p className="tlLeNote tlLeBusy" role="status" data-testid="tl-le-busy">{WHAT[busy] ?? busy}</p>}

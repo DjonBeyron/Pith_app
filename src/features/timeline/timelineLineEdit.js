@@ -2,7 +2,10 @@
 // (admin/speech/voiceAudit.auditVoice: сырые настройки rotate_cat_lines против каталога реплик; приходит готовой картой audit — { [id]: { status, reason, was, now, when } }), здесь только слова и цвет:
 //   🟢 ok — файл есть и говорит текущий текст; 🔴 stale — текст изменён, звук старый (игра такую озвучку не играет, идёт подпись); 🔴 nodur — звук без длительности;
 //   ⚪ none / new — озвучки нет (подпись); skip — реплика с {word}, не озвучивается.
+// Разметка рта (👄): у озвучки ElevenLabs тайминги слов приходят вместе с файлом; свой файл размечается в браузере (shared/lib/vosk/voskAlign.js) — статус читается из самих таймингов реплики
+// (метки слов a, voskAlignFill.alignInfo), поэтому переживает перезагрузку.
 // Чистые функции без React.
+import { alignInfo, alignLine } from '../../shared/lib/vosk/voskAlignFill.js'
 export const MARK = { ok: 'green', stale: 'red', nodur: 'red', none: 'white', new: 'white', skip: 'white' }
 export const TODO = ['stale', 'nodur', 'none', 'new'] // что попадает в «Нужно озвучить» (то же, что voiceAudit.AUDIT_MISSING)
 const LABEL = {
@@ -45,4 +48,21 @@ export function voiceTodo(m, audit) {
 export function saveError(e) {
   const t = String(e?.message ?? e ?? 'ошибка')
   return /не подтвердил запись|row-level security|permission denied|not authorized|JWT/i.test(t) ? `Не сохранилось: запись в настройки реплик проходит только у админа (${t}). Текст в поле остался — ничего не потеряно.` : `Не сохранилось: ${t}. Текст в поле остался — ничего не потеряно.`
+}
+
+/** Запись реплики из настроек → статус разметки рта для карточки: { text, kind ('ok' | 'approx' | 'none'), redo (есть смысл «разметить заново») }; файла озвучки нет → null */
+export function mouthState(rec) {
+  if (!rec?.url) return null
+  const i = alignInfo(rec.words)
+  if (!i.has) return { text: '👄 разметки нет', kind: 'none', redo: true }
+  if (!i.own) return { text: '👄 рот размечен (озвучка ElevenLabs)', kind: 'ok', redo: false }
+  return { text: `👄 ${alignLine(i)}`, kind: i.method === 'vosk' || (i.method === 'vosk+fill' && !i.approx) ? 'ok' : 'approx', redo: i.method !== 'vosk' }
+}
+
+/** Итог только что прошедшей разметки (voskAlign.alignAudio) → фраза для сообщения «готово»; разметки не было → '' */
+export function mouthDone(r) {
+  if (!r) return ''
+  if (!r.words?.length) return `👄 рот не размечен (идёт по тексту)${r.notes?.length ? `: ${r.notes.join('; ')}` : ''}`
+  const extra = (r.notes ?? []).filter(n => !/расставлены по соседям/.test(n))
+  return `👄 ${alignLine(r)}${r.approx && r.method !== 'vosk+fill' ? ' (приблизительно)' : ''}${extra.length ? ` — ${extra.join('; ')}` : ''}`
 }
