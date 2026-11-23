@@ -36,8 +36,8 @@ describe('плашка Мии по реплике за кадром', () => {
     const b = rd('../../player/modules/rotate-phone/WordLaneCommentButton.jsx')
     expect(b).toContain("shutGameMic('комментарий: диктовка')"); expect(b.indexOf("f.pause('comment')")).toBeLessThan(b.indexOf('shutGameMic('))
   })
-  it('ускорение дорожек — только на реплике «я ускоряю игру» (mia_announce_2), плашка и цвет — раньше, с реплики за кадром', () => {
-    expect(SPEED_ID).toBe('mia_announce_2'); expect(rd('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain('!!f.rh.miaPlate?.speedUp')
+  it('ускорение дорожек — только на реплике «А вы, за экраном, слушайте внимательно» (mia_attention), плашка и цвет — раньше, с реплики за кадром', () => {
+    expect(SPEED_ID).toBe('mia_attention'); expect(rd('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain('!!f.rh.miaPlate?.speedUp')
   })
   it('финал (v3.3.280): коробка падает сразу (DROP_AT), реплика Пита — уже после удара коробки (PIT1_AT ≥ DROP_AT + IMPACT), прыжок Мии — к JUMP_ABS', () => {
     expect(BOSS.PIT1_AT).toBeGreaterThanOrEqual(BOSS.DROP_AT + IMPACT * 1000)

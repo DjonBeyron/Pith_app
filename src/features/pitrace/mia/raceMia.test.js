@@ -16,8 +16,8 @@ describe('эпизод «Мия»: когда приходит', () => {
   it('церемония (вход на стадию …3-ann): коробка падает через DROP_AT, шесть реплик (Мия, Пит-мяуканье, Мия, Пит, Мия, Мия), ускорения ещё нет; круг с Мией (…3) ускоряет дорожку', () => {
     const r = reduceMia(miaInit(), ev('enter', ann()))
     expect(r.mia.phase).toBe('in'); expect(r.mia.act).toBe('sprint'); expect(r.mia.used).toEqual({ sprint: true }); expect(r.boost).toBeNull(); expect(r.mia.at).toBe(1000 + MIA.DROP_AT)
-    expect(ids(r)).toEqual(['mia_push', 'pit_panic', 'mia_announce_1', 'pit_reply', 'mia_announce_2', 'mia_announce_3'])
-    expect(r.say.map(l => l.delay)).toEqual([MIA.PUSH_AT, MIA.PANIC_AT, MIA.ANNOUNCE_AT, MIA.REPLY_AT, MIA.ANNOUNCE2_AT, MIA.ANNOUNCE3_AT]); expect(r.say.map(l => l.who)).toEqual(['mia', 'pit', 'mia', 'pit', 'mia', 'mia'])
+    expect(ids(r)).toEqual(['mia_push', 'pit_panic', 'mia_announce_1', 'pit_reply', 'mia_attention', 'mia_announce_2', 'mia_announce_3'])
+    expect(r.say.map(l => l.delay)).toEqual([MIA.PUSH_AT, MIA.PANIC_AT, MIA.ANNOUNCE_AT, MIA.REPLY_AT, MIA.ANNOUNCE2_AT, MIA.ANNOUNCE2_AT, MIA.ANNOUNCE3_AT]); expect(r.say.map(l => l.who)).toEqual(['mia', 'pit', 'mia', 'pit', 'mia', 'mia', 'mia'])
     expect(miaShown(r.mia)).toBe(true)
     const b = reduceMia(r.mia, ev('enter', round3())); expect(b.boost).toBe(MIA.BOOST); expect(b.mia).toMatchObject({ phase: 'in', act: 'sprint', fast: true }); expect(r.mia.fast).toBe(false); expect(b.say).toEqual([])
   })
