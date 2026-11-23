@@ -10,6 +10,8 @@
 //  • ?server=1 — подставной «сервер»: два сохранённых прохождения с других устройств (Android и iPhone), «☁ Сохранить на сервер» пишет в память страницы; ?server=empty — на сервере пусто;
 //  • ?send=1 — подставная отправка в GitHub (кнопки «В GitHub» и «💬 Комментарий в GitHub» у блоков): файлы складываются в window.__sent; ?voices=1 — подставная озвучка (короткий тестовый звук у реплик Пита и Мии
 //    и у русских слов диктора) — «▶ Слушать» и звук клипа по нажатию.
+//  • ?lines=1 — подставные настройки реплик (в памяти страницы) и подставная озвучка: в карточке реплики работают правка текста, «Озвучить заново» (1,5 с «озвучки»), свой файл, «вернуть прежний текст»;
+//    логика сохранения — настоящая (saveLineText, voicePitLines, setLineFile, restoreLine), подменены только сеть, ElevenLabs и R2. ?lines=deny — запись отклоняется, как у не-админа (RLS).
 //    ?server=error — сеть недоступна; ?server=slow — ответ через 4 с (состояние загрузки). Без ?server — сервера нет (кнопок сервера нет).
 import React from 'react'
 import { createRoot } from 'react-dom/client'
@@ -18,6 +20,11 @@ import { fixtureEvents, longFixture } from '/src/features/timeline/timelineFixtu
 import { reverseEvents, serverRuns } from '/src/features/timeline/timelineFixtureServer.js'
 import { realEvents } from '/src/features/timeline/timelineFixtureReal.js'
 import { packRun } from '/src/features/timeline/timelineStore.js'
+import { normalizeLines, CAT_LINES } from '/src/features/player/modules/rotate-phone/wordLaneCatLines.js'
+import { auditVoice } from '/src/features/admin/speech/voiceAudit.js'
+import { saveLineText } from '/src/features/admin/speech/raceLineText.js'
+import { setLineFile, restoreLine } from '/src/features/admin/speech/raceLineActions.js'
+import { voicePitLines } from '/src/features/rehearsal/rehearsalVoice.js'
 
 const q = new URLSearchParams(location.search), kind = q.get('fixture') || 'game', mode = q.get('server')
 const events = kind === 'long' ? longFixture() : kind === 'rev' ? reverseEvents() : kind === 'real' ? realEvents() : fixtureEvents()
@@ -35,7 +42,15 @@ const server = mode ? {
 const beep = () => { const sr = 8000, n = Math.round(sr * 1.2), b = new Uint8Array(44 + n), dv = new DataView(b.buffer); const w = (o, s) => [...s].forEach((c, i) => { b[o + i] = c.charCodeAt(0) }); w(0, 'RIFF'); dv.setUint32(4, 36 + n, true); w(8, 'WAVEfmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr, true); dv.setUint16(32, 1, true); dv.setUint16(34, 8, true); w(36, 'data'); dv.setUint32(40, n, true); for (let i = 0; i < n; i++) b[44 + i] = 128 + Math.round(40 * Math.sin(i * 2 * Math.PI * 440 / sr)); let s = ''; b.forEach(c => { s += String.fromCharCode(c) }); return `data:audio/wav;base64,${btoa(s)}` }
 const voices = q.get('voices') ? { load: async () => { const url = beep(), ids = new Set(events.filter(e => e.k === 'line-start' && e.who !== 'dictor' && e.id !== 'race_good_ok').map(e => e.id)); // у race_good_ok озвучки нет — видно «нет озвучки (подпись)»
   return { lines: Object.fromEntries([...ids].map(id => [id, { text: '', url, duration: 1.2 }])), lib: new Map(events.filter(e => e.who === 'dictor' && /[а-яё]/i.test(e.text)).map(e => [`ru:${e.text.toLowerCase()}`, { url, duration: 1.2 }])) } } } : null
+// подставные настройки реплик: всё, что звучит в игре, озвучено; у race_good_ok озвучки нет; у race_good_1 текст уже изменён после озвучки
+const lmode = q.get('lines'), textOf = Object.fromEntries(CAT_LINES.map(d => [d.id, d.text]))
+let rawLines = { lines: Object.fromEntries([...new Set(events.filter(e => e.k === 'line-start' && e.who !== 'dictor' && textOf[e.id] && e.id !== 'race_good_ok').map(e => e.id))].map(id => [id, { text: textOf[id], url: beep(), duration: 1.2, said: textOf[id] }])) }
+if (rawLines.lines.race_good_1) rawLines.lines.race_good_1 = { ...rawLines.lines.race_good_1, text: 'отличное произношение, так держать', custom: true }
+const ldeps = { load: async () => { await wait(150); return rawLines }, save: async v => { await wait(250); if (lmode === 'deny') throw new Error('Сохранение не применилось: сервер не подтвердил запись'); rawLines = v; window.__lines = v; return v } }
+const fakeTts = { speak: async text => { await wait(1500); return { file: new File([text], 'tts.mp3', { type: 'audio/mpeg' }), wordTimings: [] } }, upload: async () => beep(), probe: async () => 1.2, loadVoice: async () => {} }
+const lineApi = lmode ? { load: ldeps.load, normalize: normalizeLines, audit: raw => auditVoice(raw).byId, saveText: (id, text) => saveLineText(id, text, ldeps), voice: id => voicePitLines({ ids: [id], ...ldeps, ...fakeTts }),
+  setFile: (id, file) => setLineFile(id, file, { ...ldeps, upload: fakeTts.upload, probe: fakeTts.probe }), restore: (id, prev) => restoreLine(id, prev, ldeps), copy: async t => { window.__copied = t; return true } } : null
 window.__sent = []
 const send = q.get('send') ? async (comment, opts, report, edits, pinned = []) => { window.__sent.push({ comment, opts, report: report.length, edits, pinned }); await wait(300); return `Отправлено в GitHub (${2 + pinned.length} ф.) — напиши мне «читай»` } : null
-createRoot(document.getElementById('root')).render(React.createElement(TimelineScreen, { runs, server, send, voices, tab0: q.get('tab') || null, edit0: q.get('edit') === '1', onClose: () => { document.title = 'closed' } }))
+createRoot(document.getElementById('root')).render(React.createElement(TimelineScreen, { runs, server, send, voices, lineApi, tab0: q.get('tab') || null, edit0: q.get('edit') === '1', onClose: () => { document.title = 'closed' } }))
 </script></body></html>

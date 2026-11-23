@@ -6,9 +6,10 @@ import { voiceOf, voiceKey } from './timelineVoice.js'
 // озвучка загружается ОДИН раз при открытии экрана: voices.load() → { lines (реплики Пита и Мии из настроек), lib (библиотека слов — диктор) } — боевой загрузчик в TimelineOpenButton, стенд и тесты подставляют свой.
 // voices = null — звука на экране нет (кнопки ▶ не рисуются). Esc и закрытие экрана останавливают звук.
 // → { state (clipPlayer: key, status, dur, error), toggle(реплика), stop(), of(реплика) → timelineVoice.voiceOf, key(реплика) }
-export function useClipAudio(voices, make) {
-  const [src, setSrc] = useState(() => (voices ? { status: 'loading', lines: null, lib: null } : null))
+export function useClipAudio(voices, make, fresh = null) { // fresh — реплики из правки (useLineEdit.lines): после переозвучки или своего файла клип сразу играет новое
+  const [src0, setSrc] = useState(() => (voices ? { status: 'loading', lines: null, lib: null } : null))
   const [state, setState] = useState(IDLE)
+  const src = useMemo(() => (src0 && fresh && src0.status === 'ready' ? { ...src0, lines: fresh } : src0), [src0, fresh])
   const [player] = useState(() => createClipPlayer({ onState: setState, ...(make ? { make } : {}) }))
 
   useEffect(() => {

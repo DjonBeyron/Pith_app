@@ -1,0 +1,42 @@
+/* «Таймлайн игры»: правка реплики в карточке блока (TimelineLineEditor.jsx) — статус озвучки, поле текста, копирование, «Озвучить заново», свой файл, «вернуть прежний текст»;
+   список «Нужно озвучить» в шапке (TimelineVoiceTodo.jsx) и метка озвучки на клипе монтажа (MontageClip.jsx). Базовые стили экрана — timeline.css, карточка — timeline-block.css. */
+.tlLe { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid #2c3039; border-radius: 10px; background: #14161b; min-width: 0; }
+.tlLeStatus { margin: 0; font-weight: 600; font-size: 13px; overflow-wrap: anywhere; }
+.tlLeStatus small { font-weight: 400; color: #b9bdc7; }
+.tlLeStatus[data-mark='red'] { color: #ff8f93; }
+.tlLeStatus[data-mark='green'] { color: #4ade80; }
+.tlLeStatus[data-mark='white'] { color: #cfd3dc; }
+.tlLeLabel { display: flex; flex-direction: column; gap: 3px; color: #8a8f9a; font-size: 12px; }
+.tlLeText { font: 14px/1.35 system-ui, -apple-system, 'Segoe UI', sans-serif; color: #fff; background: #0e1013; border: 1px solid #3a3f4b; border-radius: 8px; padding: 6px 8px; resize: vertical; min-height: 56px; width: 100%; box-sizing: border-box; }
+.tlLeText:focus { outline: none; border-color: #5b7bd6; }
+.tlLeRow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tlLe .tlBtn { padding: 5px 9px; min-height: 30px; }
+.tlLeSmall { font-size: 12px; color: #b9bdc7; }
+.tlLeGo { background: #2b3550; border-color: #5b7bd6; color: #fff; font-weight: 600; }
+.tlLeNote { margin: 0; color: #b9bdc7; font-size: 12px; overflow-wrap: anywhere; }
+.tlLeErr { color: #ff8f93; }
+.tlLeOk { color: #4ade80; }
+.tlLeBusy { color: #f5c451; }
+.tlLeAsk { padding: 8px; border: 1px solid #f2a65a; border-radius: 8px; background: #2a1f10; display: flex; flex-direction: column; gap: 6px; }
+.tlLeAsk p { margin: 0; font-size: 12px; color: #f1e2c8; overflow-wrap: anywhere; }
+.tlLe .tlBtn:disabled { opacity: 0.5; cursor: default; }
+
+/* «Нужно озвучить (N)» в шапке и его список */
+.tlTodo { position: relative; flex: none; }
+.tlTodoBtn[data-red='1'] { border-color: #e5484d; color: #ffb3b6; }
+.tlTodoBtn:disabled { color: #4ade80; opacity: 1; cursor: default; }
+.tlTodoList { position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; margin: 0; padding: 4px; list-style: none; width: min(560px, calc(100vw - 24px)); max-height: 60vh; overflow-y: auto; background: #1b1e25; border: 1px solid #3a3f4b; border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55); }
+.tlTodoItem { appearance: none; width: 100%; text-align: left; font: inherit; color: #e0e0e0; background: none; border: 0; border-left: 3px solid #8a8f9a; border-radius: 4px; padding: 6px 8px; cursor: pointer; overflow-wrap: anywhere; }
+.tlTodoItem[data-mark='red'] { border-left-color: #e5484d; }
+.tlTodoItem:hover { background: #23262d; }
+.tlTodoItem small { display: block; color: #8a8f9a; font-size: 11px; }
+
+/* Метка озвучки на клипе: красная точка — нужно озвучить, пустая — озвучки нет */
+.mtgClipMark { position: absolute; z-index: 2; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; box-sizing: border-box; pointer-events: auto; }
+.mtgClip[data-mark='red'] .mtgClipMark { background: #e5484d; border: 1.5px solid #fff; }
+.mtgClip[data-mark='white'] .mtgClipMark { background: transparent; border: 1.5px solid #14110c; }
+.mtgClip[data-mark='red'] { box-shadow: inset 0 0 0 2px #e5484d; }
+
+@media (max-width: 899px) {
+  .tlTodoList { position: fixed; left: 12px; right: 12px; top: auto; width: auto; }
+}

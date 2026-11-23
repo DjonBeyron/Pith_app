@@ -28,7 +28,7 @@ import '../../../styles/timeline-montage-edit.css'
 // send(comment, opts, текст правок) — отправка логов в GitHub со списком правок; label — подпись прохождения для файла; edit0 — открыть сразу в режиме правки (стенд, тесты разметки); rows — хронология для «до / после» карточки.
 const inField = e => /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName ?? '') || e.target?.isContentEditable
 
-export default function TimelineMontage({ base, draft, scale0, labelW = 92, send = null, edit0 = false, label = '', audio = null, block = null, rows = null, pick0 = null }) {
+export default function TimelineMontage({ base, draft, scale0, labelW = 92, send = null, edit0 = false, label = '', audio = null, block = null, rows = null, pick0 = null, lineEdit = null, voiceMarks = null }) { // lineEdit — правка реплики в карточке (useLineEdit); voiceMarks — { id реплики: 'red' | 'white' }: метка «нужно озвучить» на клипе
   const [ph, setPh] = useState(0)
   const [sel, setSel] = useState(pick0?.kind === 'line' ? base.clips.find(c => c.ref === pick0.ref)?.key ?? null : null)
   const [picked, setPicked] = useState(pick0 ? { sel: pick0, t: pick0.ref.t } : null) // выбранный блок: { sel: { kind, ref } — для карточки и комментария (времена исходной игры), t — где он на столе (для обводки) }
@@ -116,13 +116,13 @@ export default function TimelineMontage({ base, draft, scale0, labelW = 92, send
       <div className="mtgMain">
         <div className="mtgBox" ref={boxRef} data-testid="mtg-box">
           <div className="mtgScroll" ref={scrollRef} onPointerDownCapture={() => { downLeft.current = scrollRef.current?.scrollLeft ?? 0 }} onClick={clickEmpty} data-testid="mtg-scroll">
-            <MontageTracks mont={shown} scale={scale} win={win} labelW={labelW} ph={Math.min(ph, shown.dur)} sel={sel} selGap={selGap} edit={canEdit} moved={orig ? null : shown.moved} marked={marked} drag={drag} play={play} picked={picked ? { kind: picked.sel.kind, t: picked.t } : null} onDown={onDown} onPick={clickClip} onGap={pickGap} onScrub={scrub} />
+            <MontageTracks mont={shown} scale={scale} win={win} labelW={labelW} ph={Math.min(ph, shown.dur)} sel={sel} selGap={selGap} edit={canEdit} moved={orig ? null : shown.moved} marked={marked} drag={drag} play={play} voiceMarks={voiceMarks} picked={picked ? { kind: picked.sel.kind, t: picked.t } : null} onDown={onDown} onPick={clickClip} onGap={pickGap} onScrub={scrub} />
           </div>
           {hint && <p className="mtgToast" data-testid="mtg-hint">{hint}</p>}
           <MontageMinimap mont={shown} view={box} scale={scale} ph={Math.min(ph, shown.dur)} onLeft={setLeft} />
         </div>
         <aside className="mtgSide">
-          {picked && <TimelineCard sel={picked.sel} rows={rows} onClose={() => { setPicked(null); audio?.stop() }} audio={audio} block={block} side />}
+          {picked && <TimelineCard sel={picked.sel} rows={rows} onClose={() => { setPicked(null); audio?.stop() }} audio={audio} block={block} edit={lineEdit} side />}
           {editOn && <MontageEditsPanel base={base} draft={draft} missing={edited.missing} sel={canEdit ? sel : null} mode={mode} apply={apply} revert={revert} onGoto={e => { const c = clipByKey(edited, e.key); if (c) { setOrig(false); setSel(e.key); goto(c.t, true) } }} text={text} send={send} summary={summaryText(sum)} />}
           <MontageNowPanel mont={shown} t={Math.min(ph, shown.dur)} />
         </aside>

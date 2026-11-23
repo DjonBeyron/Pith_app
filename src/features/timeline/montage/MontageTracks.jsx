@@ -16,7 +16,7 @@ const MARK = { count: 'отсчёт ♪♪♪', wait: 'техника', hold: '�
 const box = (v, scale) => ({ left: v.t * scale, width: Math.max(2, (v.end - v.t) * scale) })
 const many = (v, scale) => <i key={`m${v.t}`} className="mtgMany" style={box(v, scale)} title={`${v.n} отрезков — увеличь масштаб`}>{(v.end - v.t) * scale > 22 ? `×${v.n}` : ''}</i>
 
-export default function MontageTracks({ mont, scale, win, labelW, ph, sel = null, selGap = null, edit = false, moved = null, marked = null, drag = null, play = null, picked = null, onDown, onPick, onGap, onScrub }) {
+export default function MontageTracks({ mont, scale, win, labelW, ph, sel = null, selGap = null, edit = false, moved = null, marked = null, drag = null, play = null, picked = null, voiceMarks = null, onDown, onPick, onGap, onScrub }) {
   const total = Math.max(1, Math.ceil(mont.dur * scale))
   const by = useMemo(() => Object.fromEntries(SPEECH.map(([who]) => [who, mont.clips.filter(c => c.who === who)])), [mont])
   const ax = axisTicks(win, scale, mont.dur, 72)
@@ -39,7 +39,7 @@ export default function MontageTracks({ mont, scale, win, labelW, ph, sel = null
         ? <i key={`s${v.item.t}`} className="mtgStage" style={box(v, scale)} {...pk('stage', v.item)} data-act={v.item.act} data-type={v.item.type} title={`${v.item.title} [${v.item.sid}] — ${dur(v.item.end - v.item.t)}`}><span>{v.item.title}<em> · {dur(v.item.end - v.item.t)}</em></span></i>
         : many(v, scale))))}
       {SPEECH.map(([who, label], i) => row(3 + i, who, label, visible(by[who], win, scale).map(v => (v.item
-        ? <MontageClip key={v.item.key} c={v.item} scale={scale} on={sel === v.item.key} edit={edit} moved={!!marked?.has(v.item.key)} warn={!!v.item.over && !!(moved?.has(v.item.key) || moved?.has(v.item.over))} drag={drag?.key === v.item.key} hit={drag?.key === v.item.key && !!drag.hit} play={playOf(v.item)?.status ?? null} playSec={playOf(v.item)?.sec ?? 0} canPlay={!!play} onDown={onDown} onPick={onPick} />
+        ? <MontageClip key={v.item.key} c={v.item} scale={scale} on={sel === v.item.key} edit={edit} moved={!!marked?.has(v.item.key)} warn={!!v.item.over && !!(moved?.has(v.item.key) || moved?.has(v.item.over))} drag={drag?.key === v.item.key} hit={drag?.key === v.item.key && !!drag.hit} play={playOf(v.item)?.status ?? null} playSec={playOf(v.item)?.sec ?? 0} canPlay={!!play} mark={v.item.who === 'dictor' ? null : voiceMarks?.[v.item.id] ?? null} onDown={onDown} onPick={onPick} />
         : many(v, scale)))))}
       {row(6, 'pills', <>Пилюли<br />игрок</>, <>
         {visible(mont.pills, win, scale).map(v => (v.item ? <i key={`p${v.item.t}`} className="mtgPill" style={box(v, scale)} {...pk('turn', v.item)} data-res={v.item.res} title={`${v.item.phrase ? 'ход фразы' : 'пилюля'} «${v.item.word}» на экране ${dur(v.item.end - v.item.t)} — ${RES[v.item.res] ?? v.item.res}`}><span>{v.item.word}</span></i> : many(v, scale)))}
