@@ -44,3 +44,14 @@ describe('треугольник слова на шкале', () => {
     expect(src).toContain('drop: !!tr && tr.id === lost')
   })
 })
+
+describe('пилюля-пример на объяснении шкалы: короткий смысл слов Мии (владелец 2026-11-23)', () => {
+  it('в зелёной зоне «Знаю», в жёлтой «Вспоминаю», в красной «Не помню»; до зелёной и на «условии» — пусто', async () => {
+    const { demoPlan, demoCaption, DEMO_CAPS } = await import('./bossScale.js')
+    const plan = demoPlan({ look: 2000, think: 2500, green: 1500, yellow: 1700, red: 1600, five: 4000 })
+    expect(demoCaption(plan, 0)).toBe(''); expect(demoCaption(plan, plan.starts.think + 100)).toBe('')
+    expect(demoCaption(plan, plan.starts.green + 200)).toBe(DEMO_CAPS.green); expect(DEMO_CAPS.green).toBe('Знаю')
+    expect(demoCaption(plan, plan.starts.yellow + 200)).toBe('Вспоминаю'); expect(demoCaption(plan, plan.starts.red + 200)).toBe('Не помню')
+    expect(demoCaption(plan, plan.starts.five + 10)).toBe('')
+  })
+})

@@ -65,6 +65,10 @@ export function demoPlan(ms, gap = DEMO_GAP_MS) {
   const pos = u => { let p = DEMO_FROM; for (const [t0, t1, a, b] of steps) { if (u < t0) return p; p = u >= t1 ? b : a + (b - a) * smooth((u - t0) / (t1 - t0)); if (u < t1) return p } return p }
   return { total: t, pos, starts }
 }
+/** Подпись в пилюле-примере (владелец 2026-11-23: «когда она говорит пример и показывает зону с пилюлей, в ней нужно писать логически коротко о том, что она говорит»): короткий смысл реплики Мии о зоне,
+ *  в которой сейчас стоит пилюля — «Зелёная зона, знаете» → «Знаю», «Жёлтая зона, вспоминаете» → «Вспоминаю», «Красная зона, не помните» → «Не помню». t — мс от начала примера; до зелёной зоны — пусто. */
+export const DEMO_CAPS = { green: 'Знаю', yellow: 'Вспоминаю', red: 'Не помню' }
+export const demoCaption = (plan, t) => (t >= plan.starts.five ? '' : t >= plan.starts.red - DEMO_MOVE_MS / 2 ? DEMO_CAPS.red : t >= plan.starts.yellow - DEMO_MOVE_MS / 2 ? DEMO_CAPS.yellow : t >= plan.starts.green - DEMO_MOVE_MS ? DEMO_CAPS.green : '')
 /** Цвет примера (r, g, b) по положению p: зелёный → жёлтый → красный, переход плавный около границ зон (±0,05 длины шкалы) */
 const RGB = { fast: [120, 230, 150], mid: [255, 200, 70], slow: [255, 96, 80] }
 export function zoneRgb(p) {

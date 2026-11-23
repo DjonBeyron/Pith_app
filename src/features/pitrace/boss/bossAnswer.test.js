@@ -63,11 +63,10 @@ describe('финал: отметка шкалы — там, где пилюля 
 })
 
 describe('проводка: директор сообщает шкале момент ответа, шкала ставит отметку туда', () => {
-  const read = p => readFileSync(new URL(p, import.meta.url), 'utf8')
-  it('useRaceActs.claim (только финал) → markBossAnswer; RaceBossScale: след, отметка, зона для XP', () => {
-    expect(read('../useRaceActs.js')).toContain("if (running.act === 'boss') { const back = markBossAnswer(listenerRef?.current?.voice, ms)")
-    const scale = read('./RaceBossScale.jsx')
-    expect(scale).toContain('trail.push(tr.id, now, tr.y)'); expect(scale).toContain('lockAtAnswer(tr, trail, takeBossAnswerAt())'); expect(scale).toContain('set: !!tr?.fixed && was !== tr')
-    expect(read('../../../styles/player/modules/race-boss.css')).toMatch(/\.wlBossMark\[data-set\] \{[^}]*transition:[^}]*transform/)
+  it('v3.3.349 (владелец: «треугольник скачет — он должен остаться там, где пилюля подтвердила верный ответ»): шкала отметку на момент начала голоса больше НЕ переносит', () => {
+    const acts = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8'), scale = readFileSync(new URL('./RaceBossScale.jsx', import.meta.url), 'utf8')
+    expect(acts).toContain('markBossAnswer') // момент начала ответа по-прежнему пишется в журнал («[boss] слово N принято: ответ начат X мс назад»)
+    expect(scale).not.toContain('lockAtAnswer'); expect(scale).not.toContain('createTrail'); expect(scale).not.toMatch(/set:\s*!!tr\?\.fixed/)
+    expect(scale).toContain('takeBossAnswerAt()') // забирает и сбрасывает, не используя
   })
 })
