@@ -12,6 +12,8 @@ import { editsFile } from './montage/montageEditsText.js'
 import { packRun } from './timelineStore.js'
 import { statusLine, readServerCount } from './timelineServerNote.js'
 import { LINE_API } from './timelineLineApi.js'
+import { readScenePauses, saveScenePauses } from '../../shared/api/scenePausesApi.js'
+import { readDevicePauses, saveDevicePauses } from '../../shared/lib/scenePauses.js'
 import TimelineScreen from './TimelineScreen.jsx'
 
 // Админ → «Голос»: блок «Таймлайн игры» ОДНОЙ СТРОКОЙ под «Встряхни память» — заголовок, кнопка «🎬 Таймлайн игры» и короткий статус («последняя игра: 12:41, 2:49 · на сервере 3»; число игр на сервере —
@@ -21,6 +23,7 @@ import TimelineScreen from './TimelineScreen.jsx'
 // LINE_API — правка реплики из карточки (текст, озвучка, свой файл): те же функции, что у таблицы «Озвучка Пита» (timelineLineApi.js).
 // VOICES — озвучка для «▶ Слушать» на клипах: реплики Пита и Мии из настроек (rotate_cat_lines) и библиотека слов (диктор) — читаются один раз при открытии экрана.
 const SERVER = { read: () => readTimelines(), save: run => saveTimeline(packRun(run)), saveEdits: (run, draft) => saveTimelineEdits(run.savedAt ? run : packRun(run), draft) } // saveEdits — черновик правок монтажа (runs[i].edits)
+const PAUSE_API = { readServer: () => readScenePauses({ fresh: true }), saveServer: pauses => saveScenePauses(pauses, { by: 'таймлайн' }), readDevice: () => readDevicePauses(), saveDevice: obj => saveDevicePauses(obj) } // настройки пауз: сервер (всем игрокам) и это устройство
 const VOICES = { load: async () => { const [raw, lib] = await Promise.all([getCatLines(), listWordAudio()]); return { lines: normalizeLines(raw), lib } } }
 
 export default function TimelineOpenButton() {
@@ -31,7 +34,7 @@ export default function TimelineOpenButton() {
       <h3 className="aspH">🎬 Таймлайн</h3>
       <button type="button" className="aspChip" onClick={() => setRuns(sceneTrace.runs())} title="Кто когда говорит и где паузы: монтажный стол последней игры «Встряхни память» (и игр, сохранённых на сервере)" data-testid="timeline-open">🎬 Таймлайн игры</button>
       <span className="aspTlStatus" data-testid="timeline-status">{statusLine(sceneTrace.runs(), readServerCount())}</span>
-      {runs && createPortal(<TimelineScreen runs={runs} onClose={() => setRuns(null)} send={send} server={SERVER} voices={VOICES} lineApi={LINE_API} />, document.body)}
+      {runs && createPortal(<TimelineScreen runs={runs} onClose={() => setRuns(null)} send={send} server={SERVER} voices={VOICES} lineApi={LINE_API} pauseApi={PAUSE_API} />, document.body)}
     </section>
   )
 }

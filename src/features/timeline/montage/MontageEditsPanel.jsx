@@ -3,6 +3,7 @@ import { gapInfo, limitsFor } from './montageEdits.js'
 import { editShort, gapText, GAP_KIND, MODE, WHY } from './montageEditsText.js'
 import { dur, WHO, clock } from '../timelineFormat.js'
 import SendLogButton from '../../../shared/ui/SendLogButton.jsx'
+import MontageKnobHint from './MontageKnobHint.jsx'
 
 // Боковая панель режима «Правка»: честная надпись (черновик — игра не меняется), правка выбранного зазора числом и быстрыми кнопками, СПИСОК ПРАВОК (каждую можно убрать отдельно), «сбросить всё»,
 // «скопировать список» и «📤 Правки в GitHub» (список уходит файлом вместе с логами). Отмена / возврат — в панели инструментов монтажа и клавишами.
@@ -36,7 +37,7 @@ function GapEditor({ base, edits, sel, mode, apply, revert }) {
   )
 }
 
-export default function MontageEditsPanel({ base, draft, missing = [], sel = null, mode, apply, revert, onGoto, text, send = null, summary }) {
+export default function MontageEditsPanel({ base, draft, missing = [], sel = null, mode, apply, revert, onGoto, text, send = null, summary, knobs = null }) {
   const [info, setInfo] = useState('')
   const edits = draft.edits, gone = new Set(missing.map(e => e.key))
   const copy = async () => {
@@ -62,7 +63,7 @@ export default function MontageEditsPanel({ base, draft, missing = [], sel = nul
         {send && <SendLogButton className="tlChip" label="📤 Правки в GitHub" send={(comment, opts) => send(comment, opts, text())} onResult={setInfo} data-testid="mtg-send" />}
       </div>
       {info && <p className="mtgMutedLine" data-testid="mtg-info">{info}</p>}
-      {sel && gapInfo(base, sel) ? <GapEditor key={sel} base={base} edits={edits} sel={sel} mode={mode} apply={apply} revert={revert} /> : <p className="mtgMutedLine">Тяни клип влево-вправо — меняется тишина перед ним. Или нажми на клип / зазор и задай тишину числом.</p>}
+      {sel && gapInfo(base, sel) ? <><GapEditor key={sel} base={base} edits={edits} sel={sel} mode={mode} apply={apply} revert={revert} /><MontageKnobHint base={base} sel={sel} edit={edits.find(e => e.key === sel) ?? null} knobs={knobs} revert={revert} /></> : <p className="mtgMutedLine">Тяни клип влево-вправо — меняется тишина перед ним. Или нажми на клип / зазор и задай тишину числом.</p>}
       {draft.srv && <p className="mtgMutedLine" data-testid="mtg-srv">{draft.srv === 'busy' ? '☁ черновик сохраняется на сервер…' : draft.srv === 'ok' ? '☁ черновик сохранён на сервере' : `☁ на сервер не сохранилось (${draft.srv}) — черновик остаётся на этом устройстве`}</p>}
     </section>
   )

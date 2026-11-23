@@ -16,7 +16,7 @@ const MARK = { count: 'отсчёт ♪♪♪', wait: 'техника', hold: '�
 const box = (v, scale) => ({ left: v.t * scale, width: Math.max(2, (v.end - v.t) * scale) })
 const many = (v, scale) => <i key={`m${v.t}`} className="mtgMany" style={box(v, scale)} title={`${v.n} отрезков — увеличь масштаб`}>{(v.end - v.t) * scale > 22 ? `×${v.n}` : ''}</i>
 
-export default function MontageTracks({ mont, scale, win, labelW, ph, sel = null, selGap = null, edit = false, moved = null, marked = null, drag = null, play = null, picked = null, voiceMarks = null, onDown, onPick, onGap, onScrub }) {
+export default function MontageTracks({ mont, scale, win, labelW, ph, sel = null, selGap = null, edit = false, moved = null, marked = null, drag = null, play = null, picked = null, voiceMarks = null, gapKnob = null, onDown, onPick, onGap, onScrub }) {
   const total = Math.max(1, Math.ceil(mont.dur * scale))
   const by = useMemo(() => Object.fromEntries(SPEECH.map(([who]) => [who, mont.clips.filter(c => c.who === who)])), [mont])
   const ax = axisTicks(win, scale, mont.dur, 72)
@@ -32,7 +32,7 @@ export default function MontageTracks({ mont, scale, win, labelW, ph, sel = null
   return (
     <div className="mtgCanvas" style={{ width: labelW + total, '--mtg-label': `${labelW}px` }} data-testid="mtg-canvas" data-scale={scale.toFixed(5)}>
       <div className="mtgOver mtgGaps" style={{ gridRow: '3 / 6', width: total }}>
-        {visible(mont.gaps, win, scale, 3, g => g.long).map(v => (v.item ? <MontageGap key={`g${v.item.t}`} g={v.item} scale={scale} on={selGap != null && v.item.g === selGap} onPick={onGap} /> : <i key={`m${v.t}`} className="mtgGapMany" style={box(v, scale)} />))}
+        {visible(mont.gaps, win, scale, 3, g => g.long).map(v => (v.item ? <MontageGap key={`g${v.item.t}`} g={v.item} scale={scale} on={selGap != null && v.item.g === selGap} onPick={onGap} knob={gapKnob?.(v.item) ?? null} /> : <i key={`m${v.t}`} className="mtgGapMany" style={box(v, scale)} />))}
       </div>
       {row(1, 'ruler', 'время', ax.ticks.map(t => <span key={t} className="mtgTick" style={{ left: t * scale }}>{clock(t, ax.step < 1000)}</span>), { 'data-ruler': '1', onPointerDown: onScrub, title: 'Нажми или тяни — указатель встанет в этот момент' })}
       {row(2, 'stages', 'Этапы', visible(mont.stages, win, scale).map(v => (v.item

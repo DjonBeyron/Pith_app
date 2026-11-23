@@ -6,6 +6,7 @@ import { buildSummary } from './timelineSummary.js'
 import { stamp, dur, quote, lineText, RES, PAUSE_KIND, DEFAULT_THRESHOLD } from './timelineFormat.js'
 import { stageTitle, actTitle } from './timelineStageNames.js'
 import { sortPauses, pauseTotals, pauseWhere, pauseBlock } from './timelinePauseList.js'
+import { gapKnobs, gapKnobReport, overridesText } from './timelineKnobs.js'
 
 /** Записи хронологии по времени: [{ t, kind: 'stage'|'line'|'pill'|'answer'|'pause'|'count'|'wait'|'hold', text, ref }] (ref — исходный отрезок модели) */
 export function rows(m, pauses) {
@@ -26,17 +27,18 @@ export function rows(m, pauses) {
 const metaLine = meta => Object.entries(meta ?? {}).filter(([, v]) => v != null && v !== '').map(([k, v]) => `${k}=${v}`).join(', ')
 
 /** Модель → строки отчёта. threshold — порог долгой паузы (мс); dropped — сколько событий трассы вытеснено */
-export function reportLines(m, { threshold = DEFAULT_THRESHOLD, dropped = 0, title = 'ТАЙМЛАЙН ИГРЫ' } = {}) {
+export function reportLines(m, { threshold = DEFAULT_THRESHOLD, dropped = 0, title = 'ТАЙМЛАЙН ИГРЫ', knobs = null } = {}) { // knobs — timelineKnobs.collectKnobs: у каждой долгой паузы строка «настройки: …», в шапке — действовавшие переопределения
   const pauses = buildPauses(m, threshold), sum = buildSummary(m, pauses), top = sortPauses(pauses), tot = pauseTotals(pauses)
   const out = [`== ${title} ==`, `прохождение: ${dur(sum.dur)}${metaLine(m.meta) ? `; ${metaLine(m.meta)}` : ''}`,
     `говорили: Пит ${dur(sum.speak.pit)}, Мия ${dur(sum.speak.mia)}, диктор (слова голосом Пита) ${dur(sum.speak.dictor)}; ждали игрока ${dur(sum.player)}; игра молчала ${dur(sum.dead)} (из них долгими паузами ${dur(sum.deadLong)})`,
-    `порог долгой паузы: ${dur(threshold)}; долгих пауз «игра молчит»: ${sum.longCount}${dropped ? `; ВНИМАНИЕ: начало трассы вытеснено (${dropped} событий)` : ''}`, '']
+    `порог долгой паузы: ${dur(threshold)}; долгих пауз «игра молчит»: ${sum.longCount}${dropped ? `; ВНИМАНИЕ: начало трассы вытеснено (${dropped} событий)` : ''}`,
+    ...(knobs ? [`настройки пауз в этой игре: ${!knobs.recorded ? 'не записаны (игра до v3.3.351)' : overridesText(knobs.overrides) ? `ИЗМЕНЕНЫ — ${overridesText(knobs.overrides)}` : 'все по умолчанию'}`] : []), '']
   if (!m.stages.length && !m.lines.length) return [...out, '(событий сцены нет — игра не запускалась или трасса пуста)']
   out.push('== ХРОНОЛОГИЯ ==')
   for (const r of rows(m, pauses)) out.push(`${stamp(r.t).padStart(12)}  ${r.text}`)
   out.push('', `== ДОЛГИЕ ПАУЗЫ «ИГРА МОЛЧИТ»: ${tot.n}, всего ${dur(tot.ms)} из ${dur(sum.dur)} игры (самые долгие сверху) ==`)
   if (!top.length) out.push('нет')
-  top.forEach((p, i) => out.push(...pauseBlock(p, i)))
+  top.forEach((p, i) => out.push(...pauseBlock(p, i), ...(knobs ? [`   ${gapKnobReport(gapKnobs(p, knobs))}`] : [])))
   out.push('', '== ПО ЭТАПАМ ==')
   for (const a of sum.acts) out.push(`${stamp(a.t).padStart(12)}  ${actTitle(a.act)} [${a.act || '—'}]: ${dur(a.dur)}; Пит ${dur(a.speak.pit)}, Мия ${dur(a.speak.mia)}, диктор ${dur(a.speak.dictor)}; игра молчала ${dur(a.dead)}${a.longCount ? `, долгих пауз ${a.longCount}` : ''}`)
   return out

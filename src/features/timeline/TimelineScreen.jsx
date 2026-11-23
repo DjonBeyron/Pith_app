@@ -14,6 +14,9 @@ import { useClipAudio } from './useClipAudio.js'
 import { useLineEdit } from './useLineEdit.js'
 import { voiceMarks, voiceTodo } from './timelineLineEdit.js'
 import TimelineVoiceTodo from './TimelineVoiceTodo.jsx'
+import { usePauseKnobs } from './usePauseKnobs.js'
+import { overridesText } from './timelineKnobs.js'
+import TimelineKnobsPanel from './TimelineKnobsPanel.jsx'
 import TimelineSources from './TimelineSources.jsx'
 import TimelineRibbon from './TimelineRibbon.jsx'
 import TimelineList from './TimelineList.jsx'
@@ -41,6 +44,7 @@ import '../../styles/timeline-line-edit.css'
 // (useClipAudio: озвучка из текущих настроек обычным <audio>; на «Монтаже» и «Ленте» клип играет по нажатию). voices — { load() → { lines, lib } } (TimelineOpenButton; null — звука нет).
 // У реплики Пита / Мии в карточке — копирование, правка текста (меняет реплику ВЕЗДЕ: общие настройки реплик игры), «Озвучить заново», свой файл, «вернуть прежний текст» (useLineEdit + lineApi); в шапке —
 // «🎙 Нужно озвучить (N)» (TimelineVoiceTodo), на клипах монтажа — метка (voiceMarks). todo0 — список «Нужно озвучить» сразу раскрыт (тесты разметки).
+// Настройки пауз (usePauseKnobs + pauseApi): у тишины — «Чем задана эта тишина» с правкой, на столе — ⚙ у зазора, в шапке — «⚙ Настройки пауз» (TimelineKnobsPanel); knobs0 — панель сразу открыта (тесты разметки).
 // Черновик правок монтажа (useMontageDraft) живёт здесь: хранилище устройства (store — подмена для тестов), сервер (server.saveEdits, runs[i].edits); в отправку логов уходит файлом со списком правок.
 // Экран открывается ВНЕ игры и на неё не влияет: читает готовые события трассы. runs — прохождения этого устройства (sceneTrace.runs()); server — { read, save } (shared/api/timelineApi.js через
 // TimelineOpenButton; стенд подставляет свой; null — сервера нет): сохранённые на сервере прохождения читаются при открытии экрана и по «↻ Обновить с сервера», в выборе прохождения подписан источник.
@@ -55,7 +59,7 @@ const vw = () => (typeof window === 'undefined' ? 0 : window.innerWidth)
 const LABEL_W = 62
 const EMPTY = { off: 'Игр в этом сеансе ещё не было — сыграй и вернись.', loading: 'Загружаю сохранённые игры с сервера…', ready: 'Игр в этом сеансе ещё не было, на сервере сохранённых игр тоже нет — сыграй и вернись.' }
 
-export default function TimelineScreen({ runs = [], onClose = null, send = null, tab0 = null, server = null, server0 = null, store = null, edit0 = false, voices = null, lineApi = null, todo0 = false }) {
+export default function TimelineScreen({ runs = [], onClose = null, send = null, tab0 = null, server = null, server0 = null, store = null, edit0 = false, voices = null, lineApi = null, todo0 = false, pauseApi = null, knobs0 = false }) {
   const srv = useTimelineServer(server, server0)
   const edit = useLineEdit(lineApi) // правка реплики из карточки: текст, озвучка, свой файл (lineApi — timelineLineApi.LINE_API; null — правки нет)
   const audio = useClipAudio(voices, undefined, edit?.lines ?? null)
@@ -81,6 +85,7 @@ export default function TimelineScreen({ runs = [], onClose = null, send = null,
   const audit = edit?.audit ?? null
   const todo = useMemo(() => (m && audit ? voiceTodo(m, audit) : null), [m, audit])
   const marks = useMemo(() => (m && audit ? voiceMarks(m, audit) : null), [m, audit])
+  const knobs = usePauseKnobs({ run, api: pauseApi, store }) // настройки пауз: что дала какая настройка в этой игре, черновик значений, проба на устройстве и применение всем (pauseApi; null — только показ)
   const draft = useMontageDraft({ runId: cur?.rid ?? null, store, serverEdits: cur?.edits ?? null, saveServer: server?.saveEdits && cur ? d => server.saveEdits(cur.run, d) : null })
 
   const hasServer = !!server || !!server0
@@ -97,14 +102,15 @@ export default function TimelineScreen({ runs = [], onClose = null, send = null,
     )
   }
   const fit = fitScale(m.dur, width - LABEL_W), scale = zoomed ?? (width < 600 ? PHONE_SCALE : DEFAULT_SCALE)
-  const report = () => reportText(m, { threshold: thr, dropped: run.dropped })
-  const editsTxt = () => { if (!draft.edits.length) return ''; const ed = applyEdits(base, draft.edits); return editsText(draft.edits, editsSummary(base, ed), { label: cur.label, missing: ed.missing }) }
+  const report = () => reportText(m, { threshold: thr, dropped: run.dropped, knobs: knobs.k })
+  const knobTxt = () => (knobs.dirty ? `ПРЕДЛОЖЕННЫЕ ИЗМЕНЕНИЯ НАСТРОЕК ПАУЗ (черновик экрана, ещё не применён; ключи реестра shared/lib/scenePauses.js):\n${knobs.changes.map((x, i) => `${i + 1}. ${x.title} [${x.key}]: ${x.from} мс → ${x.to} мс`).join('\n')}` : '')
+  const editsTxt = () => { const ed = draft.edits.length ? applyEdits(base, draft.edits) : null; return [ed ? editsText(draft.edits, editsSummary(base, ed), { label: cur.label, missing: ed.missing }) : '', knobTxt()].filter(Boolean).join('\n\n') }
   const go = p => { setTab('ribbon'); setSel({ kind: 'pause', ref: p }); setFocus({ t: p.t, n: (focus?.n ?? 0) + 1 }); if (bodyRef.current) bodyRef.current.scrollTop = 0 }
   // комментарий к блоку: адрес и человеческая строка — в комментарий; файл-контекст (и все события игры с сервера: её журнала на устройстве нет) — в отправку
   const block = send ? {
     head: s => blockHead(s, m, cur.rid),
     send: (s, comment, opts) => {
-      const c = blockContext({ sel: s, m, run, entry: cur, edits: editsTxt(), thr, device: cur.src === 'local' ? deviceLabel() : '', appVersion: APP_VERSION })
+      const c = blockContext({ sel: s, m, run, entry: cur, edits: editsTxt(), thr, device: cur.src === 'local' ? deviceLabel() : '', appVersion: APP_VERSION, knobs: knobs.k })
       return send(comment, opts, report(), editsTxt(), [c && blockFile(c.text), cur.src === 'server' && runEventsFile(run, { label: cur.label })].filter(Boolean))
     },
   } : null
@@ -135,20 +141,23 @@ export default function TimelineScreen({ runs = [], onClose = null, send = null,
             </div>
           )}
           <TimelineVoiceTodo todo={todo} onGo={goLine} open0={todo0} />
+          <button type="button" className="tlChip tlKnobsBtn" onClick={() => knobs.show()} data-dirty={knobs.dirty ? '1' : undefined} title="Паузы сценария игры: посмотреть, изменить, попробовать на этом устройстве или применить всем" data-testid="tl-knobs-btn">⚙ Настройки пауз{knobs.dirty ? ` · черновик ${knobs.changes.length}` : ''}</button>
           <p className="tlSum" data-testid="tl-sum">
             {entries.length === 1 && !hasServer && <span>{cur.label} · </span>}Прохождение <b>{dur(sum.dur)}</b> · Пит {dur(sum.speak.pit)} · Мия {dur(sum.speak.mia)} · диктор {dur(sum.speak.dictor)} · ждали игрока {dur(sum.player)} · <span className="tlRed">игра молчала {dur(sum.dead)}, долгих пауз {sum.longCount}</span>
+            {overridesText(knobs.overrides) && <span className="tlKnobDiff" data-testid="tl-run-knobs"> · в этой игре изменены паузы: {overridesText(knobs.overrides)}</span>}
             {run.dropped > 0 && <span className="tlRed"> · начало трассы вытеснено ({run.dropped} соб.)</span>}
           </p>
         </div>
         {sent && <p className="tlMuted" data-testid="tl-sent">{sent}</p>}
-        {tab === 'montage' && <TimelineMontage key={cur.key} base={base} draft={draft} scale0={vw() && vw() < 600 ? MONTAGE_PHONE : MONTAGE_SCALE} labelW={width < 600 ? 58 : 92} send={send ? (comment, opts, text) => send(comment, opts, report(), text) : null} edit0={edit0} label={cur.label} audio={audio} block={block} rows={list} lineEdit={edit} voiceMarks={marks} />}
-        {tab === 'pauses' && <TimelinePausesTab key={cur.key} pauses={pauses} total={sum.dur} onGo={go} block={block} />}
+        {tab === 'montage' && <TimelineMontage key={cur.key} base={base} draft={draft} scale0={vw() && vw() < 600 ? MONTAGE_PHONE : MONTAGE_SCALE} labelW={width < 600 ? 58 : 92} send={send ? (comment, opts, text) => send(comment, opts, report(), text) : null} edit0={edit0} label={cur.label} audio={audio} block={block} rows={list} lineEdit={edit} voiceMarks={marks} knobs={knobs} />}
+        {tab === 'pauses' && <TimelinePausesTab key={cur.key} pauses={pauses} total={sum.dur} onGo={go} block={block} knobs={knobs} />}
         {tab === 'ribbon' && <TimelineRibbon m={m} pauses={pauses} scale={Math.max(scale, fit)} focus={focus} selected={sel} onPick={pickSeg} />}
         {tab === 'list' && <TimelineList rows={list} pauses={pauses} selected={sel} onPick={setSel} />}
         {tab === 'ribbon' && <p className="tlLegend">{[['pit', 'Пит'], ['mia', 'Мия'], ['dictor', 'диктор — слово, перевод, фраза голосом Пита'], ['silent', 'без озвучки (подпись)'], ['dead', 'игра молчит дольше порога']].map(([k, t]) => <span key={k}><i data-who={k} />{t}</span>)}</p>}
         {tab !== 'list' && tab !== 'montage' && <TimelineActs sum={sum} />}
       </div>
-      {tab !== 'pauses' && tab !== 'montage' && <TimelineCard sel={sel} rows={list} onClose={() => { setSel(null); audio?.stop() }} audio={audio} block={block} edit={edit} />}
+      {tab !== 'pauses' && tab !== 'montage' && <TimelineCard sel={sel} rows={list} onClose={() => { setSel(null); audio?.stop() }} audio={audio} block={block} edit={edit} knobs={knobs} />}
+      <TimelineKnobsPanel knobs={knobs0 && !knobs.open ? { ...knobs, open: true } : knobs} />
     </div>
   )
 }

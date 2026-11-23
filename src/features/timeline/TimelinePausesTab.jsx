@@ -8,7 +8,7 @@ import TimelinePauseCard from './TimelinePauseCard.jsx'
 // pauses — куски пауз (buildPauses), total — длина игры (мс), onGo(p) — «показать на ленте», block — комментарий к паузе в GitHub (TimelineBlockComment).
 export const PAGE = 40
 
-export default function TimelinePausesTab({ pauses, total, onGo, block = null }) {
+export default function TimelinePausesTab({ pauses, total, onGo, block = null, knobs = null }) {
   const [sort, setSort] = useState('long')
   const [act, setAct] = useState(null) // null — все этапы
   const [shown, setShown] = useState(PAGE)
@@ -29,7 +29,7 @@ export default function TimelinePausesTab({ pauses, total, onGo, block = null })
         </div>
       )}
       {!tot.n && <p className="tlMuted" data-testid="tl-pauses-none">Долгих пауз нет: никто не молчал дольше порога, когда игрока не ждали. Попробуй порог поменьше.</p>}
-      <div className="tlPList">{list.slice(0, shown).map(p => <TimelinePauseCard key={p.t} p={p} onGo={onGo} block={block} />)}</div>
+      <div className="tlPList">{list.slice(0, shown).map(p => <TimelinePauseCard key={p.t} p={p} onGo={onGo} block={block} knobs={knobs} />)}</div>
       {list.length > shown && <button type="button" className="tlBtn tlMore" onClick={() => setShown(n => n + PAGE)}>Показать ещё ({list.length - shown})</button>}
     </section>
   )

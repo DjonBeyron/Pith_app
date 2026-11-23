@@ -1,6 +1,7 @@
 import { dur, atClock, stamp } from './timelineFormat.js'
 import { SIDE_WHO } from './timelinePauseSides.js'
 import TimelineBlockComment from './TimelineBlockComment.jsx'
+import TimelineGapKnobs from './TimelineGapKnobs.jsx'
 
 // Карточка одной паузы «игра молчит» — так, чтобы админ без кода понял, ЧТО прозвучало перед тишиной и ЧТО после: крупно длина, когда, название этапа по-человечески; блоки «ПЕРЕД тишиной» и
 // «ПОСЛЕ тишины» — кто (Пит / Мия / диктор / игрок / игра) и полный реальный текст; строка «внутри» — если шла анимация без речи или началась стадия. id реплики и sid — мелко и серым (для разработчика).
@@ -16,7 +17,7 @@ function Side({ cap, side, said, saidWord }) {
   )
 }
 
-export default function TimelinePauseCard({ p, onGo = null, block = null }) {
+export default function TimelinePauseCard({ p, onGo = null, block = null, knobs = null }) { // knobs — usePauseKnobs: строка «⚙ Конец круга 1,3 с» — какая настройка дала паузу (нажатие — правка)
   const anim = p.inside?.some(x => x.includes('анимация без речи'))
   return (
     <article className="tlP" data-testid="tl-pause" data-anim={anim ? '1' : '0'}>
@@ -31,6 +32,7 @@ export default function TimelinePauseCard({ p, onGo = null, block = null }) {
         <Side cap="Перед тишиной" side={p.before} said={p.saidBefore} saidWord="последняя реплика" />
         <Side cap="После тишины" side={p.after} said={p.saidAfter} saidWord="следующая реплика" />
       </div>
+      <TimelineGapKnobs span={p} knobs={knobs} brief />
       {p.inside?.length > 0 && <p className="tlPIn" data-testid="tl-pause-in"><b>внутри:</b> {p.inside.join('; ')}</p>}
     </article>
   )

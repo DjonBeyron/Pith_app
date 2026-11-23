@@ -8,16 +8,17 @@ export const GAP_NUM_PX = 30   // зазор шире — на нём число
 export const GAP_NAME_PX = 96  // ещё шире — и подпись, чем игра занята
 const NAME = { dead: '', anim: 'анимация', player: 'ждём игрока', count: 'отсчёт', wait: 'техника', paused: 'пауза игры' }
 
-export default function MontageGap({ g, scale, on = false, onPick = null }) {
+export default function MontageGap({ g, scale, on = false, onPick = null, knob = null }) { // knob — 'def' | 'set': зазор задан настройкой паузы (значок ⚙; 'set' — значение в этой игре было изменено)
   const w = Math.max(2, (g.end - g.t) * scale), name = g.kind === 'dead' ? (g.long ? 'игра молчит' : 'тишина') : NAME[g.kind]
   return (
     <button
       type="button" className="mtgGap" style={{ left: g.t * scale, width: w }} title={`${GAP_KIND[g.kind] ?? g.kind} — ${dur(g.ms)}${g.stage ? ` · ${g.stage}` : ''}`}
-      data-testid="mtg-gap" data-kind={g.kind} data-long={g.long ? '1' : undefined} data-on={on ? '1' : undefined} data-ms={Math.round(g.ms)} onClick={() => onPick?.(g)}
+      data-testid="mtg-gap" data-kind={g.kind} data-long={g.long ? '1' : undefined} data-on={on ? '1' : undefined} data-ms={Math.round(g.ms)} data-knob={knob ?? undefined} onClick={() => onPick?.(g)}
     >
       <i className="mtgGapBr" />
       {w >= GAP_NUM_PX && <b>{dur(g.ms)}</b>}
       {w >= GAP_NAME_PX && name && <span>{name}</span>}
+      {knob && w >= 14 && <i className="mtgGapKnob" data-knob={knob} title={knob === 'set' ? 'задан настройкой паузы — в этой игре она была изменена' : 'задан настройкой паузы'}>⚙</i>}
     </button>
   )
 }

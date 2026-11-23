@@ -7,6 +7,7 @@ import { rows as buildRows } from './timelineReport.js'
 import { stamp, dur, clock, WHO, RES, DEFAULT_THRESHOLD } from './timelineFormat.js'
 import { describeBlock, blockAddr, blockHuman, aroundRows, clipKey, GAP_NAMES } from './timelineBlock.js'
 import { sideLine } from './timelinePauseSides.js'
+import { gapKnobs, gapKnobReport } from './timelineKnobs.js'
 
 export const NEAR_MS = 5000   // окно «звуки рядом» и сырых событий: ±5 с от блока
 export const AROUND_N = 8     // сколько событий хронологии до и после
@@ -41,7 +42,7 @@ function detailRows(b, r, m) {
  * edits — текст списка правок монтажа ('' — правок нет); thr — порог долгой паузы; device / appVersion — для прохождения этого устройства (у записи сервера свои).
  * → { addr, human, head (начало комментария), text (файл), json (объект) } или null.
  */
-export function blockContext({ sel, m, run, entry = null, edits = '', thr = DEFAULT_THRESHOLD, device = '', appVersion = '', now = new Date() }) {
+export function blockContext({ sel, m, run, entry = null, edits = '', thr = DEFAULT_THRESHOLD, device = '', appVersion = '', now = new Date(), knobs = null }) { // knobs — timelineKnobs.collectKnobs: у тишины строка «настройки: …»
   const b0 = describeBlock(sel, m)
   if (!b0 || !m) return null
   const b = { ...b0, ref: sel.ref }, runId = entry?.rid ?? run?.id ?? ''
@@ -64,6 +65,7 @@ export function blockContext({ sel, m, run, entry = null, edits = '', thr = DEFA
     `время от начала игры: ${stamp(b.t)} (${clock(b.t, true)}) — ${stamp(b.end)}, длина ${dur(b.ms)}`,
     `этап: ${b.stage || '—'}${b.sid ? ` [${b.sid}]` : ''}`,
     ...detailRows(b, sel.ref, m).map(([k, v]) => `${k}: ${v}`),
+    ...(knobs && (b.kind === 'pause' || b.kind === 'gap') ? [gapKnobReport(gapKnobs(sel.ref, knobs))] : []),
     ...(b.src ? [`событие трассы: [scene] ${JSON.stringify(b.src)}`, `как найти в журнале: строка «[scene]» с "t":${b.src.t} (t трассы = начало прохождения ${m.t0} + время блока)`] : [`как найти в журнале: события «[scene]» с t от ${Math.round(m.t0 + b.t)} до ${Math.round(m.t0 + b.end)}`]), '',
     `== ЧТО БЫЛО ДО (${around.before.length}) ==`, ...(around.before.length ? around.before.map(row) : ['(начало игры)']), '',
     `== ЧТО ПОСЛЕ (${around.after.length}) ==`, ...(around.after.length ? around.after.map(row) : ['(конец игры)']), '',

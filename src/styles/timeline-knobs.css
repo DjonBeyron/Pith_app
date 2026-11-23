@@ -1,0 +1,73 @@
+/* «Таймлайн игры»: настройки пауз — строка настройки с управлением (TimelinePauseKnob.jsx), блок «Чем задана эта тишина» (TimelineGapKnobs.jsx), панель «⚙ Настройки пауз» (TimelineKnobsPanel.jsx),
+   применение «на этом устройстве» / «для всех» (TimelinePauseApply.jsx), значок ⚙ у зазора на столе монтажа и подсказка в правке зазора (MontageKnobHint.jsx). Базовые стили экрана — timeline.css. */
+.tlKnob { display: flex; flex-direction: column; gap: 3px; padding: 8px; border: 1px solid #2c3039; border-left: 3px solid #5b8def; border-radius: 8px; background: #14161b; min-width: 0; }
+.tlKnob[data-changed='1'] { border-left-color: #f2a65a; }
+.tlKnob[data-draft='1'] { background: #1f1a12; border-color: #6b4a1c; border-left-color: #f2a65a; }
+.tlKnob[data-focus='1'] { box-shadow: 0 0 0 2px #5b7bd6; }
+.tlKnobHead { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.tlKnobTitle { color: #fff; font-size: 13px; overflow-wrap: anywhere; }
+.tlKnobVal { font-weight: 700; font-size: 15px; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tlKnobWhere, .tlKnobNote, .tlKnobMeta { margin: 0; font-size: 12px; color: #b9bdc7; overflow-wrap: anywhere; }
+.tlKnobWhere { color: #cfd3dc; }
+.tlKnobMeta { color: #8a8f9a; }
+.tlKnobDiff { color: #f2a65a; }
+.tlKnobGain { color: #4ade80; font-weight: 600; }
+.tlKnobCtl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 2px; }
+.tlKnobCtl .tlChip { padding: 4px 9px; min-height: 30px; }
+.tlKnobRange { flex: 1 1 110px; min-width: 90px; accent-color: #f2a65a; }
+.tlKnobForm { display: inline-flex; align-items: center; gap: 4px; color: #8a8f9a; font-size: 12px; }
+.tlKnobInput { width: 56px; font: inherit; color: #fff; background: #0e1013; border: 1px solid #3a3f4b; border-radius: 6px; padding: 4px 6px; text-align: right; }
+.tlKnobErr { margin: 0; color: #ff8f93; font-size: 12px; overflow-wrap: anywhere; }
+
+.tlGapKnobs { display: flex; flex-direction: column; gap: 6px; min-width: 0; margin: 0; }
+.tlGapKnobsH { margin: 0; font-size: 13px; color: #fff; }
+.tlGapKnobsSum { margin: 0; font-size: 12px; color: #dfe3ea; overflow-wrap: anywhere; }
+.tlGapKnobsBrief { flex-direction: row; flex-wrap: wrap; align-items: center; font-size: 12px; }
+.tlKnobChip { appearance: none; font: inherit; font-size: 12px; color: #cfe0ff; background: #1a2238; border: 1px solid #5b7bd6; border-radius: 999px; padding: 3px 9px; cursor: pointer; }
+.tlKnobChip[data-set='1'] { color: #ffe1bd; background: #2a1f10; border-color: #f2a65a; }
+.tlLink { appearance: none; font: inherit; color: #8fb0ff; background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+.tlLink:disabled { color: #5d626c; text-decoration: none; cursor: default; }
+
+/* Кнопка в шапке и панель */
+.tlKnobsBtn[data-dirty='1'] { border-color: #f2a65a; color: #ffe1bd; }
+.tlKnobs { position: absolute; inset: 0; z-index: 30; background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: flex-start; padding: 12px; overflow-y: auto; }
+.tlKnobsCard { width: min(920px, 100%); background: #1b1e25; border: 1px solid #3a3f4b; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6); }
+.tlKnobsHead { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 15px; }
+.tlKnobsWhat { margin: 0; font-size: 13px; color: #dfe3ea; }
+.tlKnobsState { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: #b9bdc7; }
+.tlKnobsState b { color: #fff; }
+.tlKnobsOnly { font-size: 12px; color: #cfd3dc; display: inline-flex; gap: 5px; align-items: center; }
+.tlKnobsList { display: flex; flex-direction: column; gap: 10px; }
+.tlKnobsGroup { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
+.tlKnobsGroup h4 { grid-column: 1 / -1; margin: 0; font-size: 13px; color: #8a8f9a; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* Применение */
+.tlApply { display: flex; flex-direction: column; gap: 8px; position: sticky; bottom: -12px; background: #1b1e25; padding: 8px 0 4px; border-top: 1px solid #2c3039; }
+.tlApplyRow { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+.tlApplyDraft { font-size: 12px; color: #8a8f9a; font-weight: 400; overflow-wrap: anywhere; flex: 1 1 220px; }
+.tlApplyDraft[data-dirty='1'] { color: #f2a65a; font-weight: 600; }
+.tlApplyWays { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; }
+.tlApplyWay { border: 1px solid #2c3039; border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
+.tlApplyWay p { margin: 0; font-size: 12px; color: #b9bdc7; }
+.tlApplyWay[data-way='device'] { border-color: #2f6b45; background: #14201a; }
+.tlApplyWay[data-way='server'] { border-color: #6b4a1c; background: #211a11; }
+.tlApplyDevice { background: #1f5a37; border-color: #4ade80; color: #fff; font-weight: 600; }
+.tlApplyServer { background: #6b3a12; border-color: #f2a65a; color: #fff; font-weight: 600; }
+.tlApply .tlBtn:disabled { opacity: 0.45; cursor: default; }
+.tlApplyMig { color: #f5c451; }
+.tlApplyAsk { border: 1px solid #f2a65a; border-radius: 10px; background: #2a1f10; padding: 8px 10px; font-size: 13px; color: #f1e2c8; }
+.tlApplyAsk p { margin: 0 0 4px; }
+.tlApplyAsk ul { margin: 0 0 6px; padding-left: 18px; }
+.tlApplyNote { margin: 0; color: #4ade80; font-size: 13px; overflow-wrap: anywhere; }
+.tlApplyErr { margin: 0; color: #ff8f93; font-size: 13px; overflow-wrap: anywhere; }
+
+/* Значок настройки у зазора на столе и подсказка в правке зазора */
+.mtgGapKnob { position: absolute; left: 50%; bottom: 3px; transform: translateX(-50%); font: normal 13px/1 system-ui, sans-serif; color: #8fb0ff; pointer-events: none; }
+.mtgGapKnob[data-knob='set'] { color: #14110c; background: #f2a65a; border-radius: 999px; padding: 1px 4px; }
+.mtgKnobHint { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid #5b7bd6; border-radius: 8px; background: #151b2c; font-size: 12px; color: #dfe6fb; }
+.mtgKnobHint p { margin: 0; overflow-wrap: anywhere; }
+
+@media (max-width: 899px) {
+  .tlApply { position: static; } /* телефон: блок применения не закрывает список настроек — он в конце панели */
+  .tlKnobs { padding: 6px; }
+}

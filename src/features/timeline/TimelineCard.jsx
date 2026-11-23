@@ -5,6 +5,7 @@ import TimelinePauseCard from './TimelinePauseCard.jsx'
 import TimelineClipPlay from './TimelineClipPlay.jsx'
 import TimelineBlockComment from './TimelineBlockComment.jsx'
 import TimelineLineEditor from './TimelineLineEditor.jsx'
+import TimelineGapKnobs from './TimelineGapKnobs.jsx'
 
 // Карточка блока «Таймлайна игры» (нажатие на блок монтажа, ленты или строку списка): кто, полный текст, id, когда началось, длина, что было до и после, строка-источник (событие трассы «[scene] {…}»).
 // У реплики — «▶ Слушать» (TimelineClipPlay: озвучка из текущих настроек); у ЛЮБОГО блока — «💬 Комментарий в GitHub» (TimelineBlockComment: адрес блока подставляется в комментарий, в отправку уходит контекст).
@@ -23,7 +24,7 @@ function body(sel) {
   return { title: sel.kind === 'count' ? 'Отсчёт тремя нотами' : sel.kind === 'hold' ? 'Игра на паузе' : 'Игра ждёт', text: r.text || r.why || r.what || '', rows: [['начало', stamp(r.t)], ['длина', dur(r.end - r.t)]], src: '' }
 }
 
-export default function TimelineCard({ sel, rows = null, near = null, onClose, audio = null, block = null, side = false, edit = null }) { // edit — useLineEdit: правка текста и озвучки реплики прямо в карточке (TimelineLineEditor)
+export default function TimelineCard({ sel, rows = null, near = null, onClose, audio = null, block = null, side = false, edit = null, knobs = null }) { // knobs — usePauseKnobs: у тишины блок «Чем задана эта тишина» с правкой настроек пауз (TimelineGapKnobs); // edit — useLineEdit: правка текста и озвучки реплики прямо в карточке (TimelineLineEditor)
   if (!sel) return null
   const cls = `tlCard${side ? ' tlCardSide' : ''}`
   const close = <button type="button" className="tlBtn" onClick={onClose} aria-label="Закрыть карточку">✕</button>
@@ -34,6 +35,7 @@ export default function TimelineCard({ sel, rows = null, near = null, onClose, a
         <div className="tlCardHead"><b>Пауза — {PAUSE_KIND[sel.ref.kind]}</b>{close}</div>
         <TimelinePauseCard p={sel.ref} />
         <dl className="tlCardRows"><div><dt>начало — конец</dt><dd>{stamp(sel.ref.t)} — {stamp(sel.ref.end)}</dd></div></dl>
+        <TimelineGapKnobs span={sel.ref} knobs={knobs} />
         {acts}
       </aside>
     )
@@ -45,6 +47,7 @@ export default function TimelineCard({ sel, rows = null, near = null, onClose, a
       <div className="tlCardHead"><b>{b.title}</b>{close}</div>
       <p className="tlCardText">{b.text}</p>
       {acts}
+      {sel.kind === 'gap' && <TimelineGapKnobs span={sel.ref} knobs={knobs} />}
       {sel.kind === 'line' && <TimelineLineEditor key={`${sel.ref.who}:${sel.ref.id}`} line={sel.ref} edit={edit} />}
       <dl className="tlCardRows">{b.rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{String(v)}</dd></div>)}</dl>
       {nb && <dl className="tlCardRows tlCardNear"><div><dt>до</dt><dd>{nb.prev ? `${stamp(nb.prev.t)} ${nb.prev.text}` : '—'}</dd></div><div><dt>после</dt><dd>{nb.next ? `${stamp(nb.next.t)} ${nb.next.text}` : '—'}</dd></div></dl>}
