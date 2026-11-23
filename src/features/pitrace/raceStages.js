@@ -18,6 +18,8 @@ import { readTapMode } from '../player/modules/rotate-phone/wordLaneHudSettings.
 import { ruReady } from './raceRu.js'
 import { sliceFrom } from './raceStartStage.js'
 import { bossStages } from './boss/raceStagesBoss.js'
+import { commitPauses } from '../../shared/lib/scenePauses.js'
+import { applyStagePauses } from './raceStagePauses.js'
 
 const ROUNDS = { sprint: sprintStages, catch: catchStages, phrases: phraseStages, climb: climbStages, descent: descentStages, boss: bossStages }
 
@@ -41,6 +43,7 @@ export function countBeforeRounds(stages) {
 
 /** → { recipe, stages, chunkMs, chunkCurves, lanes, clipMode } — как buildStages (wordLaneStages.js) */
 export function buildRaceStages({ plan, rate = 1, lib = () => null, tap = readTapMode(), ru = ruReady() }) {
+  commitPauses() // паузы-настройки (shared/lib/scenePauses.js) начинают действовать здесь: на всю игру одни и те же значения
   const kit = createKit({ plan, rate, lib, tap })
   const { acts } = buildRaceActs(plan, tap, ru)
   const byVoice = passBByVoice({ tap, ready: ru }) // проход B слушает русская модель (иначе тап по трём пилюлям, без переключения слуха)
@@ -57,6 +60,7 @@ export function buildRaceStages({ plan, rate = 1, lib = () => null, tap = readTa
   const first = kit.stages[0]
   if (first?.type === 'announce' && !first.mia) Object.assign(first, { count: 'after', soft: true, charge: true, pause: PLATE_HOLD_MS }) // старт: бар заставки САМ становится плашкой этапа (charge: отдельной плашки нет, raceOpening.js), плашка держится PLATE_HOLD_MS после речи Пита; потом три нежные ноты (шаг 600 мс, нота 1,1 с), первая пилюля — после них
   countBeforeRounds(kit.stages)
+  applyStagePauses(kit.stages)
   const { chunks } = plan
   const r = kit.rate
   return { recipe: { chunks, rounds: [], acts, plan }, stages: kit.stages, chunkMs: chunks.map((c, i) => (lib(i)?.ms ?? estChunkMs(c)) / r), chunkCurves: chunks.map(() => null), lanes: orderLanes(chunks.length, rngFor(plan.seed, 'lanes')), clipMode: () => false }

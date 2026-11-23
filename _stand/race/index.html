@@ -22,6 +22,7 @@ import { phrasesOf, withPhrases } from '/src/features/pitrace/racePhraseData.js'
 import { round1Turns } from '/src/features/pitrace/racePhraseTurns.js'
 import { setPhraseListener } from '/src/features/pitrace/racePhraseListener.js'
 import { summaryStand } from './summaryStand.js'
+import { setPauseOverrides, parsePausesParam } from '/src/shared/lib/scenePauses.js'
 import { createPhraseListener as stubPhraseListener, stubSay, stubDraft, stubLevel } from '/src/features/pitrace/racePhraseListenStub.js'
 
 // Стенд «Встряхни память» («Гонка с Питом», dev, в сборку не входит): настоящие раунды гонки на игре «Повтори за диктором» без входа, Supabase и телефона.
@@ -36,6 +37,7 @@ import { createPhraseListener as stubPhraseListener, stubSay, stubDraft, stubLev
 //  • Vosk — заглушка: речь подаёт драйвер очередью window.__sayQueue (строки «слова через пробел»): следующий кусок звука микрофона закрывает заход с этим текстом — как итог Vosk («~слова» — только черновик partial, заход не закрывается); тап вместо речи (localStorage pithy_wl_tap_v1=1) работает как обычно.
 const params = new URLSearchParams(location.search)
 const fixture = params.get('fixture') || 'three'
+if (params.get('pauses')) { const r = setPauseOverrides(parsePausesParam(params.get('pauses')), { source: 'stand' }); window.__pauses = r; if (r.dropped.length) console.warn('[pauses] стенд: отброшено', JSON.stringify(r.dropped)) } // ?pauses=mia.intro=800,race.announce=3000 или JSON — паузы-настройки сценария для этого прогона (shared/lib/scenePauses.js)
 const voice = params.get('voice') !== '0'
 const askParam = params.get('ask') || 'voice' // попап «Говорю / Тапаю» внутри игры проходится сам: ?ask=voice|tap; ?ask=none — остановиться на попапе (для снимков)
 

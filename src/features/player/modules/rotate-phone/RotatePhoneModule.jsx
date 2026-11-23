@@ -23,6 +23,7 @@ import { useWarmProgress } from './useWarmProgress.js'
 import WordLaneWarmBar from './WordLaneWarmBar.jsx'
 import { endGameAudio } from './useGameAudioModes.js'
 import { getCatLines } from '../../../../shared/api/catLinesApi.js'
+import { loadScenePauses } from '../../../../shared/api/scenePausesApi.js'
 import { closeGameMic } from '../../../../shared/lib/gameMic.js'
 import { gameAudioWarm } from '../../../../shared/lib/gameAudioWarm.js'
 import { gameStartTrace } from '../../../../shared/lib/gameStartTrace.js'
@@ -102,6 +103,7 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus, 
   const race = cfg.plan?.game === 'race'
   const voskRu = useVoskReady({ lang: 'ru', hold: false, on: race }) // «Встряхни память», проход B: русская модель скачана? (в память не грузим — это делает переключатель слуха игры); нет её — проход B на тапе
   useEffect(() => { setRuReady(race && voskRu.status === 'ready') }, [race, voskRu.status])
+  useEffect(() => { if (race) loadScenePauses() }, [race]) // паузы-настройки сценария (app_settings.race_scene_pauses): один запрос на сеанс, старт игры его не ждёт — не пришло, игра идёт на значениях по умолчанию
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState('')
   const [gameKey, setGameKey] = useState(0) // «Игра заново» из HUD: новый ключ — игра монтируется с нуля

@@ -4,7 +4,7 @@
 // Прохождение (run) начинает begin(мета) на старте игры; хранятся последние SCENE_RUNS прохождений сеанса страницы. Событие без begin открывает прохождение само (auto) — ничего не теряется.
 // onEnd(fn) — подписка «прохождение закончилось» (событие end): так таймлайн сам сохраняет игру на сервер (features/timeline/timelineAutosave.js), а игровой код о сервере не знает. Подписчик вызывается
 // синхронно внутри push, под try/catch: он обязан вернуться сразу (тяжёлое и сеть — отложить), его ошибка проглатывается.
-// Виды событий (k): run, stage-in, stage-out, line-start, line-end, ask, pill, claim, answer, note, count, count-end, wait, pause, resume, end — поля описаны в CONCEPT_TIMELINE.md.
+// Виды событий (k): run, stage-in, stage-out, line-start, line-end, ask, pill, claim, answer, note, count, count-end, wait, pause, resume, end, knob (ожидание по паузе-настройке, scenePauseTrace.js) — поля описаны в CONCEPT_TIMELINE.md.
 import { pLog } from './debug.js'
 
 export const SCENE_MAX = 6000   // потолок событий одного прохождения; старые вытесняются пачкой

@@ -1,6 +1,8 @@
 // Отсчёт тремя нотами в «Репетиции» (решение владельца): как перед стартом в гонках — три ноты до — ми — соль (каждая звучит дольше шага, v3.3.101) с паузой COUNT_STEP_MS. Два места: перед разминкой (после реплики Пита «давай разомнёмся…», до первого слова)
 // и перед дублем (после плашки «Дубль», до реплики «поехали» и записи). Здесь только чистый план и раскладка по времени (без звука и React); звук — rehearsalCountdownSound.js, запуск и ожидание конца отсчёта стадией — rehearsalCountdownRun.js (из useRehearsalActs.js).
 // В стадии announce (rehearsalStages.js) это поле count: 'after' — отсчёт ПОСЛЕ реплики стадии (разминка), 'before' — ДО реплики (дубль: «Дубль» → ноты → «поехали»). Отсчёт не зависит от режима «тап вместо речи», от выбранного звука и громкости награды (мяу / ноты / ползунок) и от «полной тишины приложения» вкладки «Голос».
+import { pauseMs } from '../../shared/lib/scenePauses.js'
+
 export const COUNT_FREQS = [523.25, 659.25, 783.99] // C5 — E5 — G5, те же высоты, что у «лесенки нот» награды (wordLaneNotes.js)
 export const COUNT_STEP_MS = 500   // между началами нот
 export const COUNT_NOTE_RING = 1.5 // нота звучит дольше шага: длина = шаг × 1,5 (v3.3.101: 240 мс при шаге 500 звучали отрывисто)
@@ -14,7 +16,7 @@ export const COUNT_LEVELS = [1, 1, 1.2] // последняя (сигнал «с
 export const countdownPlan = ({ soft = false, step = soft ? SOFT_STEP_MS : COUNT_STEP_MS, ms = soft ? SOFT_NOTE_MS : COUNT_NOTE_MS } = {}) => COUNT_FREQS.map((freq, k) => ({ k, freq, at: k * step, ms, level: COUNT_LEVELS[k] ?? 1, ...(soft ? { soft: true } : {}) }))
 
 /** Сколько длится отсчёт целиком: от первой ноты до конца хвоста после последней */
-export function countdownMs(plan = countdownPlan(), tail = COUNT_TAIL_MS) {
+export function countdownMs(plan = countdownPlan(), tail = pauseMs('count.tail')) { // хвост — настройка count.tail (по умолчанию COUNT_TAIL_MS; shared/lib/scenePauses.js)
   const last = plan[plan.length - 1]
   return last ? last.at + last.ms + tail : 0
 }

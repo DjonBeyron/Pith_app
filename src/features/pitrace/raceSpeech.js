@@ -15,10 +15,11 @@
 // ВЫХОД (команды): say.praise(id, h) — сказать похвалу (h.onSpeak / h.onEnd приводит адаптер); holdMs() — сколько мс движку считать Пита занятым: LOCK_MS, пока перевод запрещён (движок не посылает 'pre' и не выкатывает пилюлю),
 //   0 — перевод разрешён (движок шлёт 'pre' → fx.pre → translation()); дальше выезд пилюли считает сам движок: за halfTravelMs до ожидаемого конца перевода (spawnEarly), а т. к. перевод разрешён только после speechEnd
 //   похвалы, пилюля не выезжает раньше него. Журнал «[speech] +N мс …»: N — от зачёта; каждый переход с причиной.
-import { GOOD_DELAY_MS, GOOD_ARM_MS } from './raceGood.js'
-import { PRE_SAY_GAP_MS } from './raceStageKit.js'
+import { GOOD_ARM_MS } from './raceGood.js'
+import { pauseMs } from '../../shared/lib/scenePauses.js'
+import { knobMs } from '../../shared/lib/scenePauseTrace.js'
 
-export const AFTER_GOOD_GAP_MS = 350 // перевод следующего слова — через столько после РЕАЛЬНОГО конца похвалы (на слух: «сказал и выдохнул»)
+export const AFTER_GOOD_GAP_MS = 350 // (значение по умолчанию настройки afterGood.gap; сами отступы — pauseMs('good.delay' | 'afterGood.gap' | 'preSay.gap'), shared/lib/scenePauses.js) перевод следующего слова — через столько после РЕАЛЬНОГО конца похвалы (на слух: «сказал и выдохнул»)
 export const END_GUARD_MS = 800      // страховка: нет speechEnd за «оценка + столько» — речь считается оконченной (источник не прислал ended: контекст прерван, элемент оборван)
 export const PRAISE_WAIT_MS = 1600   // похвала может ждать слот звука (useCatLines, waitMs 1,5 с): пока реплика не пошла, страховка отсчитывается от этого запаса, а не от оценки
 export const PRAISE_GUESS_MS = 3000  // пока оценка длины неизвестна (реплика ещё не пошла), считаем похвалу такой длины
@@ -43,7 +44,7 @@ export function createRaceSpeech({ say = {}, now = () => performance.now(), setT
   const armGuard = (ms, why) => { clearGuard(); guard = setTimer(() => { guard = 0; note(`speech-end не пришёл за ${Math.round(ms)} мс (${why}) — страховка: речь окончена`); self.speechEnd('praise', true) }, ms) }
 
   const firePraise = () => {
-    clear(); go('praise', `похвала «${c.praise}» — через ${GOOD_DELAY_MS} мс после взлёта`)
+    clear(); go('praise', `похвала «${c.praise}» — через ${pauseMs('good.delay')} мс после взлёта`)
     armGuard(PRAISE_WAIT_MS + PRAISE_GUESS_MS + END_GUARD_MS, 'реплика ещё не пошла')
     let said = false
     try { said = say.praise?.(c.praise, { onSpeak: o => self.praiseStarted(o?.ms ?? 0), onEnd: () => self.speechEnd('praise') }) !== false } catch { said = false }
@@ -61,8 +62,8 @@ export function createRaceSpeech({ say = {}, now = () => performance.now(), setT
     riseStart(late = false) {
       if (phase !== 'claimed') { if (!late && phase !== 'idle') note(`взлёт вне цикла зачёта (${phase}) — игнорирую`); return }
       clear()
-      if (c.praise) { go('praise-wait', `взлёт${late ? ' (по страховке)' : ''}, похвала через ${GOOD_DELAY_MS} мс`); after(GOOD_DELAY_MS, firePraise) }
-      else { go('gap', `взлёт${late ? ' (по страховке)' : ''}, без похвалы: перевод через ${PRE_SAY_GAP_MS} мс`); after(PRE_SAY_GAP_MS, () => open('без похвалы')) }
+      if (c.praise) { const ms = knobMs('good.delay', { from: 'rise', until: 'praise' }); go('praise-wait', `взлёт${late ? ' (по страховке)' : ''}, похвала через ${ms} мс`); after(ms, firePraise) }
+      else { const ms = knobMs('preSay.gap', { from: 'rise', until: 'say' }); go('gap', `взлёт${late ? ' (по страховке)' : ''}, без похвалы: перевод через ${ms} мс`); after(ms, () => open('без похвалы')) }
     },
     /** Реплика пошла (адаптер знает её длину): страховка отсчитывается от этого мгновения. ms — оценка с учётом выскакивания головы */
     praiseStarted(ms) {
@@ -76,7 +77,8 @@ export function createRaceSpeech({ say = {}, now = () => performance.now(), setT
       if (why !== 'missed') { note('пилюля ушла вверх (взлёт окончен)'); return }
       if (phase === 'claimed' || phase === 'praise-wait' || phase === 'praise') { note('не успел, но зачёт / похвала ещё впереди — отступ после неё'); return }
       c = { at: now(), praise: null }
-      go('gap', `не успел: перевод через ${PRE_SAY_GAP_MS} мс`); after(PRE_SAY_GAP_MS, () => open('после «не успел»'))
+      const ms = knobMs('preSay.gap', { from: 'missed', until: 'say' })
+      go('gap', `не успел: перевод через ${ms} мс`); after(ms, () => open('после «не успел»'))
     },
     /** Реальный конец речи. kind 'praise' — запускает отступ AFTER_GOOD_GAP_MS; 'trans' — конец перевода (журнал). guard — по страховке */
     speechEnd(kind = 'praise', guarded = false) {
@@ -84,9 +86,10 @@ export function createRaceSpeech({ say = {}, now = () => performance.now(), setT
       if (phase !== 'praise') return
       clearGuard()
       const real = praiseAt ? Math.round(now() - praiseAt) : null
-      note(`speech-end: похвала ${guarded ? 'считается оконченной' : 'доиграла'}${real != null ? ` за ${real} мс (оценка ${Math.round(praiseEst)})` : ''}; перевод через ${AFTER_GOOD_GAP_MS} мс`)
+      const gap = knobMs('afterGood.gap', { from: 'praise', until: 'say' })
+      note(`speech-end: похвала ${guarded ? 'считается оконченной' : 'доиграла'}${real != null ? ` за ${real} мс (оценка ${Math.round(praiseEst)})` : ''}; перевод через ${gap} мс`)
       praiseAt = 0
-      go('gap', `после похвалы отступ ${AFTER_GOOD_GAP_MS} мс`); after(AFTER_GOOD_GAP_MS, () => open('после похвалы'))
+      go('gap', `после похвалы отступ ${gap} мс`); after(gap, () => open('после похвалы'))
     },
     /** Перевод начал звучать (fx.pre): ms — оценка длины, 0 — озвучки нет. Дальше пилюлю держит Пит (busy) — выезд считает движок */
     translation(ms) {
@@ -98,10 +101,10 @@ export function createRaceSpeech({ say = {}, now = () => performance.now(), setT
     /** Грубо: сколько мс секвенсор ещё займёт Пита (для расписания реплик этапа, useRehearsalActs.timingOf): похвала впереди / звучит / отступ */
     pendingMs() {
       if (phase === 'idle') return 0
-      if (phase === 'claimed') return c?.praise ? GOOD_DELAY_MS + PRAISE_TYPICAL_MS : PRE_SAY_GAP_MS
-      if (phase === 'praise-wait') return GOOD_DELAY_MS + PRAISE_TYPICAL_MS
-      if (phase === 'praise') return Math.max(200, (praiseEst || PRAISE_TYPICAL_MS) - (praiseAt ? now() - praiseAt : 0)) + AFTER_GOOD_GAP_MS
-      return AFTER_GOOD_GAP_MS
+      if (phase === 'claimed') return c?.praise ? pauseMs('good.delay') + PRAISE_TYPICAL_MS : pauseMs('preSay.gap')
+      if (phase === 'praise-wait') return pauseMs('good.delay') + PRAISE_TYPICAL_MS
+      if (phase === 'praise') return Math.max(200, (praiseEst || PRAISE_TYPICAL_MS) - (praiseAt ? now() - praiseAt : 0)) + pauseMs('afterGood.gap')
+      return pauseMs('afterGood.gap')
     },
     phase: () => phase,
     /** Пауза / выход / смена этапа: всё сброшено */

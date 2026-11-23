@@ -23,7 +23,7 @@ import { phraseEvent, fillPhrases2 } from './raceStatePhrases.js'
 import { useRacePhraseDemo } from './useRacePhraseDemo.js'
 import { plateCaption } from './raceSilentLine.js'
 import { createTransChron } from './raceTransChron.js'
-import { PHRASE_EXIT_MS, PHRASE_ENTER_MS } from './raceStagesPhrases.js'
+import { PHRASE_EXIT_MS, PHRASE_ENTER_MS } from './raceStagesPhrases.js'; import { raceExit } from './raceStagePauses.js'
 import { plateText } from '../player/modules/rotate-phone/wordLanePlateText.js'
 import { useMiaBoxFree } from './mia/useMiaBoxFree.js'
 import { endHoldMs } from './boss/raceEndHold.js'
@@ -205,7 +205,7 @@ export function useRaceActs(args) {
       if (st?.mia === 'hold') return Math.max(st.ms ?? 0, st.say ? mspeech.msOf(st.say) + GAP_MS + 300 : 0) // между блоками экзамена стадия длится, пока Мия объявляет смену языка: за это время слух успевает переключиться на русскую модель (≈2 с)
       return st?.mia !== 'end' ? rh.holdMs(st) : endHoldMs(st, mb, mspeech) // boss-end: ожидание Мии + её реплики / снятие коробки учеником (boss/raceEndHold.js)
     },
-    exitMs: st => (st?.act === 'phrases' ? PHRASE_EXIT_MS : st?.type === 'student' && stages[(st.idx ?? -9) + 1]?.act === 'phrases' ? PHRASE_ENTER_MS : miaComesNext(st) ? MIA.EXIT_MS : undefined), // перед церемонией Мии пауза короче: тишина между кругами и падение коробки тянулись слишком долго (владелец 2026-11-15); // круг фраз кончился: до следующей стадии PHRASE_EXIT_MS, а не 1,3 с (Пит уже договорил итог хода)
+    exitMs: st => raceExit(st, st?.act === 'phrases' ? PHRASE_EXIT_MS : st?.type === 'student' && stages[(st.idx ?? -9) + 1]?.act === 'phrases' ? PHRASE_ENTER_MS : miaComesNext(st) ? MIA.EXIT_MS : undefined), // перед церемонией Мии пауза короче: тишина между кругами и падение коробки тянулись слишком долго (владелец 2026-11-15); // круг фраз кончился: до следующей стадии PHRASE_EXIT_MS, а не 1,3 с (Пит уже договорил итог хода)
     plate: st => (st?.rev || st?.mia === 'intro' || st?.sid === 'boss-intro-ann' ? '' : st?.miaPlate ? (miaPlate.go ? plateText({ type: 'announce', round: st.miaPlate }) : '') : plateText(st, plateCaption(lines, st?.line))), // неозвученная реплика стадии — подписью на плашке (raceSilentLine.js)
     /** Слово прохода A / B принято (раньше, чем щёлкнет заливка): время ответа ms (от выезда пилюли) и y (положение пилюли, % высоты: ниже LATE_Y — ответ «в последний момент») — в результаты, и для точности слова (raceAccuracy.js) — окно жизни пилюли по её скорости, заливка голосом в миг зачёта, тап ли это; Пит говорит мини-реплику успеха, следующая пилюля ждёт его */
     claim(rep, ms, y) { if (!running) return; lead.cancel(); tr.last(); if (running.act === 'boss') { const back = markBossAnswer(listenerRef?.current?.voice, ms); if (back) pLog(`[boss] слово ${(rep?.idx ?? 0) + 1} принято: ответ начат ${back} мс назад — отметка шкалы ставится на тот момент`) } if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null },

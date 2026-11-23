@@ -5,6 +5,7 @@ import { rngFor } from './rehearsalSeed.js'
 import { buildActs } from './rehearsalRecipe.js'
 import { sessionLogLine } from './rehearsalVariety.js'
 import { pLog } from '../../shared/lib/debug.js'
+import { pauseMs } from '../../shared/lib/scenePauses.js'
 import { createJournal, record, nextRunnable, weakLanes } from './rehearsalJournal.js'
 import { reportSession } from './rehearsalSim.js'
 import { useRehearsalTake } from './useRehearsalTake.js'
@@ -70,7 +71,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   }, [on, stage, intro, early, sayLine, startLine, hold, race]) // eslint-disable-line react-hooks/exhaustive-deps -- stages[0].pause читается в момент старта
 
   // Раскладка стадии по времени: реплика Пита (ждёт, пока он договорит прошлую) и отсчёт тремя нотами (stage.count) — rehearsalCountdown.stageTiming
-  const timingOf = st => { const ln = lineOf(st); return stageTiming({ order: st.count ?? null, lead: LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: ln ? lineMs(fillLine(lines?.[ln]), rate) : 0, hasLine: !!ln, ...lineTailOf(st, { pause: silentPause(lines?.[ln], st.pause ?? LINE_PAUSE_MS), minMs: silentMin(lines?.[ln], st.ms), quiet: lineVoiced(lines, ln) }), plan: countdownPlan({ soft: !!st.soft }) }) }
+  const timingOf = st => { const ln = lineOf(st); return stageTiming({ order: st.count ?? null, lead: race ? pauseMs('line.at') : LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: ln ? lineMs(fillLine(lines?.[ln]), rate) : 0, hasLine: !!ln, ...lineTailOf(st, { pause: silentPause(lines?.[ln], st.pause ?? LINE_PAUSE_MS), minMs: silentMin(lines?.[ln], st.ms), quiet: lineVoiced(lines, ln) }), plan: countdownPlan({ soft: !!st.soft }) }) }
   useEffect(() => { if (!on) return undefined; warmCountdown(race); return releaseCountdown }, [on, race]) // ноты отсчёта декодируются заранее (первая должна прозвучать вовремя)
 
   // Реплика стадии и отсчёт (стартует, когда Пит договорил, и не отпускает стадию до конца нот); смена стадии, пауза и выход гасят таймеры и ноты

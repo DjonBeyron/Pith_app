@@ -7,6 +7,7 @@
 // reduceMia(m, ev) → { mia, say, boost, log? }: say — реплики (id, who, delay от события, мс), boost — новое k для step.boost (null — без изменений).
 // ev: { t: 'enter' | 'win' | 'miss' | 'fail' | 'zone', stage, now, zone? }.
 import { variantOf } from './miaLines.js'
+import { pauseMs } from '../../../shared/lib/scenePauses.js'
 import { HELP_LINES } from '../boss/bossHelp.js'
 
 export const MIA = { BOOST: 1.15, STREAK_LEAVE: 3, OK_EVERY: 3, DROP_AT: 1200, EXIT_MS: 250, LEAVE_JUMP_MS: 1200, PUSH_AT: 1800, PANIC_AT: 4600, ANNOUNCE_AT: 6500, REPLY_AT: 8800, ANNOUNCE2_AT: 10800, ANNOUNCE3_AT: 13000, BACK_AT: 2600, BACK2_AT: 5200 }
@@ -27,8 +28,8 @@ const line = (id, who, delay = 0) => ({ id, who, delay })
 const none = m => ({ mia: m, say: [], boost: null })
 const leave = (m, now, why, say) => ({ mia: { ...m, phase: 'out', fast: false, at: now, why, seq: m.seq + 1 }, say, boost: 1 })
 /** На сколько мс раньше начинается речь Мии, если реплика Пита короче запаса: Мия начинает через BOSS.AFTER_PIT_MS после неё (владелец, v3.3.283: «после фразы Пита долгое молчание, и лишь потом Мия»); 0 — как раньше */
-export const bossShift = pitMs => (pitMs > 0 ? Math.min(0, BOSS.PIT1_AT + pitMs + BOSS.AFTER_PIT_MS - BOSS.HUSH_AT) : 0)
-const bossCeremony = (first, d = 0) => [line(first ? 'boss_pit_new' : 'boss_pit_1', 'pit', BOSS.PIT1_AT), line('boss_mia_hush', 'mia', BOSS.HUSH_AT + d), line('boss_mia_exam', 'mia', BOSS.HUSH_AT + d), ...['look', 'think', 'green', 'yellow', 'red', 'five'].map(k => line(`boss_mia_${k}`, 'mia', BOSS.LOOK_AT + d)), line('boss_pit_no', 'pit', BOSS.LOOK_AT + d)]
+export const bossShift = pitMs => (pitMs > 0 ? Math.min(0, pauseMs('boss.pit1At') + pitMs + BOSS.AFTER_PIT_MS - BOSS.HUSH_AT) : 0) // первая реплика Пита — настройка boss.pit1At (по умолчанию BOSS.PIT1_AT)
+const bossCeremony = (first, d = 0) => [line(first ? 'boss_pit_new' : 'boss_pit_1', 'pit', pauseMs('boss.pit1At')), line('boss_mia_hush', 'mia', BOSS.HUSH_AT + d), line('boss_mia_exam', 'mia', BOSS.HUSH_AT + d), ...['look', 'think', 'green', 'yellow', 'red', 'five'].map(k => line(`boss_mia_${k}`, 'mia', BOSS.LOOK_AT + d)), line('boss_pit_no', 'pit', BOSS.LOOK_AT + d)]
 const ceremony = () => [line('mia_push', 'mia', MIA.PUSH_AT), line('pit_panic', 'pit', MIA.PANIC_AT), line('mia_announce_1', 'mia', MIA.ANNOUNCE_AT), line('pit_reply', 'pit', MIA.REPLY_AT), line('mia_announce_2', 'mia', MIA.ANNOUNCE2_AT), line('mia_announce_3', 'mia', MIA.ANNOUNCE3_AT)]
 
 /** Счёт финала по блокам (английские слова, потом русские): блок со смещением offset (номер его первого слова в общем счёте) считается заново, прежние блоки остаются; total — всего слов к концу блока */

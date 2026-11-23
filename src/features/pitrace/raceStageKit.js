@@ -8,6 +8,7 @@ import { vocabOf } from './raceWords.js'
 import { goodPlan } from './raceGood.js'
 import { standbyWords } from './raceStandby.js'
 import { PLATE_HOLD_MS } from './raceOpening.js'
+import { pauseMs } from '../../shared/lib/scenePauses.js'
 
 export const RACE_ANNOUNCE_MS = 1700 // плашка раунда
 export const RACE_TOP_MS = 2600      // вершина: золотая плашка и реплика Пита
@@ -34,7 +35,7 @@ export function createKit({ plan, rate = 1, lib = () => null, tap = false }) { /
     /** Двойники слова из плана (для словаря Vosk и ловушек) */
     doubles: word => plan.words.find(w => normText(w.text) === normText(word))?.confusers ?? [],
     /** Плашка раунда: Пит говорит реплику акта (директор держит плашку, пока он говорит); o.look — вид плашки { tone: 'lane' | 'accent', icon: 'tap' | 'mic' } (круги «Фраз», WordLaneTurnPlate) */
-    announce: (act, o = {}) => push({ type: 'announce', act: act.id, sid: `${o.sid ?? act.id}-ann`, round: { kind: o.kind ?? act.id, title: o.title ?? act.title, task: o.task ?? act.task, brief: o.brief ?? (o.task === undefined ? act.brief : undefined), ...(o.look ? { look: o.look } : {}) }, ms: o.ms ?? RACE_ANNOUNCE_MS, line: o.line === undefined ? act.line : o.line }),
+    announce: (act, o = {}) => push({ type: 'announce', act: act.id, sid: `${o.sid ?? act.id}-ann`, round: { kind: o.kind ?? act.id, title: o.title ?? act.title, task: o.task ?? act.task, brief: o.brief ?? (o.task === undefined ? act.brief : undefined), ...(o.look ? { look: o.look } : {}) }, ms: o.ms ?? pauseMs('race.announce'), line: o.line === undefined ? act.line : o.line, ...(o.ms == null ? { knobs: { ms: 'race.announce' } } : {}) }), // минимум плашки — настройка race.announce (по умолчанию RACE_ANNOUNCE_MS; shared/lib/scenePauses.js)
   }
 }
 
@@ -54,7 +55,7 @@ export function queueStep(kit, id, words, good, rep, o = {}) {
     parts: words.map((_, i) => i), text: targets.join(' '), chunks: targets, chunkMs: targets.map(t => kit.msOf(t)),
     reps: words.map((w, i) => ({ parts: [i], lane: w.lane, speed: w.speed, ...rep(w) })),
     extra: o.lang === 'ru' ? [] : vocabOf(targets, words.flatMap(w => [...w.confusers, ...kit.doubles(w.text)])), maxWords: 2, maxTries: 1, overlap: !o.solo, // o.solo («Допрос у Мии», владелец 2026-11-22: «как в экзамене»): следующая пилюля — только когда прежняя разрешилась (принята / ушла) и Мия договорила колкость (holdAll), а не когда прежняя «оглохла»: раньше колкость о прошлой пилюле звучала поверх следующей, и микрофон на это время был выключен
-    boost: { k: 1 }, quiet: true, edge: true, holdAll: true, preSay: true, preGap: PRE_SAY_GAP_MS, claimGap: CLAIM_GAP_MS, goodAt: good.map(g => g.at),
+    boost: { k: 1 }, quiet: true, edge: true, holdAll: true, preSay: true, preGap: pauseMs('preSay.gap'), claimGap: CLAIM_GAP_MS, goodAt: good.map(g => g.at),
     ...(o.lang ? { lang: o.lang } : {}), ...(o.tapOnly || kit.tap ? { tapOnly: true } : {}), ...(o.reverse ? { reverse: true } : {}), // reverse — обратный конвейер: слова едут снизу вверх, верные улетают вниз, Пит уворачивается от выезжающих (проход B «Конвейера слов»)
   })
 }
