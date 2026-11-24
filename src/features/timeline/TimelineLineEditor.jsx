@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react'
 import { lineVoiceState, isSpeaker, mouthState } from './timelineLineEdit.js'
+import TimelineCheckNote from './check/TimelineCheckNote.jsx'
 
 // Правка реплики в карточке блока (TimelineCard): «📋 Копировать текст» и «📋 id»; для реплик Пита и Мии — статус озвучки (тот же, что в таблице «Озвучка Пита»), поле с текстом ИЗ НАСТРОЕК НА СЕЙЧАС
 // (если в этой игре звучал другой — показаны оба), строка «👄 …» — размечен ли рот по словам (свой файл размечается в браузере при загрузке; «🔁 Разметить рот заново» — для файла без разметки), «Сохранить» с подтверждением («текст изменится везде…», где реплика звучит), «🎙 Озвучить заново», «📁 Выбрать файл…», «↶ Вернуть прежний текст».
+// Сразу после сохранения (текст, озвучка, свой файл) под сообщением «готово» — итог проверки ЭТОЙ реплики (check/TimelineCheckNote.jsx: «✅ подходит» либо что не так; «↶ Вернуть прежнюю озвучку»), рядом — «↶ Вернуть прежний текст».
 // Слова диктора — только копирование: это слова урока из библиотеки слов, они правятся не здесь. edit — useLineEdit (null — правки на экране нет: остаётся копирование).
 const WHAT = { text: 'сохраняю текст…', voice: 'озвучиваю… (ElevenLabs → файл → настройки)', file: 'загружаю файл…', restore: 'возвращаю прежний текст…', mouth: 'размечаю рот…' }
 const fallbackCopy = async t => { try { await navigator.clipboard.writeText(t); return true } catch { return false } }
@@ -62,6 +64,7 @@ export default function TimelineLineEditor({ line, edit = null }) {
       {busy && <p className="tlLeNote tlLeBusy" role="status" data-testid="tl-le-busy">{WHAT[busy] ?? busy}</p>}
       {edit.error?.id === id && <p className="tlLeNote tlLeErr" role="alert" data-testid="tl-le-error">{edit.error.text}</p>}
       {!busy && edit.done?.id === id && <p className="tlLeNote tlLeOk" data-testid="tl-le-done">{edit.done.text}</p>}
+      {!busy && edit.done?.id === id && <TimelineCheckNote id={id} edit={edit} />}
       {edit.undo?.id === id && <button type="button" className="tlBtn tlLeSmall" disabled={off} onClick={() => edit.restore(edit.undo)} title={`Вернуть «${edit.undo.prev.text}» и прежнюю озвучку (если её не перезаписали)`} data-testid="tl-le-undo">↶ Вернуть прежний текст</button>}
     </section>
   )

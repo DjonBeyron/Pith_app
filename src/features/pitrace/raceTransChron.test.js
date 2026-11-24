@@ -7,7 +7,7 @@ const setup = () => { let t = 0; const log = vi.fn(); const tr = createTransChro
 describe('журнал переходов «[start] переход …» (raceTransChron.js)', () => {
   it('отрезки: -ann / -sw к своему этапу, вся «Вершина» — climb', () => {
     expect(segOf(st('catch-sw', 'announce', 'catch'))).toBe('catch')
-    expect(segOf(st('phrases1-ann', 'announce', 'phrases'))).toBe('phrases1')
+    expect(segOf(st('phrases-ann', 'announce', 'phrases'))).toBe('phrases'); expect(segOf(st('phrases2', 'student', 'phrases'))).toBe('phrases2')
     expect(segOf(st('climb-3', 'student', 'climb'))).toBe('climb')
   })
   it('старт → первая ступень: плашка, реплика, первая пилюля от входа в игру', () => {
@@ -34,12 +34,11 @@ describe('журнал переходов «[start] переход …» (raceTr
     s.tr.stage(st('catch2', 'student', 'catch')); s.at(1000); s.tr.last()
     s.at(2300); s.tr.stage(st('phrases-sw', 'announce', 'phrases')); s.tr.plate('Секунду')
     s.at(3400); s.tr.stage(st('phrases-ann', 'announce', 'phrases')); s.tr.plate('Фразы')
-    s.at(4600); s.tr.stage(st('phrases1-ann', 'announce', 'phrases')); s.tr.plate('Пойми')
-    s.at(4870); s.tr.line('race_phrases_pick')
-    s.at(5800); s.tr.stage(st('phrases1', 'student', 'phrases')); s.tr.pill()
+    s.at(3670); s.tr.line('race_phrases_show')
+    s.at(5800); s.tr.stage(st('phrases2', 'student', 'phrases')); s.tr.pill() // круга «Пойми» нет: за плашкой этапа сразу единственный круг
     expect(s.lines()).toEqual([
-      '[start] переход Пинг-понг B, круг 2 → плашка «Фразы»: плашка через 1300 мс, реплика через —, первая пилюля через —, дальше «Фразы, круг 1» через 3600 мс; плашки: «Секунду» +1300, «Фразы» +2400',
-      '[start] переход плашка «Фразы» → Фразы, круг 1: плашка через 0 мс, реплика через 270 мс («race_phrases_pick»), первая пилюля через 1200 мс; плашки: «Пойми» +0',
+      '[start] переход Пинг-понг B, круг 2 → плашка «Фразы»: плашка через 1300 мс, реплика через 2670 мс («race_phrases_show»), первая пилюля через —, дальше «Фразы, круг» через 4800 мс; плашки: «Секунду» +1300, «Фразы» +2400',
+      '[start] переход плашка «Фразы» → Фразы, круг: плашка через —, реплика через —, первая пилюля через 0 мс',
     ])
   })
 })

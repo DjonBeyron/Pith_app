@@ -3,7 +3,7 @@ import { hitPill, tapLine, zoneOf, trioTapLine, HIT_PAD_Y, GAP_MAX } from './rac
 import { logTrioTap } from './raceTapTrioLog.js'
 import { setupScene } from './racePhraseSceneRig.js'
 import { phraseStep, PHRASE_SPEED } from './raceStagesPhrases.js'
-import { round1Turns } from './racePhraseTurns.js'
+import { round2HearTurns } from './racePhraseTurns.js'
 import { phrasesOf } from './racePhraseData.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
 import { WIDE_W, WIDE_H, LANE_EDGES } from '../player/modules/rotate-phone/wordLaneTimeline.js'
@@ -66,7 +66,7 @@ describe('сцена круга 1: тап по точке — та пилюля,
   const ph = phrasesOf({ phrases: PHRASE_FIXTURE })
   const H = 812, Wd = 375
   const rig = o => {
-    const s = setupScene(phraseStep('phrases1', round1Turns(ph, 's1'), { round: 1, mode: 'pick', voice: false, speed: PHRASE_SPEED }), o)
+    const s = setupScene(phraseStep('phrases2', round2HearTurns(ph, 's1'), { round: 2, mode: 'hear', voice: false, speed: PHRASE_SPEED }), o)
     const rectOf = k => { const y = (s.pool.y(k) / 100) * H, h = (WIDE_H / 100) * H, w = (WIDE_W / 100) * Wd; return { top: y - h / 2, bottom: y + h / 2, left: (Wd - w) / 2, right: (Wd + w) / 2 } }
     const take = s.pool.take
     s.pool.take = (lane, opt) => { const k = take(lane, opt); s.pool.taken[k].el.getBoundingClientRect = () => rectOf(k); return k }
@@ -79,7 +79,7 @@ describe('сцена круга 1: тап по точке — та пилюля,
     let two = null
     for (let i = 0; i < 2000 && !two; i++) { s.go(16); const on = s.run.api.state().pills.filter(p => p.y > 12 && p.y < 88).sort((a, b) => a.y - b.y); if (on.length >= 2 && Math.abs(on[1].y - 50) < Math.abs(on[0].y - 50)) two = on }
     expect(two).toBeTruthy()
-    const up = two[0], k = s.pool.taken.find(p => p.cap === round1Turns(ph, 's1')[0].cands.find(c => c.key === up.key).cap).k
+    const up = two[0], k = s.pool.taken.find(p => p.cap === round2HearTurns(ph, 's1')[0].cands.find(c => c.key === up.key).cap).k
     s.run.api.tap(1, center(k))
     if (up.right) { expect(s.fx.win).toHaveBeenCalledTimes(1); expect(s.fx.miss).not.toHaveBeenCalled() }
     else { expect(s.fx.miss).toHaveBeenCalledTimes(1); expect(s.fx.miss.mock.calls[0][0].rep.res.confusedWith).toBe(up.key) } // выбрана та, по которой тапнули
@@ -91,7 +91,7 @@ describe('сцена круга 1: тап по точке — та пилюля,
       s.go(500 + n * 230)
       const on = s.run.api.state().pills.filter(p => p.y > 12 && p.y < 88)
       if (!on.length) continue
-      const pickP = on[n % on.length], cand = round1Turns(ph, 's1')[0].cands.find(c => c.key === pickP.key)
+      const pickP = on[n % on.length], cand = round2HearTurns(ph, 's1')[0].cands.find(c => c.key === pickP.key)
       s.run.api.tap(1, center(s.pool.taken.find(p => p.cap === cand.cap).k))
       if (cand.right) expect(s.fx.win).toHaveBeenCalledTimes(1); else expect(s.fx.miss.mock.calls[0][0].rep.res.confusedWith).toBe(cand.key)
     }

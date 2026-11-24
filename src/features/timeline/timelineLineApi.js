@@ -9,6 +9,7 @@ import { saveLineText } from '../admin/speech/raceLineText.js'
 import { setLineFile, restoreLine } from '../admin/speech/raceLineActions.js'
 import { auditVoice } from '../admin/speech/voiceAudit.js'
 import { copyText } from '../admin/speech/copyText.js'
+import { restoreVoice } from './check/lineRestore.js'
 
 export const LINE_API = {
   load: () => getCatLines({ fresh: true }),
@@ -18,5 +19,7 @@ export const LINE_API = {
   voice: id => voicePitLines({ ids: [id] }),
   setFile: (id, file) => setLineFile(id, file),
   restore: (id, prev) => restoreLine(id, prev),
+  orphans: raw => auditVoice(raw).orphans, // записи озвучки удалённых реплик — для «Проверки сценария»
+  restoreVoice: (id, prev) => restoreVoice(id, prev),
   copy: copyText,
 }

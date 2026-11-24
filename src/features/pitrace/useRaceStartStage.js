@@ -13,7 +13,7 @@ import { startEntries, readStartStage, writeStartStage, withStart } from './race
 export function startOptions(plan) {
   if (plan?.game !== 'race') return []
   const { stages, recipe } = buildRaceStages({ plan: { ...plan, startAt: undefined }, tap: false, ru: true }) // голосом и с русской моделью — самый полный список (пальцами те же плашки, кроме переключения слуха)
-  return startEntries(stages, recipe.acts, { 'phrases2-ann': 'Скажи / Узнай' }) // подпись круга 2 фраз (плашки у него нет)
+  return startEntries(stages, recipe.acts)
 }
 
 /** Конфиг игры со стартом с этапа entry (или тот же cfg) */

@@ -41,13 +41,14 @@ describe('нежный отсчёт: расписание', () => {
       expect(stages.filter(s => s.count && !['student', 'read'].includes(stages[s.idx + 1]?.type) && s.idx !== 0)).toHaveLength(0)
     }
   })
-  it('полная гонка: ноты перед A, вторым кругом A, B, вторым кругом B, «Пойми», «Скажи», «Вершиной» и «Спуском» — не на переключении слуха и не на «Фразах» (там ноты после «Пойми»)', () => {
+  it('полная гонка: ноты перед A, вторым кругом A, B, вторым кругом B, «Скажи», «Вершиной» и «Спуском» — не на переключении слуха; на плашке «Фраз» с демо нот нет (они после демо)', () => {
     const { stages } = buildRaceStages({ plan, ru: true, tap: false })
     const counted = stages.filter(s => s.count).map(s => s.sid)
-    for (const sid of ['sprint-ann', 'sprint2-ann', 'catch-ann', 'catch2-ann', 'phrases1-ann', 'climb-ann', 'descent-ann']) if (stages.some(s => s.sid === sid)) expect(counted).toContain(sid)
+    for (const sid of ['sprint-ann', 'sprint2-ann', 'catch-ann', 'catch2-ann', 'climb-ann', 'descent-ann']) if (stages.some(s => s.sid === sid)) expect(counted).toContain(sid)
     const p2 = stages.find(s => s.sid === 'phrases2')
-    if (p2) { if (p2.step.phrases.countAfter) expect(counted).not.toContain('phrases2-ann'); else expect(counted).toContain('phrases2-ann') } // с демо — ноты после демо (сцена), без демо — на плашке
-    expect(counted.filter(s => s.endsWith('-sw') || s === 'phrases-ann' || s.startsWith('climb-t'))).toEqual([])
+    expect(stages.some(s => /^phrases1/.test(s.sid) || s.sid === 'phrases2-ann')).toBe(false) // круга «Пойми» и отдельной плашки круга нет
+    if (p2) { if (p2.step.phrases.countAfter) expect(counted).not.toContain('phrases-ann'); else expect(counted).toContain('phrases-ann') } // с демо — ноты после демо (сцена), без демо — на плашке
+    expect(counted.filter(s => s.endsWith('-sw') || s.startsWith('climb-t'))).toEqual([])
   })
   it('count: false у плашки — без нот', () => {
     const st = [{ idx: 0, type: 'announce', count: 'after' }, { idx: 1, type: 'student' }, { idx: 2, type: 'announce', count: false }, { idx: 3, type: 'student' }]

@@ -12,6 +12,9 @@
 //    и у русских слов диктора) — «▶ Слушать» и звук клипа по нажатию.
 //  • ?lines=1 — подставные настройки реплик (в памяти страницы) и подставная озвучка: в карточке реплики работают правка текста, «Озвучить заново» (1,5 с «озвучки»), свой файл, «вернуть прежний текст»;
 //    логика сохранения — настоящая (saveLineText, voicePitLines, setLineFile, restoreLine), подменены только сеть, ElevenLabs и R2. ?lines=deny — запись отклоняется, как у не-админа (RLS).
+//    ?lines=check — «Проверка сценария» (вкладка «Проверка 🎧», ?tab=listen): весь каталог «Встряхни память» озвучен, подмешаны все виды проблем (нет звука, текст изменён, слишком длинная / короткая, тишина по краям,
+//    без разметки рта, длиннее потолка сцены, лишняя запись); ?lines=clean — без проблем; ?only=1 — сразу «только проблемы»; ?open=<блок/часть/id> — раскрыть карточку реплики; ?src=run — «Последняя игра»;
+//    ?filedur=4.5 — длительность «своего файла» (по умолчанию 1,2 с).
 //  • ?fixture=knobs — та же настоящая игра, но С НАСТРОЙКАМИ ПАУЗ в трассе (timelineFixtureKnobs.js: события knob и pauses у стадий) — у зазоров видно, какая настройка их дала; ?fixture=real — «старая игра», настроек нет;
 //    ?pauses=1 — подставной «сервер пауз» и память устройства (в памяти страницы): работают «попробовать на этом устройстве» и «применить для всех»; ?pauses=deny — запись для всех отклоняется (не админ);
 //    ?pauses=srv — на сервере уже изменена одна настройка.
@@ -30,6 +33,8 @@ import { auditVoice } from '/src/features/admin/speech/voiceAudit.js'
 import { saveLineText } from '/src/features/admin/speech/raceLineText.js'
 import { setLineFile, restoreLine } from '/src/features/admin/speech/raceLineActions.js'
 import { voicePitLines } from '/src/features/rehearsal/rehearsalVoice.js'
+import { checkFixtureRaw, evenWords } from '/src/features/timeline/check/checkFixture.js'
+import { restoreVoice } from '/src/features/timeline/check/lineRestore.js'
 
 const q = new URLSearchParams(location.search), kind = q.get('fixture') || 'game', mode = q.get('server')
 const events = kind === 'long' ? longFixture() : kind === 'rev' ? reverseEvents() : kind === 'real' ? realEvents() : kind === 'knobs' ? knobEvents() : fixtureEvents()
@@ -51,10 +56,12 @@ const voices = q.get('voices') ? { load: async () => { const url = beep(), ids =
 const lmode = q.get('lines'), textOf = Object.fromEntries(CAT_LINES.map(d => [d.id, d.text]))
 let rawLines = { lines: Object.fromEntries([...new Set(events.filter(e => e.k === 'line-start' && e.who !== 'dictor' && textOf[e.id] && e.id !== 'race_good_ok').map(e => e.id))].map(id => [id, { text: textOf[id], url: beep(), duration: 1.2, said: textOf[id] }])) }
 if (rawLines.lines.race_good_1) rawLines.lines.race_good_1 = { ...rawLines.lines.race_good_1, text: 'отличное произношение, так держать', custom: true }
+if (lmode === 'check' || lmode === 'clean') rawLines = checkFixtureRaw(beep(), { clean: lmode === 'clean' }) // «Проверка сценария»: весь каталог озвучен; check — с набором проблем (check/checkFixture.js PROBLEMS)
 const ldeps = { load: async () => { await wait(150); return rawLines }, save: async v => { await wait(250); if (lmode === 'deny') throw new Error('Сохранение не применилось: сервер не подтвердил запись'); rawLines = v; window.__lines = v; return v } }
-const fakeTts = { speak: async text => { await wait(1500); return { file: new File([text], 'tts.mp3', { type: 'audio/mpeg' }), wordTimings: [] } }, upload: async () => beep(), probe: async () => 1.2, loadVoice: async () => {} }
+let ttsDur = 1.2 // «озвучка» стенда длится как настоящая речь: 14,5 знака в секунду, с таймингами слов
+const fakeTts = { speak: async text => { await wait(1500); ttsDur = Math.max(0.7, Math.round(text.length / 14.5 * 100) / 100); return { file: new File([text], 'tts.mp3', { type: 'audio/mpeg' }), wordTimings: evenWords(text, 0.05, ttsDur - 0.1) } }, upload: async () => `${beep()}#${Date.now()}`, probe: async () => ttsDur, loadVoice: async () => {} }
 const lineApi = lmode ? { load: ldeps.load, normalize: normalizeLines, audit: raw => auditVoice(raw).byId, saveText: (id, text) => saveLineText(id, text, ldeps), voice: id => voicePitLines({ ids: [id], ...ldeps, ...fakeTts }),
-  setFile: (id, file) => setLineFile(id, file, { ...ldeps, upload: fakeTts.upload, probe: fakeTts.probe }), restore: (id, prev) => restoreLine(id, prev, ldeps), copy: async t => { window.__copied = t; return true } } : null
+  setFile: (id, file) => setLineFile(id, file, { ...ldeps, upload: fakeTts.upload, probe: async () => Number(q.get('filedur')) || 1.2 }), restore: (id, prev) => restoreLine(id, prev, ldeps), orphans: raw => auditVoice(raw).orphans, restoreVoice: (id, prev) => restoreVoice(id, prev, ldeps), copy: async t => { window.__copied = t; return true } } : null
 // подставной «сервер пауз» и память устройства
 const pmode = q.get('pauses')
 let srvPauses = pmode === 'srv' ? { v: 1, pauses: { 'good.delay': 300 } } : null, devPauses = {}
@@ -63,5 +70,5 @@ const pauseApi = pmode ? { readServer: async () => { await wait(200); return { o
   readDevice: () => ({ pauses: devPauses }), saveDevice: obj => { devPauses = validatePauses(obj).pauses; window.__devPauses = devPauses; return { ok: true } } } : null
 window.__sent = []
 const send = q.get('send') ? async (comment, opts, report, edits, pinned = []) => { window.__sent.push({ comment, opts, report: report.length, edits, pinned }); await wait(300); return `Отправлено в GitHub (${2 + pinned.length} ф.) — напиши мне «читай»` } : null
-createRoot(document.getElementById('root')).render(React.createElement(TimelineScreen, { runs, server, send, voices, lineApi, pauseApi, tab0: q.get('tab') || null, edit0: q.get('edit') === '1', onClose: () => { document.title = 'closed' } }))
+createRoot(document.getElementById('root')).render(React.createElement(TimelineScreen, { runs, server, send, voices, lineApi, pauseApi, tab0: q.get('tab') || null, check0: { src0: q.get('src') || 'now', only0: q.get('only') === '1', open0: q.get('open') || null }, edit0: q.get('edit') === '1', onClose: () => { document.title = 'closed' } }))
 </script></body></html>

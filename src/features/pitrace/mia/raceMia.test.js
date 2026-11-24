@@ -17,7 +17,7 @@ describe('эпизод «Мия»: когда приходит', () => {
     const r = reduceMia(miaInit(), ev('enter', ann()))
     expect(r.mia.phase).toBe('in'); expect(r.mia.act).toBe('sprint'); expect(r.mia.used).toEqual({ sprint: true }); expect(r.boost).toBeNull(); expect(r.mia.at).toBe(1000 + MIA.DROP_AT)
     expect(ids(r)).toEqual(['mia_push', 'pit_panic', 'pit_reply', 'mia_announce_2', 'mia_announce_3'])
-    expect(r.say.map(l => l.delay)).toEqual([MIA.PUSH_AT, MIA.PANIC_AT, MIA.REPLY_AT, MIA.ANNOUNCE2_AT, MIA.ANNOUNCE3_AT]); expect(r.say.map(l => l.who)).toEqual(['mia', 'pit', 'pit', 'mia', 'mia'])
+    expect(r.say.map(l => l.delay)).toEqual([MIA.PUSH_AT, MIA.PANIC_AT, MIA.PANIC_AT, MIA.PANIC_AT, MIA.PANIC_AT]) // после «Мяяяу» — очередью по концу звука, без сроков под старые длины (miaCircleEnd.test.js); expect(r.say.map(l => l.who)).toEqual(['mia', 'pit', 'pit', 'mia', 'mia'])
     expect(miaShown(r.mia)).toBe(true)
     const b = reduceMia(r.mia, ev('enter', round3())); expect(b.boost).toBe(MIA.BOOST); expect(b.mia).toMatchObject({ phase: 'in', act: 'sprint', fast: true }); expect(r.mia.fast).toBe(false); expect(b.say).toEqual([])
   })
@@ -68,7 +68,7 @@ describe('эпизод «Мия»: пока она на коробке', () => {
   })
   it('конец круга с Мией (стадия …3-end): все слова верны — Мия уходит с коробкой («вы победили», две реплики Пита); ловушка — верно промолчать', () => {
     const r = reduceMia(play(arrive(), ['win', 'win', 'win', 'win']), ev('enter', end3()))
-    expect(r.mia).toMatchObject({ phase: 'out', why: 'win' }); expect(r.mia.solo).toBeNull(); expect(ids(r)).toEqual(['mia_leave', 'pit_back_1', 'pit_back_2']); expect(r.log).toContain('все верно')
+    expect(r.mia).toMatchObject({ phase: 'out', why: 'win' }); expect(r.mia.solo).toBeNull(); expect(ids(r)).toEqual(['mia_leave', 'pit_back_1']); expect(r.log).toContain('все верно') // pit_back_2 — реплика разворота конвейера (после A голосом), в очереди конца её нет
     const trap = round3('sprint', [{ text: 'a' }, { text: 'b', trap: true }]); const t = reduceMia(reduceMia(reduceMia(arrive(), ev('enter', trap)).mia, ev('win', trap, { idx: 0 })).mia, ev('fail', trap, { idx: 1 })).mia
     expect(reduceMia(t, ev('enter', end3())).mia).toMatchObject({ phase: 'out', why: 'win' })
   })

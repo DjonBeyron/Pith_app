@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { phrasesOf, hasPhrases, normalizePhrase, phraseTokens, phraseWordKeys, withPhrases, PHRASES_MIN } from './racePhraseData.js'
-import { round1Turns, round2SayTurns, round2HearTurns, reorderWeak, decoysFor } from './racePhraseTurns.js'
-import { ROUND2_ANN_MS } from './raceStageKit.js'
-import { phraseStages, PICK_SPEED, PHRASE_SPEED, SAY_SPEED, LANE, ROUND_PLATES, gapMs, PHRASE_TAP_GAP_PCT } from './raceStagesPhrases.js'
+import { round2SayTurns, round2HearTurns, decoysFor } from './racePhraseTurns.js'
+import * as turnsMod from './racePhraseTurns.js'
+import { phraseStages, PHRASE_SPEED, SAY_SPEED, LANE, ROUND_PLATES, gapMs, PHRASE_TAP_GAP_PCT, PHRASE_LINE_TAIL_MS } from './raceStagesPhrases.js'
+import { RACE_LINE_IDS } from './raceLines.js'
+import { RACE_LINE_SET, raceCatalog } from '../admin/speech/voiceAudit.js'
 import { buildRaceStages } from './raceStages.js'
 import { buildRaceActs } from './raceRecipe.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
@@ -44,16 +46,15 @@ describe('фразы плана', () => {
   })
 })
 
-describe('ходы кругов', () => {
+describe('ходы круга', () => {
   const ph = phrasesOf({ phrases: PHRASE_FIXTURE })
-  it('круг 1: ход на каждую свою фразу по порядку плана, дежурная целью не бывает; три кандидата, верный один, смыслы разные', () => {
-    const t = round1Turns(ph, 's1')
+  it('«Узнай» (пальцами): ход на каждую свою фразу по порядку плана, дежурная целью не бывает; три смысла, верный один, смыслы разные', () => {
+    const t = round2HearTurns(ph, 's1')
     expect(t.map(x => x.target.key)).toEqual(ph.filter(p => p.own).map(p => p.key))
     for (const x of t) {
-      expect(x.cands).toHaveLength(3); expect(x.cands.filter(c => c.right)).toHaveLength(1)
-      expect(x.cands.find(c => c.right).key).toBe(x.target.key)
-      const senses = x.cands.map(c => ph.find(p => p.key === c.key).ru); expect(new Set(senses).size).toBe(3)
-      expect(x.cands.find(c => c.right).cap).toBe(x.target.text)
+      expect(x.pass).toBeUndefined(); expect(x.cands).toHaveLength(3); expect(x.cands.filter(c => c.right)).toHaveLength(1)
+      expect(x.cands.find(c => c.right).key).toBe(x.target.key); expect(x.cands.find(c => c.right).cap).toBe(x.target.ru)
+      expect(new Set(x.cands.map(c => c.cap)).size).toBe(3)
     }
   })
   it('свои запутыватели приоритетнее дежурных; дежурная — когда своих не хватает; одинаковый смысл не запутыватель', () => {
@@ -66,66 +67,72 @@ describe('ходы кругов', () => {
   it('одна и та же фраза не подряд: цель хода ≠ цель прошлого, первая пилюля хода ≠ последней пилюли прошлого (по многим семенам)', () => {
     const many = [P('a', '1'), P('b', '2'), P('c', '3'), P('d', '4'), P('e', '5', false)]
     for (let s = 0; s < 40; s++) {
-      const t = round1Turns(many, `seed${s}`)
+      const t = round2HearTurns(many, `seed${s}`)
       for (let i = 1; i < t.length; i++) { expect(t[i].target.key).not.toBe(t[i - 1].target.key); expect(t[i].cands[0].key).not.toBe(t[i - 1].cands.at(-1).key) }
     }
   })
   it('одно семя — одни и те же ходы (Math.random в модулях этапа нет)', () => {
-    expect(JSON.stringify(round1Turns(ph, 'z'))).toBe(JSON.stringify(round1Turns(ph, 'z')))
+    expect(JSON.stringify(round2HearTurns(ph, 'z'))).toBe(JSON.stringify(round2HearTurns(ph, 'z')))
     for (const f of ['racePhraseTurns.js', 'raceStagesPhrases.js', 'racePhraseScene.js', 'racePhraseVoice.js', 'raceStatePhrases.js', 'racePhraseData.js']) expect(readFileSync(new URL(`./${f}`, import.meta.url), 'utf8')).not.toMatch(/Math\.random\s*\(/)
   })
-  it('круг 2 голосом — по своей фразе ДВА хода подряд (проход 1, проход 2); пальцами — три смысла (ru), верный один, один ход; слабые фразы круга 1 — последними, пары не разрываются', () => {
+  it('«Скажи» (голосом) — по своей фразе ДВА хода подряд (проход 1, проход 2) в порядке плана; ходов круга «Пойми» и перестановки «слабые последними» больше нет', () => {
     const say = round2SayTurns(ph)
     expect(say.map(t => t.cands.length)).toEqual([1, 1, 1, 1, 1, 1])
     expect(say.map(t => t.pass)).toEqual([1, 2, 1, 2, 1, 2]); expect(say.map(t => t.idx)).toEqual([0, 1, 2, 3, 4, 5])
-    const keys = [...new Set(say.map(t => t.target.key))]
+    const keys = ph.filter(p => p.own).map(p => p.key)
     expect(say.map(t => t.target.key)).toEqual([keys[0], keys[0], keys[1], keys[1], keys[2], keys[2]])
-    const h = round2HearTurns(ph, 's1')
-    for (const t of h) { expect(t.pass).toBeUndefined(); expect(t.cands.map(c => c.cap)).toContain(t.target.ru); expect(new Set(t.cands.map(c => c.cap)).size).toBe(3) }
-    const re = reorderWeak(say, [keys[0]])
-    expect(re.map(t => `${t.target.key}#${t.pass}`)).toEqual([`${keys[1]}#1`, `${keys[1]}#2`, `${keys[2]}#1`, `${keys[2]}#2`, `${keys[0]}#1`, `${keys[0]}#2`]); expect(re.map(t => t.idx)).toEqual([0, 1, 2, 3, 4, 5])
+    expect(turnsMod.round1Turns).toBeUndefined(); expect(turnsMod.reorderWeak).toBeUndefined()
   })
 })
 
-describe('стадии этапа', () => {
-  it('голосом: плашка race_phrases → плашка круга 1 (race_phrases_pick) → круг 1 → плашка круга 2 (race_phrases_say) → круг 2; ступени — своя сцена (step.phrases), слух слов выключен, лента — средняя дорожка', () => {
-    const k = kitOf(plan()); const act = buildRaceActs(plan(), false).acts.find(a => a.id === 'phrases')
-    phraseStages(k, act)
-    expect(k.stages.map(s => s.sid)).toEqual(['phrases-ann', 'phrases1-ann', 'phrases1', 'phrases2-ann', 'phrases2'])
-    expect(k.stages.filter(s => s.type === 'announce').map(s => s.line)).toEqual(['race_phrases', 'race_phrases_pick', 'race_phrases_show']) // с примером плашка зовёт смотреть, «скажи её сам» — после примера
-    const [s1, s2] = [k.stages[2], k.stages[4]]
-    expect(s1.step.phrases).toMatchObject({ round: 1, mode: 'pick', voice: false, speed: PICK_SPEED }); expect(s2.step.phrases).toMatchObject({ round: 2, mode: 'say', voice: true, speed: SAY_SPEED }) // круг 1 — только тап и голосом
-    for (const s of [s1, s2]) { expect(s.step.tapOnly).toBe(true); expect(s.step.quiet).toBe(true); expect(s.step.active).toEqual([LANE]); expect(s.step.reps.every(r => r.lane === LANE)).toBe(true) }
-    expect(PHRASE_SPEED).toBe(0.55); expect(PICK_SPEED).toBe(0.64); expect(SAY_SPEED).toBe(0.36) // 2026-11-08, владелец: «скорость слишком мала» (было 0,43 / 0,27)
-    expect(s1.step.phrases.gap).toBe(gapMs(PICK_SPEED, PHRASE_TAP_GAP_PCT)); expect(s2.step.phrases.gap).toBe(gapMs(SAY_SPEED)) // тап-круг: шаг 16,4 % высоты (воздух −40 %); «Скажи» голосом — 20 %
+describe('стадии этапа: круг «Пойми · Тапни фразу» вырезан (владелец 2026-11-24)', () => {
+  const build = tap => { const k = kitOf(plan(), tap); phraseStages(k, buildRaceActs(plan(), tap).acts.find(a => a.id === 'phrases')); return k.stages }
+  it('голосом: плашка этапа с репликой race_phrases_show → сразу круг «Скажи» (sid phrases2); стадий phrases1 и отдельной плашки круга нет', () => {
+    const st = build(false)
+    expect(st.map(s => s.sid)).toEqual(['phrases-ann', 'phrases2'])
+    expect(st[0]).toMatchObject({ type: 'announce', line: 'race_phrases_show', plateWithLine: true, lineTail: PHRASE_LINE_TAIL_MS, count: false }) // с примером плашка зовёт смотреть; ноты — после демо (сцена)
+    expect(st[1].step.phrases).toMatchObject({ round: 2, mode: 'say', voice: true, speed: SAY_SPEED, countAfter: true }); expect(st[1].step.phrases.demo).toBeTruthy()
+    expect(st[1].fill).toBeUndefined()
+    expect(st[1].step.tapOnly).toBe(true); expect(st[1].step.quiet).toBe(true); expect(st[1].step.active).toEqual([LANE]); expect(st[1].step.reps.every(r => r.lane === LANE)).toBe(true)
+    expect(PHRASE_SPEED).toBe(0.55); expect(SAY_SPEED).toBe(0.36)
+    expect(st[1].step.phrases.gap).toBe(gapMs(SAY_SPEED)) // «Скажи» голосом — шаг 20 % высоты
   })
-  it('пальцами: круг 2 «Узнай» — смыслы на ленте; fill ставит слабые фразы последними', () => {
-    const k = kitOf(plan(), true); const act = buildRaceActs(plan(), true).acts.find(a => a.id === 'phrases')
-    phraseStages(k, act)
-    const s2 = k.stages.find(s => s.sid === 'phrases2')
-    expect(s2.step.phrases.mode).toBe('hear'); expect(s2.step.phrases.voice).toBe(false)
-    expect(k.stages.filter(s => s.type === 'announce').map(s => s.line)).toEqual(['race_phrases_tap', 'race_phrases_pick', 'race_phrases_hear'])
-    expect(k.stages.find(s => s.sid === 'phrases1').step.phrases).toMatchObject({ mode: 'pick', voice: false })
-    const first = s2.turns[0].target.key
-    s2.fill([first]); const again = k.stages.find(s => s.sid === 'phrases2')
-    expect(again.turns.at(-1).target.key).toBe(first); expect(again.step.phrases.turns.at(-1).target.key).toBe(first)
+  it('пальцами: плашка этапа с репликой race_phrases_hear (и тремя нотами — count не выключен) → круг «Узнай»: смыслы на ленте, без слушателя', () => {
+    const st = build(true)
+    expect(st.map(s => s.sid)).toEqual(['phrases-ann', 'phrases2'])
+    expect(st[0]).toMatchObject({ line: 'race_phrases_hear', plateWithLine: true, lineTail: PHRASE_LINE_TAIL_MS }); expect(st[0].count).toBeUndefined()
+    expect(st[1].step.phrases).toMatchObject({ round: 2, mode: 'hear', voice: false, speed: PHRASE_SPEED, gap: gapMs(PHRASE_SPEED, PHRASE_TAP_GAP_PCT) }); expect(st[1].step.phrases.demo).toBeUndefined()
+  })
+  it('ни в одном режиме игры нет стадий и реплик вырезанного круга: phrases1, mode pick, race_phrases_pick / race_phrases / race_phrases_tap', () => {
+    for (const round of [undefined, STAGES_ROUND, 'phrases']) for (const tap of [false, true]) {
+      const { stages } = buildRaceStages({ plan: plan(round ? { round } : {}), tap, ru: true })
+      expect(stages.filter(s => /^phrases1/.test(s.sid ?? ''))).toEqual([])
+      expect(stages.filter(s => s.step?.phrases?.mode === 'pick' || s.step?.phrases?.round === 1)).toEqual([])
+      expect(stages.map(s => s.line).filter(l => ['race_phrases', 'race_phrases_tap', 'race_phrases_pick'].includes(l))).toEqual([])
+      const ph = stages.filter(s => s.act === 'phrases' && !s.switchTo)
+      expect(ph.map(s => s.sid)).toEqual(['phrases-ann', 'phrases2']) // одна плашка — один круг: двойных плашек подряд нет
+      const ann = ph[0], cnt = stages.filter(s => s.act === 'phrases' && s.count)
+      expect(cnt.length + (ph[1].step.phrases.countAfter ? 1 : 0)).toBe(1) // отсчёт «три ноты» ровно один: на плашке или после демо
+      expect(ann.round).toMatchObject({ title: 'Конвейер ситуаций' }); expect(`${ann.round.brief} ${ann.round.task}`).not.toMatch(/подбери|выбирай|сначала|потом|ситуаци/i)
+    }
+  })
+  it('реплик вырезанного круга нет в каталоге и в аудите озвучки («нужно озвучить»); реплики оставшегося круга — есть', () => {
+    for (const id of ['race_phrases', 'race_phrases_tap', 'race_phrases_pick']) { expect(RACE_LINE_IDS).not.toContain(id); expect(RACE_LINE_SET.has(id)).toBe(false); expect(raceCatalog().some(l => l.id === id)).toBe(false) }
+    for (const id of ['race_phrases_show', 'race_phrases_say', 'race_phrases_hear', 'race_demo_1', 'race_phrase_again', 'race_phrase_yes']) expect(RACE_LINE_SET.has(id)).toBe(true)
   })
   it('в полной гонке — после «Пинг-понга» и до «Вершины»; голосом с русской моделью перед фразами слух возвращается на английский', () => {
     const ids = buildRaceStages({ plan: plan(), tap: false, ru: true }).stages.map(s => s.sid)
     expect(ids.indexOf('catch2')).toBeLessThan(ids.indexOf('phrases-sw')); expect(ids.indexOf('phrases-sw')).toBeLessThan(ids.indexOf('phrases-ann')); expect(ids.indexOf('phrases2')).toBeLessThan(ids.indexOf('climb-ann'))
     expect(ids).not.toContain('climb-sw')
   })
-  it('плашки кругов: круг 1 «Пойми · Тапни фразу» цвета ленты с пальцем, круг 2 акцентный: «Скажи · Скажи сам» с микрофоном или «Узнай · Тапни смысл» с пальцем', () => {
-    expect(ROUND_PLATES.pick).toEqual({ title: 'Пойми', task: 'Тапни фразу', line: 'race_phrases_pick', look: { tone: 'lane', icon: 'tap' } })
+  it('круги: «Скажи · Скажи сам» с микрофоном (голосом) или «Узнай · Тапни смысл» с пальцем (пальцами); плашка этапа несёт реплику круга', () => {
+    expect(ROUND_PLATES.pick).toBeUndefined()
     expect(ROUND_PLATES.say).toEqual({ title: 'Скажи', task: 'Скажи сам', line: 'race_phrases_say', look: { tone: 'accent', icon: 'mic' } })
     expect(ROUND_PLATES.hear).toEqual({ title: 'Узнай', task: 'Тапни смысл', line: 'race_phrases_hear', look: { tone: 'accent', icon: 'tap' } })
     for (const tap of [false, true]) {
       const st = buildRaceStages({ plan: plan(), tap, ru: true }).stages
-      const r1 = st.find(s => s.sid === 'phrases1-ann'), r2 = st.find(s => s.sid === 'phrases2-ann')
-      expect(r1.round).toMatchObject({ title: '', task: '' }); expect(r1.ms).toBe(ROUND2_ANN_MS); expect(r1.line).toBe('race_phrases_pick')
-      expect(r2.round).toMatchObject({ title: '', task: '' }) // у дополнительных кругов плашек нет (владелец 2026-11-17)
-      expect(r2.line).toBe(tap ? 'race_phrases_hear' : 'race_phrases_show')
-      expect(st.find(s => s.sid === 'phrases-ann').line).toBe(tap ? 'race_phrases_tap' : 'race_phrases')
+      expect(st.find(s => s.sid === 'phrases-ann').line).toBe(tap ? 'race_phrases_hear' : 'race_phrases_show')
+      expect(st.find(s => s.sid === 'phrases-ann').round.brief).toBe(tap ? 'тапни смысл фразы' : 'скажи фразу по-английски')
     }
   })
   it('режим по умолчанию — «Пинг-понг + фразы + финал»', () => {

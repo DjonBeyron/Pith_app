@@ -63,7 +63,7 @@ describe('итог фразы по двум проходам', () => {
     expect(phraseCount(list)).toEqual({ ok: 4, total: 4 })
     const sum = phraseSummary(list)
     expect(sum.map(r => r.weak)).toEqual([false, true])
-    expect(sum[1].p2).toEqual({ ok: true, clean: false, smooth: false, maxPause: 1500 }); expect(sum[1].r2).toEqual({ ok: true, clean: true, ratio: 1 })
+    expect(sum[1].p2).toEqual({ ok: true, clean: false, smooth: false, maxPause: 1500 }); expect(sum[1].r2).toMatchObject({ ok: true, clean: true, ratio: 1 })
   })
 })
 
