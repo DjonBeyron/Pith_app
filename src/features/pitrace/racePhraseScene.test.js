@@ -1,101 +1,15 @@
 import { describe, it, expect, vi } from 'vitest'
-import { CENTER_Y, HOT_MS } from './racePhraseScene.js'
 import { setupScene } from './racePhraseSceneRig.js'
-import { createPhraseListener, stubSay, stubDraft, stubLevel, stubCount } from './racePhraseListenStub.js'
-import { phraseStep, PHRASE_SPEED, SAY_SPEED, PHRASE_GAP_MS, PHRASE_GAP_PCT, PHRASE_TAP_GAP_PCT, gapMs } from './raceStagesPhrases.js'
-import { round2SayTurns, round2HearTurns } from './racePhraseTurns.js'
+import { createPhraseListener, stubSay, stubDraft, stubLevel } from './racePhraseListenStub.js'
+import { phraseStep, SAY_SPEED } from './raceStagesPhrases.js'
+import { round2SayTurns } from './racePhraseTurns.js'
 import { phrasesOf } from './racePhraseData.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
 import { SPEED, LISTEN_Y_MAX } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 
-// Сцена широкой ленты без браузера: поддельный пул и часы — racePhraseSceneRig.js. Единый конвейер круга 1 и заливка «Скажи» — racePhraseFlow.test.js
+// Сцена широкой ленты без браузера: поддельный пул и часы — racePhraseSceneRig.js. Заливка «Скажи» — racePhraseFlow.test.js; тап-круги («Пойми», «Узнай») и их проверки вырезаны (владелец 2026-11-24)
 const ph = phrasesOf({ phrases: PHRASE_FIXTURE })
 const setup = setupScene
-const pick = (voice = false) => { const t = round2HearTurns(ph, 's1'); return phraseStep('phrases2', t, { round: 2, mode: 'hear', voice, speed: PHRASE_SPEED }) }
-/** Ждать, пока пилюля key окажется у центра */
-const untilCenter = (s, key) => { for (let i = 0; i < 2000; i++) { const p = s.run.api.state().pills.find(x => x.key === key); if (p && Math.abs(p.y - CENTER_Y) < 3) return p; s.go(16) } return null }
-
-describe('сцена широкой ленты: тап-круг «Узнай» (круг «Пойми» вырезан — те же правила тапа)', () => {
-  it('ход: pre (Пит говорит смысл), три широкие пилюли ОДНА ЗА ДРУГОЙ через PHRASE_GAP_MS, по центру одной ленты', () => {
-    const s = setup(pick())
-    s.go(100)
-    expect(s.fx.pre).toHaveBeenCalledTimes(1); expect(s.fx.pre.mock.calls[0][0].rep.target.key).toBe(ph[0].key)
-    s.go(400)
-    expect(s.pool.taken).toHaveLength(1)
-    s.go(PHRASE_GAP_MS); expect(s.pool.taken).toHaveLength(2)
-    s.go(PHRASE_GAP_MS); expect(s.pool.taken).toHaveLength(3)
-    for (const p of s.pool.taken) { expect(p.wide).toBe(true); expect(p.lane).toBe(1); expect(p.speed).toBe(PHRASE_SPEED); expect(p.quiet).toBe(true) }
-    expect(s.pool.taken.map(p => p.cap)).toEqual(round2HearTurns(ph, 's1')[0].cands.map(c => c.cap))
-  })
-  it('пилюля в зоне чтения ≈ 3,5 с (круг 1, «Узнай») и ≈ 5,3 с («Скажи»); шаг — PHRASE_GAP_PCT 20 % высоты при любой скорости, не наезжают', () => {
-    const zone = v => 50 / (SPEED * v) // зона чтения ≈ 22…72 % высоты
-    expect(zone(PHRASE_SPEED)).toBeGreaterThanOrEqual(3.3); expect(zone(PHRASE_SPEED)).toBeLessThanOrEqual(3.7)
-    expect(zone(SAY_SPEED)).toBeGreaterThanOrEqual(5.1); expect(zone(SAY_SPEED)).toBeLessThanOrEqual(5.5)
-    expect(PHRASE_GAP_PCT).toBe(20); expect(PHRASE_TAP_GAP_PCT).toBe(16.4); expect(PHRASE_GAP_MS).toBe(gapMs(PHRASE_SPEED, PHRASE_TAP_GAP_PCT))
-    for (const v of [PHRASE_SPEED, SAY_SPEED, 0.43]) {
-      const step = (SPEED * v * gapMs(v)) / 1000 // шаг между пилюлями, % высоты
-      expect(step).toBeGreaterThanOrEqual(19.9); expect(step).toBeLessThanOrEqual(20.1) // пилюля 11 % + воздух ≈ 9 % (владелец 2026-11-08: «расстояние ещё меньше»; было ≈ 27 %)
-      expect(step).toBeGreaterThan(11) // не наезжают: между соседними — больше высоты пилюли
-    }
-    for (const v of [PHRASE_SPEED, 0.43]) { const step = (SPEED * v * gapMs(v, PHRASE_TAP_GAP_PCT)) / 1000; expect(step).toBeGreaterThanOrEqual(16.3); expect(step).toBeLessThanOrEqual(16.5); expect((step - 11) / 9).toBeCloseTo(0.6, 1) } // тап-круги: воздух между пилюлями 9 % → 5,4 % (−40 %), пилюли не наезжают
-    expect(phraseStep('phrases2', round2SayTurns(ph), { round: 2, mode: 'hear', voice: false, speed: PHRASE_SPEED }).phrases.gap).toBe(gapMs(PHRASE_SPEED, PHRASE_TAP_GAP_PCT)) // «Узнай» (тап) — шаг 16,4 %
-    expect(phraseStep('phrases2', round2SayTurns(ph), { round: 2, mode: 'say', voice: true, speed: SAY_SPEED }).phrases.gap).toBe(gapMs(SAY_SPEED)) // «Скажи» — шаг из той же формулы
-  })
-  it('Пит ещё говорит — первая пилюля выезжает вместе с репликой, остальные ждут gap (ранний выезд — racePhraseTapEarly.test.js)', () => {
-    const s = setup(pick(), { pit: 500 })
-    s.go(16); expect(s.pool.taken).toHaveLength(1); expect(s.run.api.state().phase).toBe('ride')
-  })
-  it('тап по ленте берёт пилюлю ближе всего к центру: верная — зачёт и взлёт (fx.win с итогом хода), журнал [phrases]', () => {
-    const log = vi.fn(); const s = setup(pick(), { log }); const t = round2HearTurns(ph, 's1')[0]
-    s.go(500)
-    expect(untilCenter(s, t.target.key)).toBeTruthy()
-    s.run.api.tap(0)
-    expect(s.fx.win).toHaveBeenCalledTimes(1)
-    const rep = s.fx.win.mock.calls[0][2]
-    expect(rep).toMatchObject({ last: true, count: 1, round: 2, phraseKey: t.target.key, res: { ok: true, late: false } })
-    expect(s.pool.taken.find(p => p.cap === t.target.ru).rose).toBe(true)
-    expect(log.mock.calls.at(-1)[0]).toMatch(/^\[phrases\] круг 2 «Узнай» \(тап смысла\), ход 1\/3: цель «.+» кандидаты «.+» \| «.+» \| «.+» итог верно; остальные едут: \d$/)
-  })
-  it('тап по чужой — fx.miss с «с чем спутал», красная рамка на выбранной, все пилюли хода разлетаются в стороны (верная не взлетает и не подсвечивается)', () => {
-    const s = setup(pick())
-    s.go(500)
-    const t0 = round2HearTurns(ph, 's1')[0], wrong = t0.cands.find(c => !c.right)
-    expect(untilCenter(s, wrong.key)).toBeTruthy()
-    s.run.api.tap(2)
-    expect(s.fx.miss).toHaveBeenCalledTimes(1)
-    expect(s.fx.miss.mock.calls[0][0].rep.res).toMatchObject({ ok: false, confusedWith: wrong.key })
-    const right = s.pool.taken.find(p => p.cap === t0.target.ru), chosen = s.pool.taken.find(p => p.cap === wrong.cap)
-    expect(chosen.attrs.has('data-wrong')).toBe(true); expect(right.attrs.has('data-hot')).toBe(false)
-    expect(chosen.scattered).toBeDefined(); expect(right.scattered).toBeDefined(); expect(right.rose).toBeUndefined()
-  })
-  it('верная ушла — «не успел» (fx.fail); все ходы — fx.finished', () => {
-    const s = setup(pick())
-    s.go(70000)
-    expect(s.fx.fail).toHaveBeenCalledTimes(3); expect(s.fx.finished).toHaveBeenCalledTimes(1)
-    expect(s.fx.fail.mock.calls.map(c => c[0].rep.res.ok)).toEqual([false, false, false])
-  })
-  it('тап-круг — только тап: слушатель фраз не создаётся даже при voice (голосом), сказанная фраза не засчитывается; пилюли со смыслом, data-mode="hear"', () => {
-    const n = stubCount()
-    const s = setup(pick(true), { listen: createPhraseListener }); const t0 = round2HearTurns(ph, 's1')[0]
-    expect(stubCount()).toBe(n); expect(s.run.api.state().listening).toBe(false)
-    s.go(600)
-    stubSay(t0.target.text)
-    expect(s.fx.win).not.toHaveBeenCalled()
-    for (const p of s.pool.taken) { expect(p.vals['data-mode']).toBe('hear'); expect(p.attrs.has('data-faded')).toBe(false); expect(t0.cands.map(c => c.cap)).toContain(p.cap) }
-    expect(untilCenter(s, t0.target.key)).toBeTruthy(); s.run.api.tap()
-    expect(s.fx.win).toHaveBeenCalledTimes(1)
-    s.run.stop()
-  })
-  it('круг 2 «Узнай» (пальцами): data-mode="hear", слушателя нет, журнал — круг 2 «Узнай» (тап смысла)', () => {
-    const log = vi.fn(); const t = round2HearTurns(ph, 's1')
-    const s = setup(phraseStep('phrases2', t, { round: 2, mode: 'hear', voice: false, speed: PHRASE_SPEED }), { log, listen: createPhraseListener })
-    s.go(500)
-    expect(s.run.api.state().listening).toBe(false); expect(s.pool.taken[0].vals['data-mode']).toBe('hear')
-    expect(untilCenter(s, t[0].target.key)).toBeTruthy(); s.run.api.tap()
-    expect(log.mock.calls.at(-1)[0]).toMatch(/^\[phrases\] круг 2 «Узнай» \(тап смысла\), ход 1\/\d: цель/)
-    s.run.stop()
-  })
-})
 
 describe('сцена широкой ленты: круг 2 «Скажи»', () => {
   const say = () => phraseStep('phrases2', round2SayTurns(ph), { round: 2, mode: 'say', voice: true, speed: SAY_SPEED })

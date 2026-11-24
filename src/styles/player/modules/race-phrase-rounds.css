@@ -3,7 +3,7 @@
    значок перед подзадачей (.wlTurnIcon: палец — «Тапни фразу» / «Тапни смысл», микрофон — «Скажи сам») — SVG lucide цвета текста, без эмодзи-шрифтов.
    Пилюли: pick — как лента (без своих правил); say — акцентный цвет, пунктирная рамка и тонкое внутреннее кольцо (двойная обводка), текст — маска слов (.racePhraseMask, racePhraseMaskView.js) вместо ::after;
    say проход 2 (data-pass='2') — сплошная рамка и два внутренних кольца, маска открыта целиком;
-   hear — акцентная подложка (заливка тела цветом круга). Только opacity в переходах; filter нет; на слабом устройстве и при reduced-motion переходов нет. */
+   Тап-круги «Пойми» (pick) и «Узнай» (hear) вырезаны (владелец 2026-11-24): их стилей (подложка hear, красная пилюля неверного тапа, кольцо «мимо») здесь больше нет. Только opacity в переходах; filter нет; на слабом устройстве и при reduced-motion переходов нет. */
 .wl[data-race] .wlTurn[data-tone='lane'] { border-color: var(--lvl2, #4fb3ee); }
 .wl[data-race] .wlTurn[data-tone='accent'] {
   border-color: var(--lvl3, #9a76f8);
@@ -17,13 +17,11 @@
 /* Круг 2 — акцентный цвет пилюль (перекрывает цвет дорожки: специфичность выше, чем у .wlPill[data-lane]) */
 .wlPill[data-wide][data-mode='say'], /* «Скажи», проход 2 (racePhraseScene.js data-pass='2'): та же фраза открытым текстом — сплошная рамка и двойное кольцо вместо пунктира */
 .wlPill[data-wide][data-mode='say'][data-pass='2'] { border-style: solid; box-shadow: inset 0 0 0 3px rgba(11, 13, 17, 0.85), inset 0 0 0 5px rgba(var(--rgb), 0.95), inset 0 0 0 7px rgba(11, 13, 17, 0.85), inset 0 0 0 8.5px rgba(var(--rgb), 0.6); }
-.wlPill[data-wide][data-mode='hear'] { --c: var(--lvl3, #9a76f8); --rgb: var(--lvl3-rgb, 154, 118, 248); }
 .wlPill[data-wide][data-mode='say'] {
   border-style: dashed;
   --ring: 2.5px;
   box-shadow: inset 0 0 0 4px rgba(11, 13, 17, 0.85), inset 0 0 0 5.5px rgba(var(--rgb), 0.75);
 }
-.wlPill[data-wide][data-mode='hear'] { background: linear-gradient(to bottom, rgba(var(--rgb), 0.46), rgba(var(--rgb), 0.3)), var(--wl-card); background-origin: border-box; }
 /* Полная пилюля «Скажи» (data-full, word-lane-pill.css): внутренних тёмных колец нет — капсула сплошная до обводки, как у остальных (v3.3.185: иначе у засчитанной пилюли между обводкой и жидкостью оставался тёмный зазор) */
 .wlField .wlPill[data-wide][data-mode='say'][data-full]:not([data-fail]) { box-shadow: none; }
 
@@ -70,9 +68,3 @@
 .wlPill[data-lock] .racePhraseMask b::before { opacity: 0; }
 .weak-device .racePhraseMask b i, .weak-device .racePhraseMask b::before { transition: none; }
 @media (prefers-reduced-motion: reduce) { .racePhraseMask b i, .racePhraseMask b::before { transition: none; } }
-
-/* Тап мимо пилюль ленты (raceTapMiss.js, круг 1 и «Узнай»): мягкое кольцо в точке касания, вспышку (opacity) ведёт WAAPI; в покое невидимо */
-.raceTapMiss { position: absolute; left: -18px; top: -18px; width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(244, 246, 251, 0.7); opacity: 0; pointer-events: none; z-index: 6; }
-/* Неверный тап в круге выбора фразы («Пойми» / «Узнай»): выбранная пилюля целиком красная — красные полоски и красная подложка (владелец v3.3.272), а не цвета круга */
-.wlPill[data-wide][data-mode]:not([data-mode='say'])[data-wrong]:not([data-lock]) { --st1-rgb: 255, 93, 115; --st1-a: 0.9; border-color: #ff5d73; box-shadow: inset 0 0 0 3px rgba(255, 93, 115, 0.9), 0 0 14px -2px rgba(255, 93, 115, 0.7); }
-.wlPill[data-wide][data-mode]:not([data-mode='say'])[data-wrong]:not([data-lock]) .wlPillClip { background: rgba(255, 93, 115, 0.5); }

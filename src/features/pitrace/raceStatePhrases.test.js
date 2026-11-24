@@ -16,18 +16,18 @@ import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 
 // Результаты этапа «Фразы»: события ходов → состояние → точность слов, слабые фразы, итог; голос Пита на ходах
 const [nice, from, learn] = phrasesOf({ phrases: PHRASE_FIXTURE })
-// Круг один (round 2). Второй аргумент — вид хода: 1 — тап «Узнай» (hear, пальцами), 2 — «Скажи» (say, голосом); круга 1 «Пойми» больше нет
-const rep = (p, round, res, o = {}) => ({ phraseKey: p.key, text: p.text, ru: p.ru, words: phraseWordKeys(p), round: 2, mode: round === 1 ? 'hear' : 'say', target: p, cands: [p, from, learn].map(x => ({ key: x.key, text: x.text })), res, ...o })
+// Круг один (round 2, «Скажи»). Второй аргумент — проход: 1 — по словам, 2 — подряд (pass); тап-кругов «Пойми» и «Узнай» больше нет
+const rep = (p, round, res, o = {}) => ({ phraseKey: p.key, text: p.text, ru: p.ru, words: phraseWordKeys(p), round: 2, mode: 'say', pass: round, target: p, cands: [p, from, learn].map(x => ({ key: x.key, text: x.text })), res, ...o })
 const stage = { race: true, act: 'phrases', type: 'student', sid: 'phrases2' }
 const play = list => list.reduce((s, [kind, r]) => reduceRace(s, { t: 'phrase', stage, info: phraseEvent(kind, r) }).state, initRace())
 
 describe('события фраз', () => {
   it('итог хода → { t: phrase, phraseKey, round, ok, late, confusedWith, ratio }; редюсер копит их в s.phrases', () => {
-    const e = phraseEvent('miss', rep(nice, 1, { ok: false, confusedWith: from.key }))
-    expect(e).toMatchObject({ t: 'phrase', phraseKey: nice.key, round: 2, mode: 'hear', ok: false, late: false, confusedWith: from.key, confusedText: from.text, ratio: 0 })
+    const e = phraseEvent('fail', rep(nice, 1, { ok: false }))
+    expect(e).toMatchObject({ t: 'phrase', phraseKey: nice.key, round: 2, mode: 'say', pass: 1, ok: false, late: false, confusedWith: null, ratio: 0 })
     expect(phraseEvent('claim', rep(nice, 1, {}))).toBeNull(); expect(phraseEvent('win', {})).toBeNull()
     const s = play([['win', rep(nice, 1, { ok: true, late: true })], ['fail', rep(learn, 2, { ratio: 0.5 })]])
-    expect(s.phrases.map(x => [x.phraseKey, x.round, x.mode, x.ok, x.late, x.ratio])).toEqual([[nice.key, 2, 'hear', true, true, 1], [learn.key, 2, 'say', false, false, 0.5]])
+    expect(s.phrases.map(x => [x.phraseKey, x.round, x.mode, x.ok, x.late, x.ratio])).toEqual([[nice.key, 2, 'say', true, true, 1], [learn.key, 2, 'say', false, false, 0.5]])
     expect(initRace().phrases).toEqual([])
   })
   it('точность слова: чисто 1 / нечисто 0,6 / промах 0 — средним, наравне с проходами; пометка «во фразе … спутал»', () => {
@@ -45,19 +45,19 @@ describe('события фраз', () => {
   it('круг «Пойми» вырезан: порядок «слабые последними» и его функции убраны (fillPhrases2, weakPhraseKeys)', () => {
     expect(statePhrases.fillPhrases2).toBeUndefined(); expect(statePhrases.weakPhraseKeys).toBeUndefined()
   })
-  it('итог: фразы N/M, слабые фразы (ход «Узнай» / «Скажи»), слово фразы без «Пинг-понга» тоже в списке; промах во фразе — промах слова в памяти', () => {
+  it('итог: фразы N/M, слабые фразы (проходы «Скажи»), слово фразы без «Пинг-понга» тоже в списке; промах во фразе — промах слова в памяти', () => {
     const plan = { ...normalizePlan({ ...fixturePlan('two'), game: 'race', round: 'stages' }), phrases: PHRASE_FIXTURE }
-    const s = play([['miss', rep(nice, 1, { confusedWith: from.key })], ['win', rep(learn, 1, {})], ['win', rep(nice, 2, { ratio: 1, clean: true }, { pass: 2 })]])
+    const s = play([['miss', rep(nice, 1, { confusedWith: from.key })], ['win', rep(learn, 1, {})], ['win', rep(nice, 2, { ratio: 1, clean: true })]])
     const r = scoreRace(plan, { ...s, sprint: { words: ['nice'], caps: {}, results: { 0: { hit: true, miss: false } }, r2: null }, catch: { words: [], caps: {}, traps: [], results: {}, r2: null } })
     expect(r).toMatchObject({ phrasesOk: 2, phrasesTotal: 3 })
-    expect(r.phrases.find(p => p.key === nice.key)).toMatchObject({ weak: true, r2: { ok: false, mode: 'hear' }, p2: { ok: true, clean: true } })
+    expect(r.phrases.find(p => p.key === nice.key)).toMatchObject({ weak: true, r2: { ok: false }, p2: { ok: true, clean: true } }); expect(r.phrases.find(p => p.key === nice.key).r2.mode).toBeUndefined()
     expect(r.phrases.find(p => p.key === nice.key).r1).toBeUndefined() // строки круга 1 в итоге больше нет
     expect(r.phrases.find(p => p.key === learn.key).weak).toBe(false)
     expect(r.weak.map(w => w.text)).toEqual(expect.arrayContaining(['nice', 'meet', 'learn', 'trying']))
     expect(r.weak.find(w => w.text === 'meet').acc.f.events).toHaveLength(2)
-    expect(r.weak.find(w => w.text === 'meet')).toMatchObject({ phraseHits: 1, phraseMisses: 1 }) // поля для raceMemory.outcomesOf
+    expect(r.weak.find(w => w.text === 'meet')).toMatchObject({ phraseHits: 0, phraseMisses: 1 }) // фраза «Скажи» — одна единица по двум проходам: проход 1 не сказан — промах // поля для raceMemory.outcomesOf
     expect(r.weak.find(w => w.text === 'learn')).toMatchObject({ phraseHits: 1, phraseMisses: 0 })
-    expect(r.words.find(w => w.text === 'meet')).toMatchObject({ hit: 1, miss: 1 })
+    expect(r.words.find(w => w.text === 'meet')).toMatchObject({ hit: 0, miss: 1 })
     expect(phraseOnlyWords(phrasesOf(plan), s.phrases, new Set(['nice'])).map(w => w.text)).toEqual(['meet', 'trying', 'learn'])
     expect(phraseSummary([])).toEqual([])
   })
@@ -69,10 +69,21 @@ describe('события фраз', () => {
     expect(html).toContain('data-testid="race-summary-phrases">1/3<')
     expect(html.indexOf('data-testid="race-weak"')).toBeLessThan(html.indexOf('data-testid="race-phrases-weak"'))
     expect(html.match(/data-testid="race-phrase-weak"/g)).toHaveLength(2)
-    expect(html).toContain('по словам ✗'); expect(html).toContain('смысл ✗'); expect(html).toContain('>Слабые фразы<')
+    expect(html).toContain('по словам ✗'); expect(html).toContain('подряд ✗'); expect(html).not.toContain('смысл'); expect(html).toContain('>Слабые фразы<')
     expect(html).not.toMatch(/круг [12]/); expect(html).not.toContain('race-phrase-note')
     expect(html).toContain('во фразе Nice to meet you спутал')
     expect(html).not.toContain('race-summary-climb')
+  })
+})
+
+describe('режим «Пальцами»: этапа фраз нет — в итоге нет пустых строк', () => {
+  it('без событий фраз: счёт 0/0, строки «Фразы» и блока «Слабые фразы» на экране итога нет, слов «только из фраз» нет', () => {
+    const plan = { ...normalizePlan({ ...fixturePlan('two'), game: 'race', round: 'stages' }), phrases: PHRASE_FIXTURE }
+    const r = scoreRace(plan, { ...initRace(), sprint: { words: ['nice'], caps: {}, results: { 0: { hit: true, miss: false } }, r2: null }, catch: { words: [], caps: {}, traps: [], results: {}, r2: null } })
+    expect(r).toMatchObject({ phrasesOk: 0, phrasesTotal: 0, phrases: [] })
+    expect(phraseOnlyWords(phrasesOf(plan), [], new Set())).toEqual([])
+    const html = renderToStaticMarkup(createElement(RaceSummary, { plan, result: { ...r, xp: 0, capped: false }, onDone() {} }))
+    expect(html).not.toContain('race-summary-phrases'); expect(html).not.toContain('race-phrases-weak'); expect(html).not.toContain('>Фразы<')
   })
 })
 
@@ -84,14 +95,14 @@ describe('голос Пита на ходах (racePhraseVoice)', () => {
     const flush = () => { for (let i = 0; i < 50 && timers.length; i++) timers.shift()() }
     return { v, said, cat, flush }
   }
-  it('перед ходом — «Скажи» смысл по-русски (ситуацию вырезанного круга «Пойми» Пит не говорит); нет озвучки — подпись над лентой (show); «Узнай» — фраза по-английски по словам', () => {
+  it('перед ходом — «Скажи» смысл по-русски (ситуацию вырезанного круга «Пойми» Пит не говорит); нет озвучки — подпись над лентой (show)', () => {
     const a = make(); a.v.pre({ mode: 'say', target: nice }, {}); a.flush(); expect(a.said).toEqual([`ru:${nice.ru}`])
     const b = make({ hasRu: () => false }); const show = vi.fn(); b.v.pre({ mode: 'say', target: nice }, { show }); b.flush(); expect(b.said).toEqual([]); expect(show).toHaveBeenCalledWith(nice.ru)
-    const c = make(); c.v.pre({ mode: 'hear', target: nice }, {}); c.flush(); expect(c.said).toEqual(['en:Nice', 'en:to', 'en:meet', 'en:you'])
   })
-  it('верно — («Узнай»: смысл и) «да, это оно»; ошибка — «нет, это про другое», верная фраза и её смысл; «не успел» — верная фраза; целая озвучка — один файл', () => {
-    const a = make(); a.v.react('win', { mode: 'hear', target: learn }); a.flush(); expect(a.said).toEqual([`ru:${learn.ru}`, 'line:race_phrase_yes'])
-    const b3 = make(); b3.v.react('miss', { mode: 'hear', target: { ...nice, audio: { url: 'u', duration: 1 } } }); b3.flush(); expect(b3.said).toEqual(['line:race_phrase_no', 'audio:u', `ru:${nice.ru}`]) // «Узнай» (hear): выбирают смысл, его читаем как раньше
+  it('верно — «да, это оно»; «не успел» — верная фраза по словам, целая озвучка — один файл; чужую пилюлю поймать нельзя — «нет, это про другое» не звучит', () => {
+    const a = make(); a.v.react('win', { mode: 'say', pass: 2, target: learn }); a.flush(); expect(a.said).toEqual(['line:race_phrase_yes'])
+    const b3 = make(); b3.v.react('miss', { mode: 'say', target: nice }); b3.flush(); expect(b3.said).toEqual([]) // события miss у «Скажи» нет; реплики race_phrase_no больше нет
+    const d = make(); d.v.react('fail', { mode: 'say', target: { ...nice, audio: { url: 'u', duration: 1 } } }); d.flush(); expect(d.said).toEqual(['audio:u'])
     const c = make(); c.v.react('fail', { mode: 'say', target: from }); c.flush(); expect(c.said).toEqual(['en:Where', 'en:are', 'en:you', 'en:from'])
   })
   it('цепочка ждёт, пока Пит освободится, и держит его занятым (left); stop обрывает', () => {

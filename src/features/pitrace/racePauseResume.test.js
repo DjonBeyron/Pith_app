@@ -6,9 +6,9 @@ import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 import { createStudentGame, stepStudent, resumeIdx } from '../player/modules/rotate-phone/wordLaneStudent.js'
 import { createDodge } from './raceDodge.js'
 import { setupScene } from './racePhraseSceneRig.js'
-import { CENTER_Y } from './racePhraseScene.js'
-import { phraseStep, PHRASE_SPEED } from './raceStagesPhrases.js'
-import { round2HearTurns } from './racePhraseTurns.js'
+import { phraseStep, SAY_SPEED } from './raceStagesPhrases.js'
+import { round2SayTurns } from './racePhraseTurns.js'
+import { createPhraseListener, stubSay } from './racePhraseListenStub.js'
 import { phrasesOf } from './racePhraseData.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
 
@@ -71,25 +71,25 @@ describe('состояние гонки: enter с from — круг не обн�
   })
 })
 
-describe('сцена фраз с хода from (racePhraseScene)', () => {
+describe('сцена фраз с хода from (racePhraseScene; круг «Скажи» — тап-круги вырезаны)', () => {
   const ph = phrasesOf({ phrases: PHRASE_FIXTURE })
-  const turns = round2HearTurns(ph, 's1')
-  const step = phraseStep('phrases2', turns, { round: 2, mode: 'hear', voice: false, speed: PHRASE_SPEED })
-  it('первый ход — from (Пит говорит его смысл), resumeAt до итога — он же', () => {
-    const s = setupScene(step, { from: 1 })
+  const turns = round2SayTurns(ph)
+  const step = phraseStep('phrases2', turns, { round: 2, mode: 'say', voice: true, speed: SAY_SPEED })
+  const scene = (o = {}) => setupScene(step, { listen: createPhraseListener, ...o })
+  it('первый ход — from (Пит говорит его реплику), resumeAt до итога — он же', () => {
+    const s = scene({ from: 1 })
     expect(s.run.api.resumeAt()).toBe(1)
     s.go(100)
     expect(s.fx.pre).toHaveBeenCalledTimes(1); expect(s.fx.pre.mock.calls[0][0].rep.idx).toBe(1)
     expect(s.run.api.resumeAt()).toBe(1)
   })
   it('после итога хода resumeAt — следующий; from = число ходов — круг сразу кончается', () => {
-    const s = setupScene(step)
+    const s = scene()
     s.go(100); expect(s.run.api.resumeAt()).toBe(0)
-    const key = turns[0].cands.find(c => c.right).key
-    for (let i = 0; i < 2000; i++) { const p = s.run.api.state().pills.find(x => x.key === key); if (p && Math.abs(p.y - CENTER_Y) < 3) break; s.go(16) }
-    s.run.api.tap(1)
+    s.go(900); stubSay(turns[0].target.text)
+    for (let i = 0; i < 400 && !s.fx.win.mock.calls.length; i++) s.go(16)
     expect(s.fx.win).toHaveBeenCalledTimes(1); expect(s.run.api.resumeAt()).toBe(1)
-    const e = setupScene(step, { from: turns.length }); e.go(50)
+    const e = scene({ from: turns.length }); e.go(50)
     expect(e.fx.finished).toHaveBeenCalledTimes(1); expect(e.fx.pre).not.toHaveBeenCalled()
   })
 })

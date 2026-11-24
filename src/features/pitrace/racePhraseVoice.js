@@ -2,10 +2,10 @@
 // ждёт, пока Пит договорит (pitLeft: занятость Пита + left() этой цепочки). Цепочка — по одному высказыванию: следующее ждёт, пока Пит освободится (cat.busyLeft), затем STEP_GAP_MS.
 //  • перед ходом: «Скажи» — прямой смысл ru (sayText(текст, { ru: true }) — озвучка word_audio по transKey);
 //    озвучки нет — молча, подпись над лентой (e.show). Журнал: «[phrase-voice] перед ходом «…» (say): смысл «…»»;
-//    круг «Узнай» (пальцами) — фраза по-английски: целая запись (racePhraseAudio.js: phrase.audio или app_settings.game2_phrases; буфер прогрева, нет — <audio>); нет записи — по словам из библиотеки
+//    «не успел» — Пит читает фразу по-английски: целая запись (racePhraseAudio.js: phrase.audio или app_settings.game2_phrases; буфер прогрева, нет — <audio>); нет записи — по словам из библиотеки
 //    sayText(слово, { hold, tight }) ВПРИТЫК: следующее слово стартует, как только у прежнего кончился голос (tight — без хвоста тишины файла), раньше на тишину в начале своего файла (не больше JOIN_OVERLAP_MS),
 //    без STEP_GAP_MS и без опроса занятости; буферы начинаются и кончаются тишиной — стык без щелчка. Журнал: «[phrase-voice] фраза «…»: целая запись / по словам (N)»;
-//  • верно — («Узнай»: смысл фразы и) race_phrase_yes «да, это оно»; ошибка — race_phrase_no «нет, это про другое», верная фраза и её смысл; «не успел» — Пит читает верную фразу.
+//  • верно — race_phrase_yes «да, это оно»; «не успел» — Пит читает верную фразу (тап-круги «Пойми» / «Узнай» вырезаны: чужую пилюлю поймать нельзя, реплики race_phrase_no больше нет).
 //  • «Скажи», два прохода (racePhrasePasses.js): после прохода 1 «да» не звучит — перед проходом 2 (pre) сразу race_phrase_again «теперь повтори фразу без остановок» (подпись над лентой — только если
 //    реплика не озвучена: raceSilentLine.lineCaption по ctx().lines; озвученная — без подписи, владелец: «сабы Пита я не просил»);
 //    итог прохода 2: чисто — race_phrase_yes, с паузами — race_phrase_pauses «хорошо, только без пауз», не успел — Пит читает фразу.
@@ -72,8 +72,6 @@ export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text)
     try { log(`[phrase-voice] фраза «${p?.text ?? ''}»: ${a ? 'целая запись' : `по словам (${words.length})`}`); mute.forEach(w => log(`[phrase-voice] слово «${w}» без озвучки (нет в библиотеке слов) — не прозвучит`)) } catch { /* журнал не мешает голосу */ }
     return a ? [{ audio: a, p }] : words.map(word => ({ word }))
   }
-  /** Смысл по-русски — только если он озвучен (без озвучки голоса системы нет) */
-  const meaning = p => (p?.ru && hasRu(p.ru) ? { ru: p.ru } : null)
 
   return {
     /** Свежие sayLine / sayText / cat директора (эффект после каждого рендера) */
@@ -86,7 +84,6 @@ export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text)
     pre(rep, e) {
       const t = rep?.target
       if (!t) return
-      if (rep.mode === 'hear') { chain(phrase(t)); return }
       if (rep.pass === 2) { try { log(`[phrase-voice] перед ходом «${t.text ?? ''}» (say, проход 2): ${AGAIN_LINE}`) } catch { /* журнал */ } chain([{ line: AGAIN_LINE }]); const cap = lineCaption(get()?.lines, AGAIN_LINE, AGAIN_TEXT); if (cap) e?.show?.(cap); return }
       const text = t.ru // «Скажи»: прямой смысл фразы (ситуацию scene говорил только вырезанный круг «Пойми»)
       const voiced = !!text && hasRu(text)
@@ -99,8 +96,7 @@ export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text)
       if (!t) return
       if (kind === 'win' && rep.res?.slip) { chain(slipItems(rep.res.slip)); return } // принято, но слово сказано не точно: «слово X сказано не точно, …» вместо «да» (racePhraseSlip.js)
       if (kind === 'win' && rep.pass === 1) return // проход 1 «Скажи»: дальше сразу проход 2 со своей репликой
-      if (kind === 'win') chain([...(rep.mode === 'hear' ? [meaning(t)] : []), { line: rep.pass === 2 && rep.res?.smooth === false ? PAUSES_LINE : 'race_phrase_yes' }])
-      else if (kind === 'miss') chain([{ line: 'race_phrase_no' }, ...phrase(t), meaning(t)])
+      if (kind === 'win') chain([{ line: rep.pass === 2 && rep.res?.smooth === false ? PAUSES_LINE : 'race_phrase_yes' }])
       else if (kind === 'fail') chain(phrase(t))
     },
     stop() { queue = []; if (timer) clearTimer(timer); timer = 0; active = false },

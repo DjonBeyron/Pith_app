@@ -65,25 +65,25 @@ describe('Пит читает фразу (racePhraseVoice)', () => {
   }
   it('есть целая запись — один файл, Пит занят на её длину; журнал «целая запись»', () => {
     const a = make({ audio: { url: 'r2/nice.mp3', duration: 1.2 } })
-    a.v.pre({ mode: 'hear', target: nice }, {}); a.flush()
+    a.v.react('fail', { mode: 'say', target: nice }); a.flush()
     expect(a.said).toEqual(['whole:r2/nice.mp3']); expect(a.cat.holdBusy).toHaveBeenCalledWith(1200)
     expect(a.logs[0]).toBe('[phrase-voice] фраза «Nice to meet you»: целая запись'); expect(a.logs[1]).toMatch(/^\[mouth\] фраза «Nice to meet you»: огибающая 0 точек/) // буфера нет — рот по буквам на всю длину
   })
   it('нет записи — по словам впритык: следующее слово через голос прежнего минус тишина в начале своего файла, без STEP_GAP_MS; журнал «по словам (N)»', () => {
     const a = make()
-    a.v.pre({ mode: 'hear', target: nice }, {}); const gaps = a.flush()
+    a.v.react('fail', { mode: 'say', target: nice }); const gaps = a.flush()
     expect(a.said).toEqual(['Nice/tight', 'to/tight', 'meet/tight', 'you/tight'])
     expect(gaps.slice(0, 3)).toEqual([260, 260, 260]); expect(gaps[3]).toBe(STEP_GAP_MS) // после последнего слова — обычный зазор цепочки
     expect(a.logs).toEqual(['[phrase-voice] фраза «Nice to meet you»: по словам (4)'])
   })
   it('слово без озвучки в библиотеке — строка журнала «слово … без озвучки» (чтение по словам не виснет: цепочка идёт по длине из onSay)', () => {
     const a = make({ hasWord: w => w !== 'meet' })
-    a.v.pre({ mode: 'hear', target: nice }, {}); a.flush()
+    a.v.react('fail', { mode: 'say', target: nice }); a.flush()
     expect(a.said).toEqual(['Nice/tight', 'to/tight', 'meet/tight', 'you/tight'])
     expect(a.logs).toEqual(['[phrase-voice] фраза «Nice to meet you»: по словам (4)', '[phrase-voice] слово «meet» без озвучки (нет в библиотеке слов) — не прозвучит'])
   })
   it('нахлёст ограничен JOIN_OVERLAP_MS (длинная тишина в начале файла не съедает конец прежнего слова)', () => {
     const a = make({ lead: () => 400 })
-    a.v.pre({ mode: 'hear', target: nice }, {}); expect(a.flush()[0]).toBe(300 - JOIN_OVERLAP_MS)
+    a.v.react('fail', { mode: 'say', target: nice }); expect(a.flush()[0]).toBe(300 - JOIN_OVERLAP_MS)
   })
 })

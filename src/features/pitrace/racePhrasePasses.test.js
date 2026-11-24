@@ -77,10 +77,10 @@ describe('голос Пита на двух проходах', () => {
     const flush = () => { for (let i = 0; i < 50 && timers.length; i++) timers.shift()() }
     return { v, said, flush }
   }
-  it('проход 1 засчитан — молча; перед проходом 2 — «теперь повтори фразу без остановок» и подпись', () => {
+  it('проход 1 засчитан — молча; перед проходом 2 — «попробуй повторить фразу без остановок» и подпись', () => {
     const a = make(); a.v.react('win', { mode: 'say', pass: 1, target: nice, res: { ok: true } }); a.flush(); expect(a.said).toEqual([])
     const show = vi.fn(); a.v.pre({ mode: 'say', pass: 2, target: nice }, { show }); a.flush()
-    expect(a.said).toEqual(['line:race_phrase_again']); expect(show).toHaveBeenCalledWith('теперь повтори фразу без остановок')
+    expect(a.said).toEqual(['line:race_phrase_again']); expect(show).toHaveBeenCalledWith('попробуй повторить фразу без остановок')
   })
   it('race_phrase_again озвучена (url в rotate_cat_lines) — без подписи над лентой; не озвучена — подпись текстом из настроек', () => {
     const a = make({ race_phrase_again: { text: 'ещё раз, без остановок', url: 'https://r2/again.mp3' } }), show = vi.fn()

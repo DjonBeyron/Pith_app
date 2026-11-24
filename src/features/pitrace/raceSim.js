@@ -62,6 +62,6 @@ export function reportRace({ plan, race, store, now, log = pLog }) {
   const saved = plan.debugStart ? { xp: 0, capped: false } : applySession(plan, score, { store, now })
   log(`[race] итог «${plan.phrase}»: разгон ${score.sprint.hit}/${score.sprint.total}, слух ${score.catchOk}/${score.catchTotal}${score.phrasesTotal ? `, фразы ${score.phrasesOk}/${score.phrasesTotal}` : ''}${score.metrics.avgMs != null ? `, ответ в среднем ${score.metrics.avgMs} мс` : ''}, вершина ${climbTitle(score)}, спуск ${score.descent === 'ok' ? 'верно' : score.descent === 'miss' ? 'нет' : '—'}, XP +${saved.xp}${saved.capped ? ' (потолок дня)' : ''}, слова ${score.words.map(w => `${w.text} ${w.hit}/${w.miss}`).join(', ') || '—'}`)
   for (const w of score.weak) log(`[race] ${accLogLine(w)}`)
-  for (const p of score.phrases.filter(x => x.weak)) log(`[race] итог: слабая фраза «${p.text}»${p.r2 ? `, ${p.r2.mode === 'hear' ? 'смысл' : 'по словам'} ${p.r2.ok ? '✓' : '✗'}` : ''}${p.p2 ? `, подряд ${p.p2.ok ? '✓' : '✗'}` : ''}`) // точность каждого слова итога — одной строкой (raceAccuracy.js), владелец присылает журнал
+  for (const p of score.phrases.filter(x => x.weak)) log(`[race] итог: слабая фраза «${p.text}»${p.r2 ? `, по словам ${p.r2.ok ? '✓' : '✗'}` : ''}${p.p2 ? `, подряд ${p.p2.ok ? '✓' : '✗'}` : ''}`) // точность каждого слова итога — одной строкой (raceAccuracy.js), владелец присылает журнал
   return { ...score, xp: saved.xp, capped: saved.capped }
 }

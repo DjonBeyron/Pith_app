@@ -1,5 +1,5 @@
 // Блок «Слабые фразы» итога «Встряхни память» (RaceSummary.jsx, под списком слов; данные — raceStatePhrases.phraseSummary): по строке на фразу, с которой было не так — текст фразы, смысл мелко,
-// метка хода: «по словам» (проход 1 «Скажи») или «смысл» («Узнай», пальцами) (✓ — сказана или узнан, «нечисто» — слово пропущено, ✗ — нет) и прохода 2 «Скажи» «подряд» (✓ — без остановок,
+// метка «по словам» (проход 1 «Скажи»: ✓ — сказана, «нечисто» — слово пропущено, ✗ — нет) и прохода 2 «Скажи» «подряд» (✓ — без остановок,
 // «с паузами», «нечисто», ✗). Слабая — если хоть что-то не чисто (raceStatePhrases.phraseSummary.weak). Стили — race-phrases-weak.css. Без анимаций.
 const r2Mark = r => (!r ? '' : !r.ok ? '✗' : r.clean ? '✓' : 'нечисто')
 const p2Mark = r => (!r ? '' : !r.ok ? '✗' : !r.smooth ? 'с паузами' : r.clean ? '✓' : 'нечисто')
@@ -14,7 +14,7 @@ export default function RacePhrasesWeak({ phrases }) {
         {weak.map(p => (
           <li key={p.key} className="racePhWRow" data-testid="race-phrase-weak">
             <span className="racePhWText"><span className="racePhWPhrase">{p.text}</span>{p.ru && <span className="raceWeakCap">{p.ru}</span>}</span>
-            {p.r2 && <span className="racePhWR2" data-ok={p.r2.ok ? '' : undefined} data-testid="race-phrase-r2">{p.r2.mode === 'hear' ? 'смысл' : 'по словам'} {r2Mark(p.r2)}</span>}
+            {p.r2 && <span className="racePhWR2" data-ok={p.r2.ok ? '' : undefined} data-testid="race-phrase-r2">по словам {r2Mark(p.r2)}</span>}
             {p.p2 && <span className="racePhWR2" data-ok={p.p2.ok && p.p2.clean ? '' : undefined} data-testid="race-phrase-p2">подряд {p2Mark(p.p2)}</span>}
           </li>
         ))}

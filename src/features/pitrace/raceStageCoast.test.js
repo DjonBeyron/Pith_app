@@ -4,11 +4,11 @@ import { FLIGHT_MS } from '../player/modules/rotate-phone/wordLaneMotion.js'
 import { msToExit, coastTail } from '../player/modules/rotate-phone/wordLaneCoast.js'
 import { ENTER_Y, SPEED } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { setupScene } from './racePhraseSceneRig.js'
-import { phraseStep, PHRASE_SPEED, PHRASE_GAP_MS } from './raceStagesPhrases.js'
-import { round2HearTurns } from './racePhraseTurns.js'
+import { phraseStep, SAY_SPEED, gapMs } from './raceStagesPhrases.js'
+import { round2SayTurns } from './racePhraseTurns.js'
+import { createPhraseListener } from './racePhraseListenStub.js'
 import { phrasesOf } from './racePhraseData.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
-import { CENTER_Y } from './racePhraseScene.js'
 
 vi.mock('../../shared/lib/deviceTier.js', () => ({ isWeakDevice: () => false }))
 
@@ -56,40 +56,36 @@ describe('пул: доезд при смене ступени', () => {
 })
 
 const ph = phrasesOf({ phrases: PHRASE_FIXTURE })
-const pick = () => phraseStep('phrases2', round2HearTurns(ph, 's1'), { round: 2, mode: 'hear', voice: false, speed: PHRASE_SPEED })
-const untilCenter = (s, key) => { for (let i = 0; i < 3000; i++) { const p = s.run.api.state().pills.find(x => x.key === key); if (p && Math.abs(p.y - CENTER_Y) < 3) return p; s.go(16) } return null }
+const GAP = gapMs(SAY_SPEED)
+const say = () => phraseStep('phrases2', round2SayTurns(ph), { round: 2, mode: 'say', voice: true, speed: SAY_SPEED })
+const scene = (o = {}) => setupScene(say(), { listen: createPhraseListener, ...o })
 
+// Раньше эти проверки шли на тап-круге («Пойми», потом «Узнай»); оба вырезаны (владелец 2026-11-24) — те же правила доезда проверяются на круге «Скажи»
 describe('сцена «Фраз»: круг кончился — пилюли доезжают, Пита не держат', () => {
-  it('fx.finished приходит, пока отыгранные ещё едут; stop() после него отдаёт их на доезд (pool.coast) с журналом; «доехала» — по одной', () => {
-    const ts = round2HearTurns(ph, 's3') // семя, у которого верная последнего хода едет ПЕРВОЙ: после «не успел» за ней ещё едут две пилюли
-    const log = vi.fn(); const s = setupScene(phraseStep('phrases2', ts, { round: 2, mode: 'hear', voice: false, speed: PHRASE_SPEED }), { log })
-    for (const t of ts.slice(0, -1)) { s.go(300); expect(untilCenter(s, t.target.key)).toBeTruthy(); s.run.api.tap() } // зачёты разлетаются в стороны; на последнем ходе верную не берём — пилюли доезжают отыгранными («не успел»)
-    for (let i = 0; i < 4000 && !s.fx.finished.mock.calls.length; i++) s.go(16)
-    expect(s.fx.finished).toHaveBeenCalledTimes(1)
+  it('fx.finished приходит, пока отыгранная ещё едет; stop() после него отдаёт её на доезд (pool.coast) с журналом; «доехала» — по одной', () => {
+    const log = vi.fn(); const s = scene({ log })
+    for (let i = 0; i < 20000 && !s.fx.finished.mock.calls.length; i++) s.go(16) // молчим: каждая пилюля «не успел» и доезжает отыгранной
+    expect(s.fx.finished).toHaveBeenCalledTimes(1); expect(s.fx.fail).toHaveBeenCalledTimes(6)
     const riding = s.run.api.state().spent
     expect(riding.length).toBeGreaterThan(0) // директор идёт дальше, не дожидаясь пустой ленты
-    expect(riding.some(p => p.y < 100)).toBe(true) // часть едущих ещё на экране
     s.run.stop()
     expect(s.pool.coasted.length).toBeGreaterThanOrEqual(riding.length)
     expect(log.mock.calls.map(c => c[0])).toContain(`[phrases] круг 2 кончился: доезжают ${riding.length} пилюль`)
     s.pool.onGone(s.pool.coasted[0]); expect(log.mock.calls.at(-1)[0]).toMatch(/^\[phrases\] доехала «.+»$/)
   })
   it('стоп посреди круга (пауза, перезапуск) — без доезда: пилюли убирает пул', () => {
-    const s = setupScene(pick()); s.go(3000); s.run.stop()
+    const s = scene(); s.go(3000); s.run.stop()
     expect(s.pool.coasted).toBeUndefined()
   })
   it('первая пилюля нового круга выезжает не ближе gap за последней доезжающей (pool.tail), а Пит говорит сразу', () => {
-    const tail = ENTER_Y + (SPEED * PHRASE_SPEED * 500) / 1000 // доезжающая выехала полсекунды назад (шаг тап-круга уменьшен в 3.3.216: gap ≈ 1147 мс)
-    const s = setupScene(pick(), { tail })
+    const tail = ENTER_Y + (SPEED * SAY_SPEED * 500) / 1000 // доезжающая выехала полсекунды назад
+    const s = scene({ tail })
     s.go(300); expect(s.fx.pre).toHaveBeenCalledTimes(1) // Пит не ждёт
-    s.go(PHRASE_GAP_MS - 500 - 300 - 100); expect(s.pool.taken).toHaveLength(0)
+    s.go(GAP - 500 - 300 - 100); expect(s.pool.taken).toHaveLength(0)
     s.go(200); expect(s.pool.taken).toHaveLength(1)
   })
-  it('журнал старта хода — скорость и gap: Пит говорит — ранний выезд вместе с репликой; без реплики — «пилюли едут»', () => {
-    const sp = String(PHRASE_SPEED).replace('.', ','), lines = s => s.mock.calls.map(c => c[0])
-    const log = vi.fn(); setupScene(pick(), { log, pit: 2116 }).go(16)
-    expect(lines(log).find(l => l.includes('вместе с репликой'))).toMatch(new RegExp(`^\\[phrases\\] круг 2 «Узнай» \\(тап смысла\\), ход 1/3: пилюля выезжает вместе с репликой Пита \\(2116 мс\\) с -?\\d+ % высоты, speed ${sp}, gap ${PHRASE_GAP_MS} мс$`))
-    const quiet = vi.fn(); setupScene(pick(), { log: quiet }).go(400)
-    expect(lines(quiet)).toContain(`[phrases] круг 2 «Узнай» (тап смысла), ход 1/3: пилюли едут, speed ${sp}, gap ${PHRASE_GAP_MS} мс`)
+  it('журнал старта хода: пилюля выезжает вместе с репликой Пита — скорость и gap', () => {
+    const sp = String(SAY_SPEED).replace('.', ','), log = vi.fn(); scene({ log, pit: 2116 }).go(16)
+    expect(log.mock.calls.map(c => c[0]).find(l => l.includes('вместе с репликой'))).toMatch(new RegExp(`^\\[phrases\\] круг 2 «Скажи» \\(голос\\), ход 1/6, проход 1/2: пилюля выезжает вместе с репликой Пита \\(2116 мс\\) с -?\\d+ % высоты, speed ${sp}, gap ${GAP} мс$`))
   })
 })

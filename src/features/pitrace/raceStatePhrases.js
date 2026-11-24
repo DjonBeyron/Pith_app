@@ -1,6 +1,6 @@
 // Результаты этапа 2 «Фразы» игры «Встряхни память» (CONCEPT_RACE.md, «Этап 2» → «Лента и круги»): события ходов в состоянии гонки (raceState.js: s.phrases — список событий) и всё, что из них
 // считает итог: вклад во точность слов фразы (raceAccuracy.js), слабые фразы (✓ / ✗ хода), слова фраз, которых не было в «Конвейере слов». Круг один (sid phrases2, round 2): круг 1 «Пойми» вырезан (владелец 2026-11-24).
-// Событие: { t: 'phrase', phraseKey, text, ru, words (ключи слов фразы), round (всегда 2: имя круга осталось прежним), mode ('say' | 'hear'), pass (круг «Скажи»: 1 — по словам, 2 — без остановок), ok, late, confusedWith (key), confusedText, ratio, clean,
+// Событие: { t: 'phrase', phraseKey, text, ru, words (ключи слов фразы), round (всегда 2: имя круга осталось прежним), mode ('say'), pass (круг «Скажи»: 1 — по словам, 2 — без остановок), ok, late, confusedWith (key), confusedText, ratio, clean,
 // smooth / maxPause (проход 2: без остановок, наибольшая пауза между словами, мс) }. Счёт «Фразы N/M» — по ходам: оба прохода «Скажи» — два хода. Чистые функции без React.
 import { normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { weakTone } from './raceWeak.js'
@@ -46,15 +46,15 @@ export function phraseNote(part) {
 }
 
 /**
- * Фразы итога: [{ key, text, ru, r2: { ok, clean, ratio, mode } | null, p2: { ok, clean, smooth, maxPause } | null, weak }] по порядку первого хода;
- * r2 — ход «Узнай» (mode 'hear') или проход 1 «Скажи» (mode 'say'), p2 — проход 2 «Скажи» (без остановок); weak — что-то не так (проход 1 или 2 не чисто, смысл не узнан)
+ * Фразы итога: [{ key, text, ru, r2: { ok, clean, ratio } | null, p2: { ok, clean, smooth, maxPause } | null, weak }] по порядку первого хода;
+ * r2 — проход 1 «Скажи» (по словам), p2 — проход 2 «Скажи» (без остановок); weak — что-то не так (проход 1 или 2 не чисто, смысл не узнан)
  */
 export function phraseSummary(list) {
   const by = new Map()
   for (const e of list ?? []) {
     const row = by.get(e.phraseKey) ?? { key: e.phraseKey, text: e.text, ru: e.ru, r2: null, p2: null }
     if (e.pass === 2) row.p2 = { ok: e.ok, clean: e.clean, smooth: !!e.smooth, maxPause: e.maxPause ?? null }
-    else row.r2 = { ok: e.ok, clean: e.clean, ratio: e.ratio, mode: e.mode }
+    else row.r2 = { ok: e.ok, clean: e.clean, ratio: e.ratio }
     by.set(e.phraseKey, row)
   }
   const bad = r => !!r && (!r.ok || !r.clean)
@@ -64,7 +64,7 @@ export function phraseSummary(list) {
 /** Сколько ходов фраз верно / всего (строка «Фразы» итога) */
 export const phraseCount = list => ({ ok: (list ?? []).filter(e => e.ok).length, total: (list ?? []).length })
 
-/** Счёт слова text во фразах для памяти: { hit, miss, unclean } — по единицам racePhrasePasses.phraseUnits («Узнай» — ход, «Скажи» — фраза по двум проходам: again — промах, hard — зачёт и unclean) */
+/** Счёт слова text во фразах для памяти: { hit, miss, unclean } — по единицам racePhrasePasses.phraseUnits («Скажи» — фраза по двум проходам: again — промах, hard — зачёт и unclean) */
 export function phraseHits(list, text) {
   const ev = phraseUnits(list).filter(e => hasWord(e, text))
   return { hit: ev.filter(e => e.ok).length, miss: ev.filter(e => !e.ok).length, unclean: ev.filter(e => e.ok && e.unclean).length }

@@ -42,7 +42,7 @@ describe('демо «Скажи»: какая фраза', () => {
     expect(v.stages.find(s => s.sid === 'phrases-ann')).toMatchObject({ line: 'race_phrases_show', count: false, plateWithLine: true }); expect(v.stages.find(s => s.sid === 'phrases-ann').demo).toBeUndefined() // плашка этапа зовёт смотреть пример; нот на ней нет (они после демо)
     expect(v.stages.find(s => s.sid === 'phrases2').fill).toBeUndefined() // порядка «слабые последними» больше нет: круга 1 нет
     const t = createKit({ plan, tap: true }); phraseStages(t, act)
-    expect(t.stages.find(s => s.sid === 'phrases2').step.phrases.demo).toBeUndefined()
+    expect(t.stages).toEqual([]) // «Пальцами» этапа фраз нет совсем (круг «Узнай» вырезан)
   })
 })
 

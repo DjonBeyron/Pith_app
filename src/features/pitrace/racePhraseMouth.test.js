@@ -43,7 +43,7 @@ describe('рот на целой записи фразы', () => {
     const speak = vi.fn(), logs = []
     const cat = { busyLeft: () => 0, holdBusy: vi.fn(), onStop: () => () => {}, speak }
     const v = createPhraseVoice({ ctx: () => ({ cat }), audioOf: () => ({ url: 'r2/nice.mp3', duration: 1.5 }), play: () => 'buffer', mouth: p => phraseMouth({ text: p.text, buffer: fakeBuffer() }), hold: null, log: l => logs.push(l), setTimer: () => 0, clearTimer: () => {} })
-    v.pre({ mode: 'hear', target: { text: 'Nice to meet you' } }, {})
+    v.react('fail', { mode: 'say', target: { text: 'Nice to meet you' } })
     expect(speak).toHaveBeenCalledTimes(1)
     const [track, ms, meta] = speak.mock.calls[0]
     expect(track.length).toBeGreaterThan(0); expect(track.every(s => s.code && s.code !== 'X')).toBe(true); expect(ms).toBe(1500); expect(meta.kind).toBe('фраза')

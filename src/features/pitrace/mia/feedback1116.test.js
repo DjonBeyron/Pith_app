@@ -24,7 +24,7 @@ describe('замечания 2026-11-16 (v3.3.259)', () => {
     expect(src).toContain('swapFace(prev, next'); expect(src).not.toContain('next.animate'); expect(sw).toContain("next.style.display = ''; prev.style.display = 'none'"); expect(sw).not.toContain('.animate(')
   })
   it('«скажи её сам» после примера: плашка круга с примером — race_phrases_show, DEMO_GO — race_phrases_say', () => {
-    expect(rd('../racePhraseDemo.js')).toContain("DEMO_GO = 'race_phrases_say'"); expect(rd('../raceStagesPhrases.js')).toContain("line: demo ? 'race_phrases_show' : ROUND_PLATES[mode].line")
+    expect(rd('../racePhraseDemo.js')).toContain("DEMO_GO = 'race_phrases_say'"); expect(rd('../raceStagesPhrases.js')).toContain("line: demo ? 'race_phrases_show' : ROUND_PLATES.say.line")
   })
 })
 
@@ -39,8 +39,8 @@ describe('замечания 2026-11-16 вечер (v3.3.260)', () => {
     expect(css).not.toMatch(/transition: --bz/); expect(css).toContain('меняется МГНОВЕННО') // вход в новую зону — цвет пилюли сразу
     expect(rd('../../player/modules/rotate-phone/wordLanePool.js')).toContain("'data-bzf', 'data-scatter'")
   })
-  it('круг выбора «Пойми» / «Узнай»: разлёт пилюль в стороны (верно — остальные, неверно — все, красная рамка)', () => {
-    const sc = rd('../racePhraseScene.js'); expect(sc).toContain("scatterAll(kind === 'miss' ? live() : rest)"); expect(sc).toContain("pool.attr(p.k, 'data-wrong')")
+  it('круги выбора «Пойми» / «Узнай» вырезаны (владелец 2026-11-24): разлёта и красной рамки неверного тапа в сцене фраз нет; сам разлёт остался в движке', () => {
+    const sc = rd('../racePhraseScene.js'); expect(sc).not.toContain('scatterAll'); expect(sc).not.toContain('data-wrong')
     const rise = rd('../../player/modules/rotate-phone/wordLaneRise.js'); expect(rise).toContain('export function startScatter'); expect(rise).toContain('SCATTER_MS')
   })
 })

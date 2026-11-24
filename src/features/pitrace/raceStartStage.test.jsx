@@ -47,7 +47,7 @@ describe('пункты «Начать с»', () => {
 describe('очередь стадий со старта с этапа', () => {
   const opts = startOptions(plan())
   for (const tap of [false, true]) {
-    for (const o of opts.filter(x => !(tap && x.sid === 'boss-intro-ann'))) { // в «Тапаю» финала «Шкала памяти» нет
+    for (const o of opts.filter(x => !(tap && ['boss-intro-ann', 'phrases-ann'].includes(x.sid)))) { // в «Тапаю» нет финала «Шкала памяти» и этапа фраз (тап-круг «Узнай» вырезан)
       it(`${tap ? 'пальцами' : 'голосом'}: «${o.label}» — первой идёт её плашка, предыдущих этапов нет`, () => {
         const p = withStart(plan(), o)
         const { stages } = buildRaceStages({ plan: p, tap, ru: true })

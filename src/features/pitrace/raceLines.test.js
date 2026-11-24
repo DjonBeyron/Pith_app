@@ -7,7 +7,7 @@ import { missingPitLines, pitVoiceCount } from '../rehearsal/rehearsalVoice.js'
 
 describe('реплики Пита в гонке: каталог', () => {
   it('ключи race_*, тексты из задания (последний — вопрос плашки «Голосом / Пальцами»)', () => {
-    expect(RACE_LINE_IDS).toEqual(['race_start', 'race_start_tap', 'race_sprint', 'race_sprint_tap', 'race_good_1', 'race_good_2', 'race_good_3', 'race_good_4', 'race_good_ok', 'race_reverse', 'race_reverse_tap', 'race_climb', 'race_climb_slip', 'race_trap_pre', 'race_trap_mid', 'race_trap_short', 'race_climb_top', 'race_climb_time', 'race_descent', 'race_done_gold', 'race_done', 'race_ask_voice', 'race_phrases_say', 'race_phrases_show', 'race_phrases_hear', 'race_phrase_yes', 'race_phrase_no', 'race_demo_1', 'race_demo_2', 'race_demo_3', 'race_demo_more', 'race_phrase_again', 'race_phrase_pauses', 'race_slip_word', 'race_slip_retry', 'race_slip_next', 'boss_help_1', 'boss_help_2', 'boss_help_3'])
+    expect(RACE_LINE_IDS).toEqual(['race_start', 'race_start_tap', 'race_sprint', 'race_sprint_tap', 'race_good_1', 'race_good_2', 'race_good_3', 'race_good_4', 'race_good_ok', 'race_reverse', 'race_reverse_tap', 'race_climb', 'race_climb_slip', 'race_trap_pre', 'race_trap_mid', 'race_trap_short', 'race_climb_top', 'race_climb_time', 'race_descent', 'race_done_gold', 'race_done', 'race_ask_voice', 'race_phrases_say', 'race_phrases_show', 'race_phrase_yes', 'race_demo_1', 'race_demo_2', 'race_demo_3', 'race_demo_more', 'race_phrase_again', 'race_phrase_pauses', 'race_slip_word', 'race_slip_retry', 'race_slip_next', 'boss_help_1', 'boss_help_2', 'boss_help_3'])
     const t = Object.fromEntries(RACE_LINES.map(l => [l.id, l.text]))
     expect(t.race_start).toBe('Встряхнём память, я говорю слова, а ты переводишь вслух'); expect(t.race_start_tap).toBe('Встряхнём память, я говорю слова, а ты ловишь перевод')
     expect(t.race_sprint).toBe('Вспомни на слух, перевод едет вниз, скажи слово по-английски, пока не убежало')
@@ -23,11 +23,11 @@ describe('реплики Пита в гонке: каталог', () => {
     expect(t.race_descent).toBe('теперь повтори всю фразу за мной на скорости')
     expect(t.race_done_gold).toBe('Золото, идеально'); expect(t.race_done).toBe('Финиш, завтра ещё заезд?')
     expect(t.race_ask_voice).toBe('Как будешь ловить слова, голосом или руками?')
-    for (const id of ['race_phrases', 'race_phrases_tap', 'race_phrases_pick']) expect(t[id]).toBeUndefined() // круг «Пойми · Тапни фразу» вырезан (владелец 2026-11-24): его реплики убраны из каталога — значит, и из аудита озвучки
-    expect(t.race_phrases_say).toBe('а теперь скажи её сам, я подскажу смысл, а слова спрятаны'); expect(t.race_phrases_demo).toBeUndefined(); expect(t.race_phrases_hear).toBe('теперь я говорю фразу, а ты тапни, что она значит')
-    expect(t.race_phrase_yes).toBe('да, это оно'); expect(t.race_phrase_no).toBe('нет, это про другое') // этап 2 «Фразы»
-    expect(['race_demo_1', 'race_demo_2', 'race_demo_3', 'race_demo_more'].map(k => t[k])).toEqual(['главное начать, смотри', 'затем второе', 'потом третье', 'и так до конца']); expect(t.race_phrases_show).toBe('теперь второй круг, смотри, как это делается') // «а теперь скажи её сам» (race_phrases_say) — после примера // демо на живой пилюле
-    expect(t.race_phrase_again).toBe('теперь повтори фразу без остановок'); expect(t.race_phrase_pauses).toBe('хорошо, только без пауз') // «Скажи», проход 2
+    for (const id of ['race_phrases', 'race_phrases_tap', 'race_phrases_pick', 'race_phrases_hear', 'race_phrase_no']) expect(t[id]).toBeUndefined() // тап-круги фраз «Пойми» и «Узнай» вырезаны (владелец 2026-11-24): их реплики убраны из каталога — значит, и из аудита озвучки
+    expect(t.race_phrases_say).toBe('Теперь твоя очередь, не торопись, проговаривай слова отдельно'); expect(t.race_phrases_demo).toBeUndefined() // тексты этапа — сценарий владельца 2026-11-24
+    expect(t.race_phrase_yes).toBe('да, это оно'); expect(t.race_slip_retry).toBe('сказано чуть не точно, попробуй ещё раз'); expect(t.race_slip_next).toBe('сказано не точно, в следующий раз у тебя получится') // этап 2 «Фразы»
+    expect(['race_demo_1', 'race_demo_2', 'race_demo_3', 'race_demo_more'].map(k => t[k])).toEqual(['Смотри, начинаем с первого слова', 'затем второе', 'потом третье', 'и так до конца']); expect(t.race_phrases_show).toBe('Конвейер ситуаций, смотри, как это делается') // «а теперь скажи её сам» (race_phrases_say) — после примера // демо на живой пилюле
+    expect(t.race_phrase_again).toBe('попробуй повторить фразу без остановок'); expect(t.race_phrase_pauses).toBe('хорошо, только без пауз') // «Скажи», проход 2
   })
   it('для озвучки: без точек, многоточий, восклицательных знаков и тире; не длиннее предела; у каждой есть «когда»', () => {
     for (const l of RACE_LINES) {

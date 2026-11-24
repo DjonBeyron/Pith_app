@@ -8,16 +8,13 @@ import { ROUND_PLATES } from './raceStagesPhrases.js'
 vi.mock('../player/modules/rotate-phone/wordLanePlateSound.js', () => ({ playPlate: () => true }))
 const { default: WordLaneTurnPlate } = await import('../player/modules/rotate-phone/WordLaneTurnPlate.jsx')
 const css = readFileSync(new URL('../../styles/player/modules/race-phrase-rounds.css', import.meta.url), 'utf8')
-const plate = look => renderToStaticMarkup(createElement(WordLaneTurnPlate, { text: 'Узнай\nТапни смысл', soft: true, look }))
+const plate = look => renderToStaticMarkup(createElement(WordLaneTurnPlate, { text: 'Скажи\nСкажи сам', soft: true, look }))
 
 describe('плашки кругов', () => {
-  it('вид плашки: «Узнай» — accent и палец, «Скажи» — accent и микрофон; без вида — как раньше (без значка и тона); круга «Пойми · Тапни фразу» нет', () => {
-    expect(ROUND_PLATES.pick).toBeUndefined(); expect(Object.keys(ROUND_PLATES)).toEqual(['say', 'hear'])
-    const p1 = plate(ROUND_PLATES.hear.look)
-    expect(p1).toContain('data-tone="accent"'); expect(p1).toContain('data-icon="tap"'); expect(p1).toContain('wlTurnIcon')
-    const p2 = plate(ROUND_PLATES.say.look)
-    expect(p2).toContain('data-tone="accent"'); expect(p2).toContain('data-icon="mic"')
-    expect(plate(ROUND_PLATES.hear.look)).toContain('data-tone="accent"')
+  it('вид плашки: «Скажи» — accent и микрофон; без вида — как раньше (без значка и тона); тап-кругов «Пойми» и «Узнай» нет', () => {
+    expect(Object.keys(ROUND_PLATES)).toEqual(['say'])
+    const p1 = plate(ROUND_PLATES.say.look)
+    expect(p1).toContain('data-tone="accent"'); expect(p1).toContain('data-icon="mic"'); expect(p1).toContain('wlTurnIcon')
     const old = plate(null)
     expect(old).not.toContain('data-tone'); expect(old).not.toContain('wlTurnIcon')
     expect(p1).not.toMatch(/[\u{1F300}-\u{1FAFF}☀-➿]/u) // значок — SVG, не эмодзи
@@ -25,11 +22,11 @@ describe('плашки кругов', () => {
 })
 
 describe('стиль кругов', () => {
-  it('тона плашек: лента — --lvl2, акцент — --lvl3; пилюли «Скажи» и «Узнай» акцентные, у «Скажи» пунктир и маска вместо ::after', () => {
+  it('тона плашек: лента — --lvl2, акцент — --lvl3; у пилюли «Скажи» пунктир и маска вместо ::after; стилей тап-кругов (hear, кольцо «мимо», красная пилюля неверного тапа) нет', () => {
     expect(css).toMatch(/\.wlTurn\[data-tone='lane'\] \{ border-color: var\(--lvl2/)
     expect(css).toMatch(/\.wlTurn\[data-tone='accent'\] \{\s*border-color: var\(--lvl3/)
     expect(css).toMatch(/data-mode='say'\] \{\s*border-style: dashed/)
-    expect(css).toContain(".wlPill[data-wide][data-mode='hear'] { background:")
+    expect(css).not.toContain("data-mode='hear'"); expect(css).not.toContain('raceTapMiss'); expect(css).not.toContain('data-wrong')
     expect(css).toMatch(/data-mode='say'\]\[data-cap\]:not\(\[data-hint\]\)::after \{ content: none; \}/)
     expect(css).toMatch(/\.racePhraseMask b\[data-w='(hidden|draft|full)'\]/)
   })

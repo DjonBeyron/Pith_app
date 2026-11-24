@@ -1,19 +1,16 @@
 // Сцена этапа 2 «Фразы» игры «Встряхни память» для движка пилюль (useWordLanePills: ступень со step.phrases — raceStagesPhrases.js). DOM без React, как wordLaneOrderScene.js: пилюли из пула (wide — широкие,
 // по центру одной ленты), часы — из анимаций полёта (pool.y), речь Пита — у директора гонки (fx.pre → useRaceActs → racePhraseVoice.js), первая пилюля хода выезжает ВМЕСТЕ с репликой —
-// во всех режимах (racePhraseEarly.js — к концу реплики она целиком видна, у верха зоны чтения; тап засчитывается сразу); в «Скажи» слушатель включён сразу, речь Пита не берёт (isHeld). Тап-режим без реплики (pitLeft 0) — ход ждёт PRE_MIN_MS.
+// (racePhraseEarly.js — к концу реплики она целиком видна, у верха зоны чтения); слушатель включён сразу, речь Пита не берёт (isHeld).
 // Ход: pre (Пит говорит смысл / фразу; без озвучки смысла — подпись над лентой, e.show) → ride (пилюли хода едут одна за другой через cfg.gap) → итог → after (Пит реагирует) → следующий ход.
 // ЕДИНЫЙ КОНВЕЙЕР: после итога хода остальные его пилюли не гаснут — они «отыграны» (data-spent, бледнее) и едут вниз, пока не уйдут за край (без взлёта, промаха и fail); следующий ход начинается, не дожидаясь их,
 // и его пилюли выезжают ЗА ними тем же потоком: новая пилюля — не раньше cfg.gap после предыдущей на ленте (скорость у всех одна — не наезжают, порядок сохраняется). Тап по отыгранной — ничего.
-// Вид пилюли — data-mode = режим круга (pick / say / hear, race-phrase-rounds.css): у круга 2 своя рамка и цвет, чтобы смена задания читалась сразу.
-//  • pick (круг 1 «Пойми») и hear (круг 2 «Узнай»): ТОЛЬКО тап по ленте — по пилюле, В ЧЬЮ РАМКУ ПОПАЛ ПАЛЕЦ (raceTapHit.js: прямоугольники живых пилюль в момент pointerdown, допуск 12 px, зазор ≤ 24 px; мимо — подсветка точки,
-//    raceTapMiss.js; раньше брали «ближайшую к центру экрана» по прошлому кадру — тап по верхней пилюле засчитывался нижней: ложное «неверно»); журнал «[tap] y=… x=… попал: …»; слушатель фраз здесь не создаётся. Верная — зачёт и взлёт целиком (fx.win);
-//    чужая — дрожь (missPill), верная подсвечивается (data-hot) и взлетает сама через HOT_MS (fx.miss, confusedWith); верная ушла за край — «не успел» (fx.fail);
+// Круг один — «Скажи» (data-mode='say', race-phrase-rounds.css). Тап-круги «Пойми» (pick) и «Узнай» (hear) вырезаны (владелец 2026-11-24): выбора пилюли тапом, разлёта и «мимо» здесь больше нет, api.tap ничего не делает.
 //  • say (круг 2 «Скажи» голосом, слушатель фраз): одна пилюля, слова спрятаны маской-кирпичиками (проход 1; сказано слово k — слово k+1 проявляется целым словом до 20 %, racePhrasePeek.js; неверное слово — рывок кромки красным, racePhraseNudge.js) («Nice ▭▭ ▭▭▭▭ ▭▭▭», racePhraseMask.js / racePhraseMaskView.js) и проявляются по onWord (и черновиком — целиком),
 //    на итоге хода видна вся фраза; ОДНА заливка на всю фразу, слева направо (pool.paintFill широкой пилюли — translateX): цель — доля слов, каждое сказанное слово — своя полная доля (racePhraseFill.js),
 //    экран догоняет цель каждый кадр (wordLaneFillView.js). onPhrase с ratio ≥ PHRASE_OK — зачёт («чисто» — все слова): заливка доезжает до 100 % ровно за LOCK_MS, откуда бы ни шла, и в кадре доезда — щелчок и взлёт (finishDue); у края без итога и ≥ 75 % слов в черновике — продление на 1,5 с (проход 1, ученик продвигается — 3 с; pool.hold, racePhraseFill.edgeVerdict / graceMs), иначе fail; проход 1 — слова по порядку, черновое слово, выпавшее из услышанного, откатывается (racePhraseSaid.js); едет с ПОСТОЯННОЙ скоростью, как все пилюли (раньше после 3 с тишины ускорялась вдвое, услышанное слово снова замедляло — владелец: «странно ускоряются»).
 // МЕЖДУ КРУГАМИ лента та же: круг кончился (fx.finished) — сцену сменяет плашка, а едущие пилюли не исчезают, а доезжают до края (stop → pool.coast, wordLaneCoast.js), Пита это не держит; первая пилюля следующего круга выезжает не ближе cfg.gap за последней доезжающей (pool.tail).
 // ДЕМО и ДВА ПРОХОДА «Скажи»: у step.phrases.demo перед первым ходом — демо-ход на живой пилюле (racePhraseDemoTurn.js; голос и ворота директора — fx.pre с rep.demo → e.demo(kit)); ход с pass 2 — та же фраза открытым текстом (data-pass='2', маска целиком и не закрывается; заливка по словам одним движением — racePhraseGlide.js через racePhraseSayView.js; уровень микрофона заливку не двигает ни в одном проходе), зачёт «без остановок» по моментам первых услышанных слов (said.times, racePhrasePasses.passTwoRes).
-// Итог хода уходит директору в rep.res: { ok, late, confusedWith, ratio, clean, smooth?, maxPause? }; журнал «[phrases] круг 1 «Пойми» (тап фразы), ход N/M: цель … кандидаты … итог …; остальные едут: N». Все ходы — fx.finished.
+// Итог хода уходит директору в rep.res: { ok, late, confusedWith, ratio, clean, smooth?, maxPause? }; журнал «[phrases] круг 2 «Скажи» (голос), ход N/M, проход P/2: цель … итог …». Все ходы — fx.finished.
 import { ENTER_Y, EXIT_Y, SPEED, LISTEN_Y_MIN, LISTEN_Y_MAX, LOCK_MS } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { snapPill } from '../player/modules/rotate-phone/wordLaneSnap.js'
 import { createFillView, approachFillFast } from '../player/modules/rotate-phone/wordLaneFillView.js'
@@ -21,7 +18,7 @@ import { finishDue, edgeVerdict, graceMs } from './racePhraseFill.js'
 import { createSaid } from './racePhraseSaid.js'
 import { createSayView } from './racePhraseSayView.js'
 import { createSayTrace } from './racePhraseSayTrace.js'
-import { earlyAtMs, EARLY_SURE_MS } from './racePhraseEarly.js'
+import { earlyAtMs } from './racePhraseEarly.js'
 import { RISE_DELAY_MS, RISE_MS } from '../player/modules/rotate-phone/wordLaneRise.js'
 import { mountMask } from './racePhraseMaskView.js'
 import { pLog } from '../../shared/lib/debug.js'
@@ -29,26 +26,22 @@ import { isLate } from './raceExtraRound.js'
 import { phraseTokens, phraseWords, phraseWordKeys } from './racePhraseData.js'
 import { phraseListen, PHRASE_OK } from './racePhraseListener.js'
 import { LANE } from './raceStagesPhrases.js'
-import { hitPill, tapLine } from './raceTapHit.js'
-import { tapMissMark } from './raceTapMiss.js'
 import { createDemoTurn } from './racePhraseDemoTurn.js'
 import { createSlips, applySlip, PARTIAL_PATH } from './racePhraseSlip.js'; import { passTwoRes, passNote } from './racePhrasePasses.js'; import { fillTo, isPartial, markPartial } from './racePhraseShare.js'
 import { caption } from './racePhraseCaption.js'
 import { startPhraseCount } from './racePhraseCount.js'
 
-export const CENTER_Y = 50      // тап БЕЗ точки (стенд, тесты, клавиатура): берёт пилюлю, чей центр ближе всего к середине экрана; настоящий тап — по точке (raceTapHit.js)
 export const PRE_MIN_MS = 250   // после 'pre' — хотя бы столько, чтобы речь Пита успела начаться (pitLeft > 0)
 export const AFTER_MS = 600     // после итога хода — пауза до следующего (и пока Пит говорит)
-export const HOT_MS = 650       // после ошибки верная пилюля подсвечена столько, потом взлетает сама
 
 const q = t => `«${t}»`
-export const ROUND_LOG = { say: '«Скажи» (голос)', hear: '«Узнай» (тап смысла)' } // круг и режим в журнале хода
+export const ROUND_LOG = { say: '«Скажи» (голос)' } // круг и режим в журнале хода
 
 export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen, count, now = () => performance.now(), raf = f => requestAnimationFrame(f), caf = id => cancelAnimationFrame(id), log = pLog, snap = snapPill, debugBar, onFrame = null }) { // snap / shake — щелчок и дрожь пилюли (wordLaneSnap.js; тесты подставляют свои); debugBar — полоска отладки «Скажи» (racePhraseDebugBar.js); onFrame(t, цель, экран) — кадр заливки «Скажи» (стенд пилюль)
   const cfg = scene.step.phrases
   const turns = cfg.turns ?? []
   const fx = () => fxRef?.current ?? {}
-  const cap = caption(root), missMark = tapMissMark(root) // подпись и подсветка «мимо»
+  const cap = caption(root) // подпись смысла / реплики над лентой
   const view = createFillView(approachFillFast) // заливка «Скажи» на экране: адаптивный догон (быстрая речь — одним движением)
   const trace = createSayTrace({ log, ...(debugBar !== undefined ? { bar: debugBar } : {}) }) // журнал «[fill]» и полоска отладки «Скажи»
   let ti = (scene.from ?? 0) - 1, phase = 'next', at = now(), pills = [], res = null, said = createSaid(), frame = 0, stopped = false, timers = []
@@ -63,12 +56,11 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
   const live = () => pills.filter(p => !p.gone && !p.spent)
   const riding = () => [...rolling, ...pills].filter(p => !p.gone)
   const yOf = p => pool.y(p.k) ?? ENTER_Y
-  const onScreen = p => !p.gone && p.y >= LISTEN_Y_MIN && p.y < LISTEN_Y_MAX
   const target = () => pills.find(p => p.cand.right)
   const rep = () => { const t = turn(); return { idx: t.idx, parts: [], round: cfg.round, mode: cfg.mode, phraseKey: t.target.key, text: t.target.text, ru: t.target.ru, words: phraseWordKeys(t.target), target: t.target, cands: t.cands, res, pass: t.pass } }
 
   let listener = null
-  if (cfg.voice && cfg.mode === 'say' && listen) { // слушатель фраз — только у «Скажи»: круг 1 и «Узнай» отвечают тапом в любом режиме
+  if (cfg.voice && cfg.mode === 'say' && listen) { // слушатель фраз круга «Скажи»
     try { listener = listen({ phrases: [], onWord: e => heardWord(e), onEar: e => { trace.ear(e); sv?.ear(e) }, onPhrase: e => heardPhrase(e), allowPartial: () => (target()?.y ?? 0) >= ENTER_Y + (LISTEN_Y_MAX - ENTER_Y) * PARTIAL_PATH, onError: e => log(`[phrases] слушатель фраз: ошибка ${e?.message ?? e}; дальше тапом`) }) } catch (e) { log(`[phrases] слушатель фраз не запустился: ${e?.message ?? e}`) }
   }
 
@@ -115,30 +107,26 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
     early(t)
   }
 
-  /** Первая пилюля хода (кандидат 0; в тап-режимах порядок уже перемешан — racePhraseTurns.arrange) выезжает вместе с репликой Пита, не дожидаясь pitLeft (racePhraseEarly.js); следующие — за ней через cfg.gap (at, lastSpawn — как будто она выехала из-за края atMs назад); места за едущими нет — обычный поток. Тап-режим: ждём, пока реплика зазвучит (pitLeft > EARLY_SURE_MS — а не цепочка ждёт, пока Пит освободится); так и не зазвучала — обычный путь 'pre'. → выехал ли ход */
+  /** Пилюля хода выезжает вместе с репликой Пита, не дожидаясь pitLeft (racePhraseEarly.js); следующие — за ней через cfg.gap (at, lastSpawn — как будто она выехала из-за края atMs назад); места за едущими нет — обычный поток. Тап-режим: ждём, пока реплика зазвучит (pitLeft > EARLY_SURE_MS — а не цепочка ждёт, пока Пит освободится); так и не зазвучала — обычный путь 'pre'. → выехал ли ход */
   function early(t) {
-    const pit = fx().pitLeft?.() ?? 0; if (cfg.mode !== 'say' && !(pit > EARLY_SURE_MS)) return false
+    const pit = fx().pitLeft?.() ?? 0
     const atMs = earlyAtMs({ pitMs: pit, speed: cfg.speed, gap: cfg.gap, ys: [...riding().map(yOf), pool.tail?.()].filter(y => y != null) }); phase = 'ride'; const p = atMs == null ? null : spawn(turn().cands[0], 0, atMs)
     if (p) { lastSpawn = t - atMs; at = t - atMs; p.y = yOf(p) }
     log(`[phrases] круг ${cfg.round} ${ROUND_LOG[cfg.mode]}, ход ${turn().idx + 1}/${turns.length}${passTag()}: ${p ? `пилюля выезжает вместе с репликой Пита (${Math.round(pit)} мс) с ${Math.round(p.y)} % высоты` : cfg.mode === 'say' ? 'пилюля ждёт места за едущими' : 'пилюли едут (места за едущими нет — первая через gap)'}, speed ${String(cfg.speed).replace('.', ',')}, gap ${cfg.gap} мс`); return true
   }
 
-  const lineOf = r => (cfg.mode === 'say' ? passNote(r, turn().pass) : r.ok ? 'верно' : r.confusedWith ? `спутал с ${q(turn().cands.find(c => c.key === r.confusedWith)?.text ?? r.confusedWith)}` : 'не успел') + (r.late ? ', в последний момент' : '')
+  const lineOf = r => passNote(r, turn().pass) + (r.late ? ', в последний момент' : '')
   const passTag = () => (turn()?.pass ? `, проход ${turn().pass}/2` : '')
 
   /** Пилюля отыграна: едет вниз до края, на тап и голос больше не отвечает */
   const spend = p => { p.spent = true; pool.attr(p.k, 'data-spent') }
-
-  /** Разлёт пилюль в стороны по очереди (влево, вправо, …): поровну на обе стороны */
-  function scatterAll(list) { list.forEach((p, i) => { if (!p.gone && pool.scatter(p.k, i % 2 ? 1 : -1)) p.gone = true }) }
 
   function resolve(kind, extra = {}) {
     const tg = target()
     res = { ok: kind === 'win', late: kind === 'win' && isLate(tg?.y), confusedWith: null, ratio: cfg.mode === 'say' ? 0 : kind === 'win' ? 1 : 0, clean: kind === 'win', ...extra }; if (kind === 'win' && cfg.mode === 'say') applySlip({ res, turns, ti, slips, heard: said.heard() }) // принято, но слово сказано не точно: res.slip / noXp, при необходимости — ещё одна пилюля (racePhraseSlip.js)
     const t = turn()
     const rest = live().filter(p => p !== tg)
-    if (cfg.mode !== 'say' && kind !== 'fail') scatterAll(kind === 'miss' ? live() : rest) // круг выбора: верно — верная взлетает, остальные разлетаются влево / вправо поровну; неверно — разлетаются ВСЕ, неверная с красной рамкой
-    else rest.forEach(spend)
+    rest.forEach(spend)
     if (kind === 'fail' && tg && !tg.gone) spend(tg) // упущенная верная тоже доезжает сама
     tg?.mask?.set(said.heard(), true); if (kind === 'win' && isPartial(res.ratio)) tg?.mask?.keepWrong?.(said.heard()) // итог «Скажи»: видна вся фраза (взлетает или доезжает вниз с ней), слова белые, над несказанным — красным зачёркнуто то, что сказано вместо
     if (cfg.mode === 'say') { if (kind === 'win') trace.rise(now()); trace.end(); trace.drop() }
@@ -149,18 +137,9 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
       const rect = pool.el(tg.k)?.getBoundingClientRect?.() ?? null
       if (pool.rise(tg.k, { xp: !res.noXp })) { tg.gone = true; dropMask(tg.mask, RISE_DELAY_MS + RISE_MS + 100) }
       fx().win?.(0, rect, { last: true, count: 1, ...r })
-    } else if (kind === 'miss') fx().miss?.({ rep: r })
-    else fx().fail?.({ rep: r })
+    } else fx().fail?.({ rep: r })
     phase = 'after'; at = now()
   }
-
-  /** Ошибка: чужая пилюля дрожит и едет дальше отыгранной, верная подсвечивается и сама взлетает */
-  function wrong(p) {
-    pool.attr(p.k, 'data-wrong') // красная рамка на выбранной неверной; разлетаются все пилюли хода, верная не взлетает и не подсвечивается (владелец 2026-11-16)
-    resolve('miss', { confusedWith: p.cand.key })
-  }
-
-  const pick = p => { if (p.cand.right) resolve('win'); else wrong(p) }
 
   /** «Скажи»: слово фразы услышано (или откат — gone, проход 1) — проход 1: маска снимает слово и подсказывает следующее, заливке — доля слова (racePhraseSaid.js); проход 2: заливка по словам (racePhraseGlide.js), маску не трогаем */
   function heardWord(e) {
@@ -201,19 +180,9 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
       for (const p of pills) if (!p.gone) { p.y = yOf(p); if (p.y >= EXIT_Y && !(grace != null && p.cand.right)) gone(p) } // у продления хода пилюля уезжает за экран, но остаётся жива: слово ещё может прийти — тогда она взлетит снизу
       const tg = target()
       if (phase === 'ride' && cfg.mode === 'say' && tg && !tg.gone && !res) { const g = goal(t); shown = view.step('say', g, dt, fin ? (t - fin.at) / LOCK_MS : null, fin?.to); pool.paintFill(tg.k, shown); sv?.frame(t, !!fin, shown); trace.frame(t, g, shown); onFrame?.(t, g, shown); if (fin && finishDue(fin, shown, t, () => trace.full(t, fin.word))) resolve('win', fin.extra) }
-      if (phase === 'ride' && tg && !res && !fin && tg.y >= LISTEN_Y_MAX) { if (cfg.mode === 'say') atEdge(tg, t); else resolve('fail') }
+      if (phase === 'ride' && tg && !res && !fin && tg.y >= LISTEN_Y_MAX) atEdge(tg, t)
       if (phase === 'after' && t - at >= AFTER_MS && !live().length && !(fx().pitLeft?.() > 0)) phase = 'next'
     }
-  }
-
-  /** Тап с точкой: прямоугольники всех едущих пилюль — в этот же момент (до следующего кадра они уедут); выбор — hitPill, журнал — каждый тап */
-  function tapAt(pt) {
-    const ride = riding().map(p => ({ p, id: p.k, cap: p.cand.cap, spent: p.spent || !pills.includes(p), rect: pool.el(p.k)?.getBoundingClientRect?.() ?? null }))
-    const r = hitPill(pt, ride)
-    log(tapLine(pt, ride, r) + (phase !== 'ride' || res ? ` — ход ${res ? 'решён' : 'не начат'}, тап не в счёт` : ''))
-    if (phase !== 'ride' || res) return
-    if (r.hit) pick(r.hit.p)
-    else if (r.why === 'мимо') missMark.show(pt)
   }
 
   const loop = () => { if (stopped) return; tick(now()); frame = raf(loop) }
@@ -221,14 +190,8 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
 
   return {
     api: {
-      /** Тап по ленте (любая дорожка — вся лента): pt = { x, y } точки касания — пилюля, в чью рамку попали (raceTapHit.js); без pt — ближе всего к центру; отыгранная — ничего; «Скажи» тапом не отвечает */
-      tap(_lane, pt) {
-        if (stopped || cfg.mode === 'say') return
-        if (pt) return tapAt(pt)
-        if (phase !== 'ride' || res) return
-        const p = riding().filter(onScreen).sort((a, b) => Math.abs(a.y - CENTER_Y) - Math.abs(b.y - CENTER_Y))[0]
-        if (p && !p.spent && pills.includes(p)) pick(p)
-      },
+      /** Тап по ленте: «Скажи» тапом не отвечает (тап-круги фраз «Пойми» и «Узнай» вырезаны, владелец 2026-11-24) — движок зовёт api.tap на любое касание дорожки, сцена его не слышит */
+      tap() {},
       /** Пауза: с какого хода «Продолжить» — текущий, пока итога нет (он сыграется заново: маска и заливка с нуля), иначе следующий (scene.from, useWordLaneControls) */
       resumeAt: () => Math.min(turns.length, Math.max(0, phase === 'next' || res ? ti + 1 : ti)),
       /** Для тестов и стенда: что сейчас на ленте (spent — отыгранные, едут вниз), fill — заливка «Скажи» на экране, mask — слова под маской «Скажи», listening — есть ли слушатель фраз */
@@ -237,7 +200,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
     tick,
     /** Сцена снята. Круг кончился (phase 'done') — едущие пилюли доезжают до края (pool.coast), их маски уходят с ними; иначе (пауза, перезапуск) всё убирает пул (giveAll) */
     stop() {
-      stopped = true; caf(frame); timers.forEach(clearTimeout); stopCount?.(); stopCount = null; listener?.stop(); cap.remove(); missMark.remove(); trace.drop(); sv?.stop()
+      stopped = true; caf(frame); timers.forEach(clearTimeout); stopCount?.(); stopCount = null; listener?.stop(); cap.remove(); trace.drop(); sv?.stop()
       if (demo && !demo.done()) demoKit?.end?.('сцена снята (пауза, сворачивание или смена стадии)'); demo?.stop()
       const ride = phase === 'done' ? riding() : []
       const ks = ride.length ? (pool.coast?.(k => { const p = ride.find(x => x.k === k); log(`[phrases] доехала ${q(p?.cand.cap ?? '?')}`); dropMask(p?.mask) }) ?? []) : []
