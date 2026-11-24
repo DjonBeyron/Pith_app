@@ -118,7 +118,7 @@ describe('конец экзамена: Мия не «уходит», Пит не
   it('Б. провал: после вердикта Мии Пит из коробки говорит, что ждёт завтра, чтобы ему помогли выбраться; стадия-конец ждёт обе реплики (итог не выезжает поверх)', () => {
     const r = finish('boss', [{ t: 'fail', idx: 0 }])
     expect(r.say.map(c => [c.who, c.id])).toEqual([['mia', 'boss_mia_stay'], ['pit', 'boss_pit_keep']])
-    expect(miaLine('boss_pit_keep').text).toMatch(/завтра/); expect(miaLine('boss_pit_keep').text).toMatch(/жду/) // правка владельца 2026-11-24: «Я видел, как ты старался, у тебя неплохо получается, жду тебя завтра» (просьбы вытащить больше нет)
+    expect(miaLine('boss_pit_keep').text).toMatch(/завтра/); expect(miaLine('boss_pit_keep').text).toMatch(/жду/) // правка владельца 2026-11-24: «Я видел, как ты стараешься, у тебя неплохо получается, жду тебя завтра» (просьбы вытащить больше нет)
     const sp = { msOf: (id, who) => (id === 'boss_mia_stay' ? 3000 : id === 'boss_pit_keep' && who === 'pit' ? 5000 : 1000) }
     expect(endHoldMs({ act: 'boss', mia: 'end', ms: 18000, preWait: 500 }, { m: r.mia }, sp)).toBeGreaterThanOrEqual(500 + 3000 + 5000)
     expect(finish('boss', [0, 1, 2].map(idx => ({ t: 'win', idx }))).say.map(c => c.id)).not.toContain('boss_pit_keep')
