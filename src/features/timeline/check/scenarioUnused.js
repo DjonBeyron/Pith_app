@@ -7,6 +7,4 @@ export const UNUSED_WHY = {
   race_climb: CLIMB, race_climb_slip: CLIMB, race_climb_top: CLIMB, race_climb_time: CLIMB, race_descent: CLIMB,
   race_trap_pre: CLIMB, race_trap_mid: CLIMB, race_trap_short: CLIMB,
   race_ask_voice: 'только стенд: вопрос «голосом или руками» перед стартом',
-  race_phrases_pick: 'круг «Пойми · Тапни фразу» вырезан (решение владельца 2026-11-24)',
-  boss_pit_free: 'заменена репликой boss_pit_well («Ух, спасибо, эти слова ты уже помнишь гораздо лучше»)',
 }

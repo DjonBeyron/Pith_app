@@ -10,6 +10,8 @@ import { auditVoice } from '../../admin/speech/voiceAudit.js'
 import { voiceNeedOf } from '../../admin/speech/useVoiceNeed.js'
 import { normalizeLines } from '../../player/modules/rotate-phone/wordLaneCatLines.js'
 import { DEMO_LINE_CAP_MS } from '../../pitrace/racePhraseDemo.js'
+import { DRAIN_CAP_MS } from '../../pitrace/boss/examEndWait.js'
+import { revealAtMs } from '../../pitrace/boss/bossScale.js'
 
 const run = raw => { const a = auditVoice(raw); return checkScenario({ audit: a.byId, lines: normalizeLines(raw), orphans: a.orphans }) }
 const P = PROBLEMS
@@ -51,18 +53,35 @@ describe('риски сцены от длины', () => {
   })
   it('чистая фикстура — все риски «в порядке»; длинная реплика примера «Скажи» — «не помещается» с числами из игры', () => {
     const clean = normalizeLines(checkFixtureRaw(undefined, { clean: true })), a = auditVoice({ lines: clean }).byId
-    expect(sceneRisks(sc, durOfLines(clean, a)).filter(r => r.status !== 'ok')).toEqual([])
+    expect(sceneRisks(sc, durOfLines(clean, a), { recOf: id => clean[id] }).filter(r => r.status !== 'ok')).toEqual([])
     const long = { ...clean, race_demo_2: { ...clean.race_demo_2, duration: (DEMO_LINE_CAP_MS + 600) / 1000 } }
-    const bad = sceneRisks(sc, durOfLines(long, a)).filter(r => r.status === 'bad')
+    const bad = sceneRisks(sc, durOfLines(long, a), { recOf: id => long[id] }).filter(r => r.status === 'bad')
     expect(bad).toHaveLength(1); expect(bad[0].ids).toEqual(['race_demo_2']); expect(bad[0].text).toMatch(/не помещается: длина 4,6 с при запасе 4,0 с/)
   })
-  it('концовка длиннее потолка стадии и короткая реплика церемонии (тишина) — видны; у реплики появляется ⚠', () => {
+  it('речь после последнего слова экзамена длиннее запаса и слишком короткие реплики церемонии (тишина до срока «не раньше») — видны; у реплики появляется ⚠', () => {
     const clean = normalizeLines(checkFixtureRaw(undefined, { clean: true })), a = auditVoice({ lines: clean }).byId
-    const rows = sceneRisks(sc, durOfLines({ ...clean, pit_back_2: { ...clean.pit_back_2, duration: 12 }, mia_push: { ...clean.mia_push, duration: 0.8 } }, a))
-    expect(rows.find(r => /Концовка допроса/.test(r.title) && r.status === 'bad').text).toMatch(/концовке нужно .* при потолке 18,0 с/)
+    const rows = sceneRisks(sc, durOfLines({ ...clean, boss_help_3: { ...clean.boss_help_3, duration: DRAIN_CAP_MS / 1000 }, pit_forgot: { ...clean.pit_forgot, duration: 0.4 }, mia_push: { ...clean.mia_push, duration: 0.5 } }, a))
+    expect(rows.find(r => r.key === 'boss-last')).toMatchObject({ status: 'bad', ids: ['boss_mia_miss_1', 'boss_help_3'] }); expect(rows.find(r => r.key === 'boss-last').text).toMatch(/не помещается: .* при запасе 12,0 с/)
     const quiet = rows.find(r => /тишина перед репликой/.test(r.title))
-    expect(quiet.status).toBe('edge'); expect(Number(quiet.text.match(/тишина ([\d,]+) с/)[1].replace(',', '.'))).toBeGreaterThan(QUIET_EDGE_S)
-    expect(Object.keys(risksById(rows))).toEqual(expect.arrayContaining(['pit_back_2']))
+    expect(quiet.status).toBe('edge'); expect(quiet.ids).toEqual(['mia_push', 'pit_panic']); expect(Number(quiet.text.match(/тишина ([\d,]+) с/)[1].replace(',', '.'))).toBeGreaterThan(QUIET_EDGE_S)
+    expect(Object.keys(risksById(rows))).toEqual(expect.arrayContaining(['boss_help_3', 'pit_panic']))
+  })
+  it('реплики церемонии и концовок идут по концу звука: очень длинная реплика их не ломает (пока вся речь меньше потолка)', () => {
+    const clean = normalizeLines(checkFixtureRaw(undefined, { clean: true })), a = auditVoice({ lines: clean }).byId
+    const rows = sceneRisks(sc, durOfLines({ ...clean, pit_reply: { ...clean.pit_reply, duration: 9 }, boss_pit_well: { ...clean.boss_pit_well, duration: 14 }, mia_leave: { ...clean.mia_leave, duration: 8 } }, a), { recOf: id => clean[id] })
+    expect(rows.filter(r => r.status !== 'ok')).toEqual([])
+  })
+  it('шкала экзамена: есть тайминги слов — «точно на слове»; нет — «появится приблизительно», как решает игра (revealAtMs)', () => {
+    const raw = checkFixtureRaw(undefined, { clean: true }), look = raw.lines.boss_mia_look
+    const row = r => run(r).risks.find(x => x.key === 'event-boss_mia_look')
+    expect(row(raw)).toMatchObject({ status: 'ok' }); expect(row(raw).text).toMatch(/слово «шкала» в записи на [\d,]+ с/)
+    const word = look.words.find(w => w.w.startsWith('шкал'))
+    expect(revealAtMs(look, look.duration * 1000)).toBe(Math.round(word.t * 1000)) // то же число, что покажет игра
+    const bare = { lines: { ...raw.lines, boss_mia_look: { ...look, words: null } } }
+    expect(row(bare)).toMatchObject({ status: 'edge' }); expect(row(bare).text).toMatch(/нет разметки слов у этой реплики — шкала появится приблизительно/)
+    expect(run(bare).of('boss_mia_look').flags.map(f => f.k)).toEqual(['mouth', 'risk']); expect(run(bare).light).toBe('yellow')
+    const mute = { lines: { ...raw.lines, boss_mia_look: { text: look.text } } }
+    expect(row(mute).text).toMatch(/звука нет/)
   })
 })
 
@@ -85,7 +104,7 @@ describe('проверка сценария целиком', () => {
     expect(act('orphans')).toMatchObject({ ids: [P.orphan] })
   })
   it('светофор по блокам: красный там, где нужно действие; «Итог» зелёный', () => {
-    expect(Object.fromEntries(res.blocks.map(b => [b.key, b.light]))).toMatchObject({ start: 'red', sprint: 'red', turn: 'yellow', phrases: 'red', mia: 'red', boss: 'red', summary: 'green' })
+    expect(res.blocks.map(b => [b.key, b.light])).toEqual([['start', 'red'], ['sprint', 'red'], ['mia', 'red'], ['turn', 'red'], ['phrases', 'red'], ['boss', 'red'], ['summary', 'green']])
   })
   it('«нужно озвучить / переозвучить» — то же число, что у счётчика на вкладке «Голос» (одна функция)', () => {
     const raw = checkFixtureRaw()
@@ -98,6 +117,15 @@ describe('проверка сценария целиком', () => {
     expect(t).toMatch(/^ПРОВЕРКА СЦЕНАРИЯ «ВСТРЯХНИ ПАМЯТЬ» — приложение 3\.3\.363, 2026-11-24 10:00 UTC/)
     expect(t).toContain('🔴 ДОПРОС У МИИ'); expect(t).toContain(`Мия ${P.stale}`); expect(t).toContain('РИСКИ СЦЕНЫ ОТ ДЛИНЫ РЕПЛИК'); expect(t).toContain(`ЛИШНИЕ ЗАПИСИ ОЗВУЧКИ (реплик с такими id больше нет): ${P.orphan}`)
     expect(checkReportText(checkScenario({}))).toMatch(/не загружены/)
+  })
+  it('проверка не падает, если реплики нет в настройках или в каталоге: такая реплика — «нет озвучки» либо «неизвестна», остальное считается', () => {
+    const raw = checkFixtureRaw(undefined, { clean: true }), a = auditVoice(raw), lines = normalizeLines(raw)
+    delete lines.boss_mia_mid; delete lines.race_reverse
+    const audit = { ...a.byId }; delete audit.boss_pit_well; delete audit.mia_push
+    const r = checkScenario({ audit, lines })
+    expect(r.ready).toBe(true); expect(r.of('boss_pit_well')).toMatchObject({ unknown: true, level: 'ok' }); expect(r.risks.length).toBeGreaterThan(10)
+    expect(checkScenario({ audit: {}, lines: null }).ready).toBe(true); expect(checkScenario({ audit: {}, lines: {} }).need).toEqual([])
+    expect(() => checkReportText(r)).not.toThrow(); expect(verdictOf('boss_mia_mid', { audit, lines })).not.toBeNull()
   })
   it('проверка одной реплики после сохранения: «подходит» либо что не так, длина против прежней', () => {
     const raw = checkFixtureRaw(undefined, { clean: true }), lines = normalizeLines(raw), a = auditVoice(raw).byId

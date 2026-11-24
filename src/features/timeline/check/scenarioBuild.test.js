@@ -5,6 +5,10 @@ import { gameStages, ceremonyCues, endCues } from './scenarioGame.js'
 import { UNUSED_WHY } from './scenarioUnused.js'
 import { RACE_LINE_SET } from '../../admin/speech/voiceAudit.js'
 import { reduceMia, miaInit } from '../../pitrace/mia/raceMia.js'
+import { MISS_LINE, BYE_LINE } from '../../pitrace/boss/bossMia.js'
+import { OUTCOMES } from '../../pitrace/boss/bossTrophies.js'
+import { REV_LINE, REV_LINE_AFTER_MIA } from '../../pitrace/mia/miaCircleEnd.js'
+import { RACE_LINES } from '../../pitrace/raceLines.js'
 
 // СТОРОЖ сценария из кода: если игра изменится (новая реплика, новая плашка, другой исход), эти тесты упадут и скажут, что именно разошлось с проверкой сценария.
 const sc = buildScenario()
@@ -14,7 +18,7 @@ const idsOf = (b, test = () => true) => b.parts.filter(test).flatMap(p => p.item
 
 describe('сценарий «Встряхни память» из кода игры', () => {
   it('блоки идут в порядке игры', () => {
-    expect(sc.blocks.map(b => b.title)).toEqual(['Старт', 'Конвейер слов', 'Разворот конвейера', 'Фразы — круг «Скажи»', 'Допрос у Мии', 'Экзамен «Шкала памяти»', 'Итог'])
+    expect(sc.blocks.map(b => b.title)).toEqual(['Старт', 'Конвейер слов', 'Допрос у Мии', 'Разворот и обратный конвейер', 'Фразы — круг «Скажи»', 'Экзамен «Шкала памяти»', 'Итог'])
   })
   it('КАЖДАЯ реплика каталога «Встряхни память» — либо в сценарии, либо в списке «не звучит в игре» с причиной (и не там и там сразу)', () => {
     const lost = [...RACE_LINE_SET].filter(id => !sc.ids.has(id) && !UNUSED_WHY[id])
@@ -33,13 +37,19 @@ describe('сценарий «Встряхни память» из кода иг�
   it('продублированные строки игры (экспорта нет) совпадают с её исходником', () => {
     const voice = src('racePhraseVoice.js')
     expect(voice).toContain(`'${YES_LINE}'`); expect(voice).toContain(`{ line: '${NO_LINE}' }`)
-    expect(src('raceStagesPhrases.js')).toContain(`line: '${SHOW_LINE}'`)
+    expect(src('raceStagesPhrases.js')).toContain(`line: demo ? '${SHOW_LINE}' : ROUND_PLATES[mode].line`)
     expect(src('useRaceActs.js')).toContain(`res.gold ? '${DONE_LINES.gold}' : '${DONE_LINES.usual}'`)
   })
-  it('вырезанный круг «Тапни фразу» в сценарий не идёт, круг «Скажи» — идёт', () => {
-    expect(gameStages().some(s => /^phrases1/.test(s.sid))).toBe(false)
-    expect(sc.ids.has('race_phrases_pick')).toBe(false)
-    expect(idsOf(block('phrases'), p => !p.alt)).toEqual(expect.arrayContaining(['race_phrases', 'race_phrases_show', 'race_demo_1', 'race_phrases_say', 'race_phrase_again', 'race_phrase_yes', 'race_slip_word']))
+  it('этап фраз — сразу круг «Скажи»: плашка этапа несёт реплику круга, вырезанных реплик и стадий нет', () => {
+    expect(gameStages().filter(s => s.act === 'phrases' && !/-sw$/.test(s.sid)).map(s => s.sid)).toEqual(['phrases-ann', 'phrases2'])
+    for (const id of ['race_phrases', 'race_phrases_tap', 'race_phrases_pick']) { expect(sc.ids.has(id), id).toBe(false); expect(RACE_LINES.some(l => l.id === id), `${id} снова в каталоге`).toBe(false) }
+    expect(idsOf(block('phrases'), p => !p.alt)).toEqual(['race_phrases_show', 'race_demo_1', 'race_demo_2', 'race_demo_3', 'race_demo_more', 'race_phrases_say', 'race_phrase_again', 'race_phrase_yes', 'race_phrase_pauses', 'race_slip_word', 'race_slip_retry', 'race_slip_next'])
+    expect(idsOf(block('phrases'), p => p.alt)).toEqual(['race_phrases_hear', 'race_phrase_no'])
+  })
+  it('разворот: обычная реплика либо «Едем дальше…» после победы над Мией — веткой «одна из»', () => {
+    const ann = block('turn').parts.find(p => p.key === 'ann')
+    expect(ann.kind).toBe('branch'); expect(ann.items.map(x => x.id)).toEqual([REV_LINE, REV_LINE_AFTER_MIA])
+    expect(gameStages().find(s => s.sid === 'catch-rev').line).toBe(REV_LINE)
   })
 })
 
@@ -54,20 +64,24 @@ describe('допрос у Мии и экзамен — те же реплики 
   it('варианты «одна из» собраны все: три «верно», три «мимо», три колкости экзамена, три подсказки Пита', () => {
     const mia = block('mia'), boss = block('boss'), variants = b => b.parts.filter(p => p.kind === 'variants').map(p => p.items.map(x => x.id))
     expect(variants(mia)).toEqual([['mia_ok_1', 'mia_ok_2', 'mia_ok_3'], ['mia_miss_1', 'mia_miss_2', 'mia_miss_3']])
-    expect(variants(boss).slice(1)).toEqual([['boss_mia_miss_1', 'boss_mia_miss_2', 'boss_mia_miss_3'], ['boss_help_1', 'boss_help_2', 'boss_help_3']])
+    expect(variants(boss).slice(1)).toEqual([['boss_help_1', 'boss_help_2', 'boss_help_3']])
+    const jab = boss.parts.find(p => p.key === 'fail0') // колкость экзамена — по причине, а не случайно
+    expect(jab.kind).toBe('branch'); expect(jab.items.map(x => [x.id, x.note])).toEqual([[MISS_LINE.wrong, 'названо чужое слово'], [MISS_LINE.late, 'говорили, но не успели'], [MISS_LINE.forgot, 'молчали']])
     expect(boss.parts.find(p => p.key === 'win0').items.every(x => x.again)).toBe(true) // те же колкости, что в допросе: в счёт идут один раз
   })
-  it('концовки: «все верны» и «есть ошибки» — у допроса и у экзамена; ветка «Мию ещё не видели»', () => {
-    for (const key of ['mia', 'boss']) {
-      const ends = block(key).parts.filter(p => /^end/.test(p.key))
-      expect(ends.length).toBeGreaterThanOrEqual(2)
-      expect(ends[0].title).toBe('Концовка: все слова названы верно')
-      expect(new Set(ends.map(p => p.items.map(x => x.id).join('+'))).size).toBe(ends.length)
-    }
-    expect(endCues(gameStages(), 'boss').at(0).cues.map(c => c.id)).toEqual(block('boss').parts.find(p => p.key === 'end0').items.map(x => x.id))
+  it('концовки: допрос — «все верны» / «есть ошибки»; экзамен — три исхода по трофеям; ветка «Мию ещё не видели»', () => {
+    const ends = key => block(key).parts.filter(p => /^end/.test(p.key)).map(p => [p.title, p.items.map(x => x.id)])
+    expect(ends('mia')).toEqual([['Концовка: все слова названы верно', ['mia_leave', 'pit_back_1']], ['Концовка: есть хоть одна ошибка', ['boss_mia_keep']]])
+    expect(ends('boss')).toEqual([
+      ['Концовка: успех — трофеев 70 % и больше', ['boss_mia_free', BYE_LINE.free, 'boss_pit_well']],
+      ['Концовка: средний — трофеев от 40 до 69 %', [BYE_LINE.mid, 'boss_pit_well']],
+      ['Концовка: провал — трофеев меньше 40 %', ['boss_mia_stay', 'boss_pit_keep']],
+    ])
+    expect(sc.sim.boss.ends.map(e => e.outcome)).toEqual(OUTCOMES) // ровно те исходы, что знает игра (boss/bossTrophies.js): появится четвёртый — тест скажет
+    expect(new Set(endCues(gameStages(), 'boss').map(e => e.outcome))).toEqual(new Set(OUTCOMES))
     expect(idsOf(block('boss'), p => p.key === 'cer-new')).toEqual(['boss_pit_new'])
     expect(ceremonyCues(gameStages(), 'boss', true).cues[0].id).toBe('boss_pit_1')
-    expect(idsOf(block('mia'), p => /^box/.test(p.key))).toEqual(['boss_pit_try', 'boss_pit_stuck', 'boss_pit_faster', 'pit_back_1'])
+    expect(idsOf(block('mia'), p => /^box/.test(p.key))).toEqual(['boss_pit_try', 'boss_pit_stuck', 'boss_pit_faster', 'boss_pit_free'])
   })
   it('экзамен: смена языка и «Следующее слово»', () => {
     expect(idsOf(block('boss'), p => p.key === 'hold')).toEqual(['boss_mia_ru'])

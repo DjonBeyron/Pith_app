@@ -26,9 +26,9 @@ describe('экран проверки сценария', () => {
   const bad = html(checkFixtureRaw()), ok = html(checkFixtureRaw(undefined, { clean: true }))
   it('сверху строка-светофор: зелёная «в порядке» либо красная со списком действий; у блоков свои огни', () => {
     expect(ok).toMatch(/data-testid="tl-ck-sum">✅ Сценарий в порядке: всё озвучено и согласовано</); expect(ok).not.toContain('data-testid="tl-ck-acts"')
-    expect(bad).toContain('data-testid="tl-ck-sum">🔴 Сценарий требует действий: озвучить или переозвучить 4 · проверить 5 · посмотреть 4<')
+    expect(bad).toContain('data-testid="tl-ck-sum">🔴 Сценарий требует действий: озвучить или переозвучить 4 · проверить 5 · посмотреть 2<')
     expect(bad).toContain('<li data-level="todo">озвучить 2 реплики (звука нет)</li>'); expect(bad).toContain('то же число горит на вкладке админки «Голос»')
-    expect([...bad.matchAll(/class="tlCkLight" data-light="(\w+)"/g)].map(m => m[1])).toEqual(['red', 'red', 'yellow', 'red', 'red', 'red', 'green'])
+    expect([...bad.matchAll(/class="tlCkLight" data-light="(\w+)"/g)].map(m => m[1])).toEqual(['red', 'red', 'red', 'red', 'red', 'red', 'green'])
   })
   it('у реплики: кто, текст, длительность и значки состояния', () => {
     expect(item(bad, P.none)).toContain('🔇'); expect(item(bad, P.stale)).toContain('✏️'); expect(item(bad, P.long)).toContain('⏱'); expect(item(bad, P.nowords[0])).toContain('👄'); expect(item(bad, P.risk)).toContain('⚠')
@@ -47,8 +47,8 @@ describe('экран проверки сценария', () => {
     expect(open).toContain('data-testid="tl-le-voice"'); expect(open).toContain('data-testid="tl-le-file"'); expect(open).toContain('data-testid="tl-ck-play"')
   })
   it('риски сцены, запас и лишние записи — раскрывающимися списками', () => {
-    expect(bad).toMatch(/Риски сцены от длины реплик: проверок \d+, требуют внимания 2/); expect(ok).toMatch(/Риски сцены от длины реплик: проверок \d+, все в порядке/)
-    expect(ok).toContain('Не звучат в игре (запас): 13'); expect(bad).toContain('Лишние записи озвучки: 1'); expect(ok).not.toContain('tl-ck-orphans')
+    expect(bad).toMatch(/Риски сцены от длины реплик: проверок \d+, требуют внимания 1/); expect(ok).toMatch(/Риски сцены от длины реплик: проверок \d+, все в порядке/)
+    expect(ok).toContain('Не звучат в игре (запас): 11'); expect(bad).toContain('Лишние записи озвучки: 1'); expect(ok).not.toContain('tl-ck-orphans')
   })
   it('переключатель источника: «Сценарий сейчас» по умолчанию, «Последняя игра» — прежний список прохождения; без игр — только сценарий', () => {
     const e = editOf(checkFixtureRaw()), m = buildTimeline(fixtureEvents(), {})

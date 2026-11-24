@@ -19,7 +19,7 @@ describe('названия стадий для админа (sid → назва�
         expect(ACT_NAMES[s.act], `нет названия у этапа ${s.act}`).toBeTruthy()
       }
     }
-    for (const sid of ['sprint-ann', 'sprint', 'sprint3-intro-ann', 'sprint3-ann', 'sprint3', 'sprint3-end', 'catch-rev', 'catch-sw', 'catch-ann', 'catch', 'catch3', 'phrases-sw', 'phrases1', 'phrases2', 'climb-1', 'climb-top', 'descent-s', 'boss-intro-ann', 'boss', 'boss-sw', 'boss2', 'boss-end', 'summary']) expect(seen.has(sid), sid).toBe(true)
+    for (const sid of ['sprint-ann', 'sprint', 'sprint3-intro-ann', 'sprint3-ann', 'sprint3', 'sprint3-end', 'catch-rev', 'catch-sw', 'catch-ann', 'catch', 'catch3', 'phrases-sw', 'phrases-ann', 'phrases2', 'climb-1', 'climb-top', 'descent-s', 'boss-intro-ann', 'boss', 'boss-sw', 'boss2', 'boss-end', 'summary']) expect(seen.has(sid), sid).toBe(true)
   })
 
   it('названия по-человечески; ступени «Вершины» — по шаблону с номером; неизвестный sid показывается как есть', () => {

@@ -11,7 +11,7 @@ export const PROBLEMS = {
   long: 'boss_mia_red',       // слишком длинный файл для текста
   short: 'race_start',        // слишком короткий (обрезан)
   tail: 'pit_back_2',         // тишина в конце файла
-  head: 'race_phrases',       // тишина в начале файла
+  head: 'race_phrases_show',  // тишина в начале файла
   nowords: ['race_reverse', 'mia_leave'], // рот не размечен
   risk: 'race_demo_2',        // длиннее потолка реплики примера «Скажи»
   orphan: 'mia_announce_1',   // запись озвучки удалённой реплики
@@ -29,6 +29,8 @@ export function checkFixtureRaw(url = 'https://r2.example/line.mp3', { clean = f
   const lines = Object.fromEntries([...RACE_LINES, ...MIA_LINES].map(d => [d.id, good(d.text, url)]))
   if (clean) return { lines }
   const P = PROBLEMS, L = lines
+  const gone = [P.none, P.stale, P.nodur, P.long, P.short, P.tail, P.head, P.risk, ...P.nowords].filter(id => !L[id])
+  if (gone.length) throw new Error(`checkFixture: реплик ${gone.join(', ')} больше нет в каталоге — замени их в PROBLEMS`)
   L[P.none] = { text: L[P.none].text }
   delete L[P.fresh]
   L[P.stale] = { ...L[P.stale], said: 'Иди сюда, пушистик, дальше командую я' }

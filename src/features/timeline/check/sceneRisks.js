@@ -1,19 +1,25 @@
-// «Риски сцены»: места сценария «Встряхни память», где ДЛИНА реплики влияет на сцену (CONCEPT_TIMELINE.md, «Проверка сценария»). Таблица — данными (RISK_RULES): что проверяем, откуда число, пояснение человеку.
-// Числа читаются из экспортов игры, не копируются: потолки стадий — из самих стадий (stage.waitCap, stage.ms: MIA_WAIT_CAP_MS, BOSS_WAIT_CAP_MS, MIA_END_MS, BOSS_END_MS), сколько держится концовка — boss/raceEndHold.endHoldMs,
-// сроки реплик церемоний — машина Мии (delay у cue) и bossShift, пауза очереди — miaSpeech.miaGap, запас на слово — miaSpeech.WORD_MS, потолок ожидания колкости перед концовкой — useMiaEnter.END_WAIT_MAX_MS,
-// потолок реплики примера «Скажи» — racePhraseDemo.DEMO_LINE_CAP_MS, разворот — raceReverseTurn.REV_MS + REV_WAIT_CAP_MS, события на репликах — boss/bossScale (DEMO_START, REVEAL_AT, FLASH_LINES), useMiaPlate.SPEED_ID.
-// СВОИ пороги (в игре таких чисел нет, это рекомендации проверки): QUIET_EDGE_S — тишина между репликами церемонии длиннее 1,7 с (на такую тишину владелец уже жаловался: «игра долго молчит»);
-// SHORT_SOFT_MS — короткая реплика внутри круга дольше 3 с (пока она звучит, следующее слово ждёт); EDGE_K — «на грани», когда занято больше 85 % запаса.
-// durOf(id) → { ms, est } — длина реплики (est — оценка по тексту: звука нет). → строки { key, title, status: 'ok' | 'edge' | 'bad', text, ids, source }. Чистые функции без React.
-import { endHoldMs } from '../../pitrace/boss/raceEndHold.js'
-import { bossShift } from '../../pitrace/mia/raceMia.js'
+// «Риски сцены»: места сценария «Встряхни память», где ДЛИНА или РАЗМЕТКА реплики влияет на сцену (CONCEPT_TIMELINE.md, «Проверка сценария»). Что проверяем, откуда число, пояснение человеку.
+// После правок игры 2026-11-24 реплики церемоний и концовок идут очередью по РЕАЛЬНОМУ концу звука — фиксированных сроков и «потолка концовки 18 с» больше нет, длинная реплика их не ломает.
+// Остались страховочные потолки и привязки (числа читаются из экспортов игры, не копируются):
+//  • вся речь церемонии — stage.waitCap (MIA_WAIT_CAP_MS, BOSS_WAIT_CAP_MS); тишина перед репликой церемонии — сроки «не раньше» машины Мии (delay) и, у экзамена, bossShift + boss/bossMia.ceremonyTimes;
+//  • экзамен: речь хода (колкость → подсказка + слово → «Следующее слово») — stage.step.holdMax (BOSS_HOLD_MAX_MS); речь после последнего слова — examEndWait.DRAIN_CAP_MS; речь исхода — examEndWait.END_CAP_MS;
+//  • допрос: колкость о последнем слове — useMiaEnter.END_WAIT_MAX_MS; речь концовки «все верны» — miaCircleEnd.CIRCLE_WAIT_CAP_MS;
+//  • пример «Скажи» — racePhraseDemo.DEMO_LINE_CAP_MS; разворот — raceReverseTurn.REV_MS + REV_WAIT_CAP_MS;
+//  • события на репликах — boss/bossScale: шкала появляется на слове REVEAL_WORD реплики DEMO_START (bossScale.revealAtMs: по таймингам слов записи; без них — приблизительно, по месту слова в тексте), зоны мигают на FLASH_LINES; дорожки ускоряются с useMiaPlate.SPEED_ID.
+// СВОИ пороги (в игре таких чисел нет, это рекомендации проверки): QUIET_EDGE_S — тишина между репликами церемонии длиннее 1,7 с; SHORT_SOFT_MS — короткая реплика внутри круга дольше 3 с (пока она звучит, следующее слово ждёт); EDGE_K — «на грани» от 85 % запаса.
+// durOf(id) → { ms, est } — длина реплики (est — оценка по тексту: звука нет); recOf(id) — запись реплики из настроек ({ text, words, duration }; нет — null). → строки { key, title, status: 'ok' | 'edge' | 'bad', text, ids, source }. Чистые функции без React.
+import { BOSS, bossShift } from '../../pitrace/mia/raceMia.js'
+import { ceremonyTimes } from '../../pitrace/boss/bossMia.js'
+import { DRAIN_CAP_MS, END_CAP_MS } from '../../pitrace/boss/examEndWait.js'
+import { CIRCLE_WAIT_CAP_MS } from '../../pitrace/mia/miaCircleEnd.js'
 import { miaGap, WORD_MS } from '../../pitrace/mia/miaSpeech.js'
 import { END_WAIT_MAX_MS } from '../../pitrace/mia/useMiaEnter.js'
 import { SPEED_ID } from '../../pitrace/mia/useMiaPlate.js'
-import { DEMO_START, REVEAL_AT, FLASH_LINES } from '../../pitrace/boss/bossScale.js'
+import { DEMO_START, REVEAL_WORD, FLASH_LINES } from '../../pitrace/boss/bossScale.js'
 import { DEMO_LINES, DEMO_MORE, DEMO_LINE_CAP_MS } from '../../pitrace/racePhraseDemo.js'
 import { REV_MS, REV_WAIT_CAP_MS } from '../../pitrace/raceReverseTurn.js'
 import { GOOD_IDS, OK_IDS } from '../../pitrace/raceGood.js'
+import { pauseMs } from '../../../shared/lib/scenePauses.js'
 import { ceremonyCues } from './scenarioGame.js'
 import { sec } from './lineCheck.js'
 
@@ -47,16 +53,23 @@ function ceremonyRows(key, title, cues, stage, durOf, gap) {
   return out
 }
 
-function endRows(key, title, ends, durOf) {
-  return ends.flatMap((e, i) => {
-    if (!e.stage || !(e.stage.ms > 0)) return []
-    let need
-    try { need = endHoldMs({ ...e.stage, ms: Infinity, preWait: 0 }, { m: e.m }, { msOf: id => durOf(id).ms }) } catch { return [{ key: `${key}-end${i}`, title: `${title} — ${e.title}`, status: 'edge', ids: e.cues.map(c => c.id), source: 'boss/raceEndHold.endHoldMs', text: 'не удалось посчитать, сколько держится концовка (игра изменила расчёт) — проверить вручную' }] }
-    if (!Number.isFinite(need) || need <= 1000) return [] // концовка без речи под потолок (Пит остался в коробке: её снимает ученик)
-    const st = fit(need, e.stage.ms)
-    return [{ key: `${key}-end${i}`, title: `${title} — ${e.title}`, status: st, ids: e.cues.map(c => c.id), source: 'потолок концовки (stage.ms) и boss/raceEndHold.endHoldMs',
-      text: `${FIT_WORD[st]}: концовке нужно ${s(need)} при потолке ${s(e.stage.ms)}${st === 'bad' ? ' — следующий экран выйдет, пока реплики ещё звучат' : ''}` }]
-  })
+/** Речь подряд (очередь по концу звука): сумма длин + паузы очереди + запас на слово после подсказки */
+const chainMs = (cues, durOf, gap) => cues.reduce((a, c, i) => a + (i ? gap : 0) + durOf(c.id).ms + (c.word ? WORD_MS : 0), 0)
+const longest = (list, durOf) => list.reduce((a, c) => (durOf(c.id).ms > durOf(a.id).ms ? c : a), list[0])
+const capRow = (key, title, cues, cap, durOf, gap, source, what, bad) => {
+  const need = chainMs(cues, durOf, gap), st = fit(need, cap)
+  return { key, title, status: st, ids: cues.map(c => c.id), source, text: `${FIT_WORD[st]}: ${what} — до ${s(need)} при запасе ${s(cap)}${st === 'bad' ? ` — ${bad}` : ''}` }
+}
+
+/** Когда появится шкала: по таймингам слов записи — точно; без них — приблизительно (как решает bossScale.revealAtMs) */
+function revealRow(id, recOf, durOf) {
+  const rec = recOf(id), d = durOf(id), text = String(rec?.text ?? '').toLowerCase()
+  const word = (Array.isArray(rec?.words) ? rec.words : []).find(x => String(x?.w ?? '').toLowerCase().startsWith(REVEAL_WORD) && Number.isFinite(x.t))
+  const base = { key: `event-${id}`, title: 'Шкала появляется на слове «шкала» этой реплики', ids: [id], source: 'boss/bossScale.revealAtMs, REVEAL_WORD' }
+  if (!d.est && word) return { ...base, status: 'ok', text: `в порядке: слово «шкала» в записи на ${s(word.t * 1000)} — шкала появится точно на нём` }
+  if (d.est) return { ...base, status: 'edge', text: 'звука нет — шкала появится по длине подписи, приблизительно' }
+  if (!text.includes(REVEAL_WORD)) return { ...base, status: 'edge', text: 'в тексте реплики нет слова «шкала» — шкала появится примерно посередине реплики; проверь на слух' }
+  return { ...base, status: 'edge', text: 'нет разметки слов у этой реплики — шкала появится приблизительно (по месту слова в тексте); нажми «Разметить рот заново» или озвучь заново' }
 }
 
 const maxRows = (key, title, ids, cap, durOf, o) => ids.flatMap(id => {
@@ -65,32 +78,42 @@ const maxRows = (key, title, ids, cap, durOf, o) => ids.flatMap(id => {
 })
 
 const EVENTS = () => [
-  [DEMO_START, `на ${Math.round(REVEAL_AT * 100)} % этой реплики появляется шкала`],
   ...Object.entries(FLASH_LINES).map(([id, z]) => [id, `пока звучит эта реплика, мигает ${{ fast: 'зелёная', mid: 'жёлтая', slow: 'красная' }[z] ?? z} зона шкалы`]),
   [SPEED_ID, 'с этой реплики дорожки желтеют и ускоряются'],
 ]
 
-/** Все риски сцены по сценарию (scenarioBuild.buildScenario) и длинам реплик */
-export function sceneRisks(scenario, durOf, gap = miaGap()) {
+/** Сроки церемонии экзамена, как их считает игра на входе (mia/useMiaEnter): Мия начинает вскоре после реплики Пита, объяснение шкалы — после реального конца её реплики из-за края */
+function examTimes(pitMs, hushMs) {
+  const shift = bossShift(pitMs)
+  const t = ceremonyTimes({ hushAt: Math.max(BOSS.HUSH_AT + shift, pauseMs('boss.pit1At') + pitMs + BOSS.AFTER_PIT_MS), jumpAbs: BOSS.JUMP_ABS + shift, lookAt: BOSS.LOOK_AT + shift }, hushMs)
+  return { shift, lookAt: t.lookAt }
+}
+
+/** Все риски сцены по сценарию (scenarioBuild.buildScenario), длинам реплик и их записям */
+export function sceneRisks(scenario, durOf, { gap = miaGap(), recOf = () => null } = {}) {
   const { sim } = scenario, has = id => scenario.ids.has(id), rows = []
   rows.push(...ceremonyRows('mia-cer', 'Церемония Мии', sim.mia.ceremony.cues, sim.mia.ceremony.stage, durOf, gap))
   for (const [key, title, seen] of [['boss-cer', 'Церемония экзамена', true], ['boss-cer-new', 'Церемония экзамена (Мию ещё не видели)', false]]) {
-    const base = seen ? sim.boss.ceremony : sim.boss.ceremonyNew, pit = base.cues.find(c => c.who === 'pit')
-    const cer = ceremonyCues(sim.stages, 'boss', seen, pit ? bossShift(durOf(pit.id).ms) : 0) // как в игре: Мия начинает вскоре после реплики Пита (bossShift)
+    const base = seen ? sim.boss.ceremony : sim.boss.ceremonyNew, pit = base.cues.find(c => c.who === 'pit'), hush = base.cues.find(c => c.who === 'mia')
+    const cer = ceremonyCues(sim.stages, 'boss', seen, pit ? examTimes(durOf(pit.id).ms, hush ? durOf(hush.id).ms : 0) : {})
     rows.push(...ceremonyRows(key, title, cer.cues, cer.stage, durOf, gap))
   }
-  rows.push(...endRows('mia', 'Концовка допроса', sim.mia.ends, durOf), ...endRows('boss', 'Концовка экзамена', sim.boss.ends, durOf))
-  const [jabs = [], helps = []] = sim.boss.fail ?? []
+  const win = sim.mia.ends.find(e => e.m?.why === 'win')
+  if (win) rows.push(capRow('mia-end', `Концовка допроса — ${win.title}`, win.cues, CIRCLE_WAIT_CAP_MS, durOf, gap, 'mia/miaCircleEnd.CIRCLE_WAIT_CAP_MS', 'речь Мии и Пита', 'разворот начнётся, пока они ещё говорят'))
+  if (sim.mia.jabs?.length) rows.push(capRow('mia-last', 'Допрос: колкость о последнем слове', [longest(sim.mia.jabs, durOf)], END_WAIT_MAX_MS, durOf, gap, 'mia/useMiaEnter.END_WAIT_MAX_MS', 'самая длинная колкость Мии', 'концовка начнётся, не дождавшись её конца'))
+  const [jabs = [], helps = [], nexts = []] = sim.boss.fail ?? []
   if (jabs.length) {
-    const long = list => list.reduce((a, c) => (durOf(c.id).ms > durOf(a.id).ms ? c : a), list[0])
-    const j = long(jabs), h = helps.length ? long(helps) : null, need = durOf(j.id).ms + (h ? gap + durOf(h.id).ms + WORD_MS : 0), st = fit(need, END_WAIT_MAX_MS)
-    rows.push({ key: 'boss-last', title: 'Экзамен: речь после последнего слова', status: st, ids: [j.id, ...(h ? [h.id] : [])], source: 'mia/useMiaEnter.END_WAIT_MAX_MS, miaSpeech.WORD_MS',
-      text: `${FIT_WORD[st]}: колкость Мии${h ? ', подсказка Пита и верное слово' : ''} — до ${s(need)} при запасе ${s(END_WAIT_MAX_MS)}${st === 'bad' ? ' — концовка начнётся, не дождавшись конца речи' : ''} (самые длинные варианты)` })
+    const turn = [longest(jabs, durOf), ...(helps.length ? [longest(helps, durOf)] : [])], hold = sim.stages.find(x => x.act === 'boss' && x.mia === 'round')?.step?.holdMax
+    if (hold > 0) rows.push(capRow('boss-turn', 'Экзамен: речь после ушедшего слова', [...turn, ...nexts.slice(0, 1)], hold, durOf, gap, 'потолок удержания пилюли экзамена (stage.step.holdMax, BOSS_HOLD_MAX_MS)', 'колкость Мии, подсказка Пита с верным словом и «Следующее слово» (самые длинные варианты)', 'следующая пилюля выедет, пока они ещё говорят'))
+    rows.push(capRow('boss-last', 'Экзамен: речь после последнего слова', turn, DRAIN_CAP_MS, durOf, gap, 'boss/examEndWait.DRAIN_CAP_MS', 'колкость Мии и подсказка Пита с верным словом (самые длинные варианты)', 'реплики исхода начнутся, не дождавшись конца'))
   }
+  sim.boss.ends.forEach((e, i) => rows.push(capRow(`boss-end${i}`, `Концовка экзамена — ${e.title}`, e.cues, END_CAP_MS, durOf, gap, 'boss/examEndWait.END_CAP_MS (конец ведёт реальный конец речи; это страховка)', 'реплики исхода', 'итог выйдет, пока они ещё говорят')))
   rows.push(...maxRows('demo', 'Пример «Скажи»: реплика Пита перед словом', [...DEMO_LINES, DEMO_MORE].filter(has), DEMO_LINE_CAP_MS, durOf, { source: 'racePhraseDemo.DEMO_LINE_CAP_MS', why: 'дольше пример реплику не ждёт: слово прозвучит поверх неё' }))
-  rows.push(...maxRows('turn', 'Разворот конвейера: реплика Пита', sim.stages.filter(x => x.rev && x.line).map(x => x.line), REV_MS + REV_WAIT_CAP_MS, durOf, { soft: true, source: 'raceReverseTurn.REV_MS + REV_WAIT_CAP_MS', why: 'реплика идёт вместе с разворотом пилюль; длиннее — следующая плашка выйдет, пока Пит договаривает' }))
+  const revIds = [...new Set(scenario.blocks.find(b => b.key === 'turn')?.parts.find(p => p.key === 'ann')?.items.map(x => x.id) ?? [])]
+  rows.push(...maxRows('turn', 'Разворот конвейера: реплика Пита', revIds, REV_MS + REV_WAIT_CAP_MS, durOf, { soft: true, source: 'raceReverseTurn.REV_MS + REV_WAIT_CAP_MS', why: 'реплика идёт вместе с разворотом пилюль; длиннее — следующая плашка выйдет, пока Пит договаривает' }))
   const short = [...GOOD_IDS, ...OK_IDS, ...scenario.blocks.flatMap(b => b.parts.filter(p => /^(win|fail)/.test(p.key)).flatMap(p => p.items.map(x => x.id)))]
   rows.push(...maxRows('short', 'Короткая реплика внутри круга', [...new Set(short)].filter(has), SHORT_SOFT_MS, durOf, { soft: true, source: 'рекомендация проверки (в игре потолка нет)', why: 'пока она звучит, следующее слово ждёт' }))
+  if (has(DEMO_START)) rows.push(revealRow(DEMO_START, recOf, durOf))
   for (const [id, what] of EVENTS()) if (has(id)) { const d = durOf(id); rows.push({ key: `event-${id}`, title: 'Событие привязано к реплике', status: d.est ? 'edge' : 'ok', ids: [id], source: 'boss/bossScale, mia/useMiaPlate', text: `${what}${d.est ? ' — звука нет, событие пойдёт по длине подписи' : ` (длина ${s(d.ms)}; событие идёт за звуком, длина может быть любой)`}` }) }
   return rows
 }

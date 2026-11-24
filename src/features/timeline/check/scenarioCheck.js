@@ -31,7 +31,8 @@ function withRisks(c, risks) {
 
 export function checkScenario({ audit, lines, orphans = [], scenario = scenarioNow() } = {}) {
   if (!audit) return { ready: false, light: null, blocks: [], risks: [], actions: [], need: [], unused: [], orphans: [] }
-  const risks = sceneRisks(scenario, durOfLines(lines, audit)), byId = risksById(risks)
+  const recOf = id => (audit[id]?.status === 'ok' && lines?.[id] ? { ...lines[id], text: audit[id].now } : null) // запись реплики, которую игра реально играет (устаревший звук она не играет)
+  const risks = sceneRisks(scenario, durOfLines(lines, audit), { recOf }), byId = risksById(risks)
   const of = id => withRisks(checkLine(id, audit[id], lines?.[id]), byId[id])
   const all = new Map([...scenario.ids].map(id => [id, of(id)]))
   const blocks = scenario.blocks.map(b => {
