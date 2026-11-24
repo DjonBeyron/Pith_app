@@ -19,7 +19,7 @@ import { createRuJournal } from './raceRuLog.js'
 import { createSurfaceWait } from './raceDiveWait.js'
 import { LOCK_MS } from './raceSpeech.js'
 import { createPhraseVoice } from './racePhraseVoice.js'
-import { phraseEvent, fillPhrases2 } from './raceStatePhrases.js'
+import { phraseEvent } from './raceStatePhrases.js'
 import { useRacePhraseDemo } from './useRacePhraseDemo.js'
 import { plateCaption } from './raceSilentLine.js'
 import { createTransChron } from './raceTransChron.js'
@@ -32,7 +32,7 @@ import { miaOn } from './mia/miaConfig.js'
 import { createMiaSpeech, GAP_MS } from './mia/miaSpeech.js'
 import { audioPulse } from '../../shared/lib/gameAudioPulse.js'
 import { useMiaEnter } from './mia/useMiaEnter.js'
-import { miaAfterPass, miaSkip } from './mia/miaRound.js'
+import { miaAfterPass, miaSkip } from './mia/miaRound.js'; import { isCircleEnd, circleHoldMs, revLineAfterMia, syncJump } from './mia/miaCircleEnd.js'
 import { afterLeaveSpeech } from './mia/miaLeave.js'; import { revBack } from './raceReverseTurn.js'; import { createLeadTimer, leadAfter } from './boss/bossLead.js'; import { revTimes, convSpeed } from './raceReverseTimes.js'; import { REV_START_SLACK_MS } from './raceReverseTurn.js'; import { useMiaPlate } from './mia/useMiaPlate.js'; import { sceneRun, sceneStage, sceneAsk } from '../player/modules/rotate-phone/wordLaneSceneTrace.js'
 import { bossFill } from './boss/bossWords.js'; import { markBossAnswer } from './boss/bossAnswer.js'
 import { DEMO_START, DEMO_IDS, demoPlan } from './boss/bossScale.js'
@@ -69,17 +69,17 @@ export function useRaceActs(args) {
   const [miaAlarm, setMiaAlarm] = useState(null) // финал: слово в красной зоне — зрачки Пита в коробке сжимаются (RaceMia alarm)
   const [miaDemo, setMiaDemo] = useState(null) // финал: пример-пилюля на объяснении шкалы стартует с реплики «видите шкалу справа?» и идёт ровно, пока не кончится объяснение (одна отметка, а не по реплике)
   const [miaCap, setMiaCap] = useState(null) // подпись реплики Мии / Пита над Мией (только неозвученные)
+  const [mb] = useState(makeMiaBox); const [miaView, setMiaView] = useState({ mia: mb.m, cues: [], key: 0 }) // эпизод «Мия» (mia/raceMia.js): m — состояние машины, step — ступень, которой Мия ускорила дорожку, key — номер пачки реплик
   const [mspeech] = useState(() => {
     const sp = createMiaSpeech({ play: playWordSlot, has: hasWordSlot, bufferMs: wordBufferMs, hold: gameMicHold, snap: audioPulse, onCaption: setMiaCap, log: pLog, // речь эпизода «Мия»: очередь реплик (mia/miaSpeech.js)
       onSpeak: c => {
-        setMiaTalk(c)
+        setMiaTalk(c); const jm = syncJump(mb, c); if (jm) setMiaView(v => ({ ...v, mia: jm })) // Мия прыгает на коробку не раньше, чем договорит из-за края (mia/miaCircleEnd.js)
         if (!c) setMiaDemo(null); else if (c.id === DEMO_START) setMiaDemo({ key: c.key, plan: demoPlan(Object.fromEntries(DEMO_IDS.map(id => [id.replace('boss_mia_', ''), sp.msOf(id)]))) }) // пример на шкале: путь пилюли по длительности реплик объяснения (без пауз у Мии)
       } })
     return sp
   })
   const running = on && stage === 'run' ? stageObj : null
-  const [mb] = useState(makeMiaBox) // эпизод «Мия» (mia/raceMia.js): m — состояние машины, step — ступень, которой Мия ускорила дорожку, key — номер пачки реплик
-  const [miaView, setMiaView] = useState({ mia: mb.m, cues: [], key: 0 }); const miaPlate = useMiaPlate({ talk: miaTalk, m: miaView.mia, stage: running }) // плашка Мии — только пока она говорит за кадром, до прыжка (mia/useMiaPlate.js)
+  const miaPlate = useMiaPlate({ talk: miaTalk, m: miaView.mia, stage: running }) // плашка Мии — только пока она говорит за кадром, до прыжка (mia/useMiaPlate.js)
   useMiaEnter({ running, at, mb, mspeech, setMiaView, log: pLog }) // эпизод «Мия»: вход на стадию (очередь речи — раньше расчёта времени стадии, mia/useMiaEnter.js)
   const rh = useRehearsalActs(on && args.cat ? { ...args, sayLine: sayTr, cat: { ...args.cat, busyLeft: () => Math.max(args.cat.busyLeft(), speech.pendingMs(), running?.mia === 'ann' ? 0 : mspeech.leftMs()) }, countWait: () => (mspeech.pending() > 0 || revBack.busy ? 1 : 0) } : args) // расписание реплик этапа знает, что похвала ещё впереди
   const praiseRef = useRef(null) // похвала, которую reduceRace назначил на этот зачёт (apply → claim)
@@ -185,7 +185,7 @@ export function useRaceActs(args) {
     if (!on) return baseNext(i)
     const mt = miaOn() ? miaAfterPass(stages, stages[i - 1], box.s[stages[i - 1]?.act], seed, mb.m) : -1 // после прохода со слабыми словами — Мия (один раз за игру), иначе разворот в реверс / следующий этап
     if (mt >= 0) return mt
-    const r = climbTarget(stages, stages[i - 1], box.s) ?? fillPhrases2(stages, stages[i - 1], box.s) ?? baseNext(i) // fillPhrases2: после круга 1 фраз — порядок круга 2 (слабые слова первыми)
+    const r = climbTarget(stages, stages[i - 1], box.s) ?? baseNext(i); if (revLineAfterMia(stages, stages[i - 1], mb.m)) pLog('[mia] «Допрос» после прохода A пройден без ошибок: на развороте конвейера Пит говорит pit_back_2 вместо race_reverse')
     if (['boss-intro-ann', 'boss-ann'].includes(stages[r]?.sid)) bossFill(stages, box.s, seed) // финал: слабые слова этой игры вписаны перед входом (мало слов — финал пропускается, stage.empty)
     return miaSkip(stages, r, mb.m, baseNext)
   }, [on, stages, box, baseNext, seed, mb])
@@ -203,6 +203,7 @@ export function useRaceActs(args) {
     pitBusy, holdMs: st => { // эпилог финала кончается, когда договорили Мия и Пит (а не через фиксированные 11 с: после «Тут темно и тесно…» все молчало): реплика Мии + Пит (его реплика стоит с задержкой) + хвост, не дольше st.ms
       if (st?.rev) return Math.max(rh.holdMs(st), revTimes(st.revSpeed ??= convSpeed.v).total + REV_START_SLACK_MS) // разворот в реверс: анимация стартует, когда Пит договорил прошлое (Мия уходит), и идёт st.rev мс — стадия не кончается раньше неё
       if (st?.mia === 'hold') return Math.max(st.ms ?? 0, st.say ? mspeech.msOf(st.say) + GAP_MS + 300 : 0) // между блоками экзамена стадия длится, пока Мия объявляет смену языка: за это время слух успевает переключиться на русскую модель (≈2 с)
+      if (isCircleEnd(st)) return circleHoldMs(st, mb.m) // конец «Допроса»: минимум, дальше стадию отпускает реальный конец речи / снятие коробки (useMiaBoxFree.afterCount)
       return st?.mia !== 'end' ? rh.holdMs(st) : endHoldMs(st, mb, mspeech) // boss-end: ожидание Мии + её реплики / снятие коробки учеником (boss/raceEndHold.js)
     },
     exitMs: st => raceExit(st, st?.act === 'phrases' ? PHRASE_EXIT_MS : st?.type === 'student' && stages[(st.idx ?? -9) + 1]?.act === 'phrases' ? PHRASE_ENTER_MS : miaComesNext(st) ? MIA.EXIT_MS : undefined), // перед церемонией Мии пауза короче: тишина между кругами и падение коробки тянулись слишком долго (владелец 2026-11-15); // круг фраз кончился: до следующей стадии PHRASE_EXIT_MS, а не 1,3 с (Пит уже договорил итог хода)

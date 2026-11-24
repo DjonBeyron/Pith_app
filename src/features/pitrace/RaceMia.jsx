@@ -42,7 +42,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
   useEffect(() => {
     const c = clock.current
     if (mia.phase === 'in') { c.arr = (performance.now() - mia.at) / 1000 /* at — момент падения коробки (после реплики Пита): до него время отрицательное, коробки нет */; c.lv = 0; c.mode = 'arr' }
-    else if (mia.phase === 'out' && ['arr', 'solo', 'try', 'rave', 'stuck'].includes(c.mode)) { c.lv = 0; c.mode = 'lv' } // коробка со снятия (alone) отлетает без Мии
+    else if (mia.phase === 'out' && ['arr', 'solo', 'rave', 'stuck'].includes(c.mode)) { c.lv = 0; c.mode = 'lv' } // коробка со снятия (alone) отлетает без Мии
     else if (mia.phase === 'off') c.mode = 'off'
   }, [mia.phase, mia.at])
 
@@ -67,8 +67,8 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
       const dt = Math.min(0.05, (now - last) / 1000); last = now
       const c = clock.current
       const sp = soloRef.current
-      if (sp.mode === 'keep' && c.mode === 'arr' && !c.paused && performance.now() >= sp.at) { c.mode = 'solo'; c.sl = 0 } // финал пройден плохо: Мия договорила и выпрыгивает ОДНА, коробка остаётся на Пите
-      if (!c.paused) { if (c.mode === 'lv') c.lv += dt; else { c.arr += dt; if (c.mode === 'solo') c.sl += dt; else if (c.mode === 'try') c.tr += dt; else if (c.mode === 'rave') c.rv += dt }; tt += dt }
+      if (sp.mode === 'keep' && c.mode === 'arr' && !c.paused && performance.now() >= sp.at) { c.mode = 'solo'; c.sl = 0; c.tried = false; c.tryEnd = 0 } // «Допрос» с ошибками: Мия договорила и выпрыгивает ОДНА, коробка остаётся на Пите
+      if (!c.paused) { if (c.mode === 'lv') c.lv += dt; else { c.arr += dt; if (c.mode === 'solo') c.sl += dt; else if (c.mode === 'rave') c.rv += dt }; tt += dt }
       if (n++ % 20 === 0 || !L) measure()
       if (!L || L.f <= 0) return
       const leaving = c.mode === 'lv', m = leaving ? leaveAt(c.lv) : arrivalAt(c.arr, jumpRef.current ?? ARR.JUMP)
@@ -94,8 +94,8 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
         const top = toScene(M, ART.TOP), seat = poseApply(pose, piv)(top), rest = [top[0], top[1] + SEAT_DROP * L.f]
         let a = [seat[0], seat[1] + SEAT_DROP * L.f], mr = m.mia
         if (mr.mode === 'flight') a = Object.values(flightPath(mr.u, [L.W + 150 * L.f, 0.55 * L.H], rest))
-        if (c.mode === 'solo') { const so = soloLeave(c.sl); mr = { mode: 'seat', rot: so.rot, sx: so.sx, sy: so.sy }; a = Object.values(flightPath(so.u, rest, [L.W + 170 * L.f, 0.28 * L.H], 0.14)); if (so.done) { c.mode = 'try'; c.tr = 0; c.tried = false } }
-        else if (c.mode === 'try' || c.mode === 'rave' || c.mode === 'stuck' || (leaving && soloRef.current.alone)) mr = { mode: 'off' } // Мии нет: коробка одна (ждёт касаний / отлетает)
+        if (c.mode === 'solo') { const so = soloLeave(c.sl); mr = { mode: 'seat', rot: so.rot, sx: so.sx, sy: so.sy }; a = Object.values(flightPath(so.u, rest, [L.W + 170 * L.f, 0.28 * L.H], 0.14)); if (!c.tried && c.sl >= SOLO.TRY_AT) { c.tried = true; c.tryEnd = c.arr + (cbRef.current.onTry?.() ?? 0) / 1000 + SOLO.AFTER_TRY } if (so.done) { c.mode = 'rave'; c.rv = 0 } } // Пит «Эй, ты куда?…» — ПАРАЛЛЕЛЬНО прыжку Мии и тряске коробки, а не после них (владелец: «тишина 2,9 с — анимация без речи»)
+        else if (c.mode === 'rave' || c.mode === 'stuck' || (leaving && soloRef.current.alone)) mr = { mode: 'off' } // Мии нет: коробка одна (ждёт касаний / отлетает)
         mi.style.display = mr.mode === 'off' ? 'none' : 'block'
         if (!tailInit) { restTail(mi); tailInit = true } // хвост лежит на кадре 1, пока не позовут
         if (n % 3 === 0) { const kind = kindRef.current, s0 = stage.getBoundingClientRect(), round = kind === 'round'; tailW.current = wantStep(tailW.current, { kind, shown: mr.mode !== 'off' && !leaving, pills: round ? pillsOf(stage, s0) : [], redY: round ? redLevelOf(stage, s0) : 0 }); driveTail(mi, tailCtl.current, tailW.current.want, later) }
@@ -106,11 +106,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
         if (pq !== peak.current.q) { peak.current.q = pq; mi.style.setProperty('--peak', String(pq)) }
         if (mr.mode !== 'off') mi.style.transform = miaCss(a[0], a[1], L.f, mr.rot, mr.sx, mr.sy)
       }
-      if (c.mode === 'try') { // Мия ушла: пауза → Пит «Она ушла? Попробую выбраться» → после реплики тряска
-        if (!c.tried && c.tr >= SOLO.TRY_AT) { c.tried = true; c.trEnd = c.tr + (cbRef.current.onTry?.() ?? 0) / 1000 + SOLO.AFTER_TRY }
-        if (c.tried && c.tr >= c.trEnd) { c.mode = 'rave'; c.rv = 0 }
-      }
-      if (c.mode === 'rave' && c.rv >= PANIC_LEN + SOLO.SETTLE) { c.mode = 'stuck'; cbRef.current.onStuck?.() } // Пит остановился по центру — только теперь просит снять коробку
+      if (c.mode === 'rave' && c.rv >= PANIC_LEN + SOLO.SETTLE && c.arr >= (c.tryEnd ?? 0)) { c.mode = 'stuck'; cbRef.current.onStuck?.() } // Пит остановился по центру И договорил «Эй, ты куда?…» — только теперь просит снять коробку
       const he = hitEl.current // зона касаний по коробке (пока Пит просит помочь): по её настоящему прямоугольнику на экране
       if (he && poseG.current && host.current && n % 3 === 0) { const r = box.el.getBoundingClientRect(), h = host.current.getBoundingClientRect(), x0 = Math.max(r.left, h.left), y0 = Math.max(r.top, h.top), x1 = Math.min(r.right, h.right), y1 = Math.min(r.bottom, h.bottom); Object.assign(he.style, { left: `${x0 - h.left}px`, top: `${y0 - h.top}px`, width: `${Math.max(0, x1 - x0)}px`, height: `${Math.max(0, y1 - y0)}px` }) } // только видимая часть коробки (низ коробки может уходить за экран)
       if (leaving && !m.shown) { c.mode = 'off'; setGone(g => (g === atRef.current ? g : atRef.current)) } // уход доигран: убираем (setState — в кадре rAF, не в эффекте)

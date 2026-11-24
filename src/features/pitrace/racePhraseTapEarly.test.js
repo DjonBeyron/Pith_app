@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { setupScene } from './racePhraseSceneRig.js'
 import { phraseStep, PHRASE_SPEED, PHRASE_GAP_MS } from './raceStagesPhrases.js'
-import { round1Turns, round2HearTurns } from './racePhraseTurns.js'
+import { round2HearTurns } from './racePhraseTurns.js'
 import { phrasesOf } from './racePhraseData.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
 import { ZONE_TOP_Y } from './racePhraseEarly.js'
@@ -9,7 +9,7 @@ import { ENTER_Y, SPEED, WIDE_H, FADE_TOP } from '../player/modules/rotate-phone
 
 // Ранний выезд в тап-режимах (владелец 2026-11-09: «когда Пит закончил говорить задание, первая пилюля уже должна быть на 100 % видна»): круг 1 «Пойми» и «Узнай» — как «Скажи»
 const ph = phrasesOf({ phrases: PHRASE_FIXTURE })
-const pick = () => phraseStep('phrases1', round1Turns(ph, 's1'), { round: 1, mode: 'pick', voice: false, speed: PHRASE_SPEED })
+const pick = () => phraseStep('phrases2', round2HearTurns(ph, 's1'), { round: 2, mode: 'hear', voice: false, speed: PHRASE_SPEED })
 const hear = () => phraseStep('phrases2', round2HearTurns(ph, 's1'), { round: 2, mode: 'hear', voice: false, speed: PHRASE_SPEED })
 const v = SPEED * PHRASE_SPEED
 
@@ -29,7 +29,7 @@ describe('ранний выезд в тап-режимах', () => {
     })
   }
   it('кандидат 0 — не всегда цель: порядок уже перемешан (racePhraseTurns.arrange)', () => {
-    const firstRight = round1Turns(ph, 's1').concat(round1Turns(ph, 's2'), round1Turns(ph, 's3')).map(t => t.cands[0].right)
+    const firstRight = round2HearTurns(ph, 's1').concat(round2HearTurns(ph, 's2'), round2HearTurns(ph, 's3')).map(t => t.cands[0].right)
     expect(firstRight).toContain(false)
   })
   it('второй и третий кандидаты — за первым ровно через путь cfg.gap: не пачкой и без лишнего ожидания', () => {

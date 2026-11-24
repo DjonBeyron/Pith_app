@@ -58,7 +58,7 @@ describe('переопределение доходит до стадий', () =
     setPauseOverrides({ 'race.announce': 3000 })
     const st = stagesOf()
     for (const sid of ['sprint-ann', 'catch-ann', 'phrases-ann']) { expect(by(st, sid).ms).toBe(3000); expect(by(st, sid).knobs.ms).toBe('race.announce') }
-    expect(by(st, 'phrases1-ann').ms).toBe(400); expect(by(st, 'sprint3-ann').ms).toBe(1200); expect(by(st, 'phrases1-ann').knobs?.ms).toBeUndefined()
+    expect(by(st, 'phrases1-ann')).toBeUndefined(); expect(by(st, 'sprint3-ann').ms).toBe(1200); expect(by(st, 'sprint3-ann').knobs?.ms).toBeUndefined() // плашки круга «Пойми» больше нет
   })
   it('plate.hold — пауза стадии-заставки и плашки после разворота; расписание заставки (openingPlan) берёт то же значение', () => {
     setPauseOverrides({ 'plate.hold': 2000 })
@@ -84,11 +84,11 @@ describe('переопределение доходит до стадий', () =
     expect(by(st, 'sprint3').step.preGap).toBe(900)
   })
   it('stage.exit / phrase.exit — пауза выхода из стадии (useRaceActs.exitMs → raceExit); выход перед Мией и вход во «Фразы» сразу после круга слов — как были', () => {
-    const st = [{ idx: 0, sid: 'sprint', act: 'sprint', type: 'student' }, { idx: 1, sid: 'catch', act: 'catch', type: 'student' }, { idx: 2, sid: 'phrases-ann', act: 'phrases', type: 'announce' }, { idx: 3, sid: 'phrases1', act: 'phrases', type: 'student' }]
+    const st = [{ idx: 0, sid: 'sprint', act: 'sprint', type: 'student' }, { idx: 1, sid: 'catch', act: 'catch', type: 'student' }, { idx: 2, sid: 'phrases-ann', act: 'phrases', type: 'announce' }, { idx: 3, sid: 'phrases2', act: 'phrases', type: 'student' }]
     expect([raceExit(st[0], undefined), raceExit(st[1], PHRASE_ENTER_MS), raceExit(st[3], PHRASE_EXIT_MS), raceExit(st[0], MIA.EXIT_MS)]).toEqual([1300, 500, 300, 250])
     setPauseOverrides({ 'stage.exit': 2000, 'phrase.exit': 900 }); sceneTrace.clear()
     expect([raceExit(st[0], undefined), raceExit(st[1], PHRASE_ENTER_MS), raceExit(st[3], PHRASE_EXIT_MS), raceExit(st[0], MIA.EXIT_MS)]).toEqual([2000, 500, 900, 250])
-    expect(knobs()).toEqual([{ key: 'stage.exit', ms: 2000, sid: 'sprint', from: 'stage-out', until: 'next-stage', set: true }, { key: 'phrase.exit', ms: 900, sid: 'phrases1', from: 'stage-out', until: 'next-stage', set: true }])
+    expect(knobs()).toEqual([{ key: 'stage.exit', ms: 2000, sid: 'sprint', from: 'stage-out', until: 'next-stage', set: true }, { key: 'phrase.exit', ms: 900, sid: 'phrases2', from: 'stage-out', until: 'next-stage', set: true }])
     expect(read('./useRaceActs.js')).toContain('exitMs: st => raceExit(st, ')
     for (const o of [{}, { round: STAGES_ROUND }]) for (const tap of [false, true]) { const all = buildRaceStages({ plan: plan(o), tap, ru: true }).stages; expect(all.filter((s, i) => s.type === 'student' && s.act !== 'phrases' && all[i + 1]?.act === 'phrases')).toEqual([]) } // PHRASE_ENTER_MS в нынешних списках стадий не срабатывает (за кругом слов стоят стадии Мии) — поэтому настройки «вход во Фразы» в реестре нет
   })

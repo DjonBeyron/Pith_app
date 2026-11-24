@@ -24,7 +24,7 @@ describe('замечания 2026-11-16 (v3.3.259)', () => {
     expect(src).toContain('swapFace(prev, next'); expect(src).not.toContain('next.animate'); expect(sw).toContain("next.style.display = ''; prev.style.display = 'none'"); expect(sw).not.toContain('.animate(')
   })
   it('«скажи её сам» после примера: плашка круга с примером — race_phrases_show, DEMO_GO — race_phrases_say', () => {
-    expect(rd('../racePhraseDemo.js')).toContain("DEMO_GO = 'race_phrases_say'"); expect(rd('../raceStagesPhrases.js')).toContain("line: 'race_phrases_show', ms: 400")
+    expect(rd('../racePhraseDemo.js')).toContain("DEMO_GO = 'race_phrases_say'"); expect(rd('../raceStagesPhrases.js')).toContain("line: demo ? 'race_phrases_show' : ROUND_PLATES[mode].line")
   })
 })
 

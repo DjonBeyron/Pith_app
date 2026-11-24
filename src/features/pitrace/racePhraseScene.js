@@ -42,7 +42,7 @@ export const AFTER_MS = 600     // после итога хода — пауза
 export const HOT_MS = 650       // после ошибки верная пилюля подсвечена столько, потом взлетает сама
 
 const q = t => `«${t}»`
-export const ROUND_LOG = { pick: '«Пойми» (тап фразы)', say: '«Скажи» (голос)', hear: '«Узнай» (тап смысла)' } // круг и режим в журнале хода
+export const ROUND_LOG = { say: '«Скажи» (голос)', hear: '«Узнай» (тап смысла)' } // круг и режим в журнале хода
 
 export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen, count, now = () => performance.now(), raf = f => requestAnimationFrame(f), caf = id => cancelAnimationFrame(id), log = pLog, snap = snapPill, debugBar, onFrame = null }) { // snap / shake — щелчок и дрожь пилюли (wordLaneSnap.js; тесты подставляют свои); debugBar — полоска отладки «Скажи» (racePhraseDebugBar.js); onFrame(t, цель, экран) — кадр заливки «Скажи» (стенд пилюль)
   const cfg = scene.step.phrases

@@ -10,7 +10,7 @@ import { variantOf } from './miaLines.js'
 import { pauseMs } from '../../../shared/lib/scenePauses.js'
 import { HELP_LINES } from '../boss/bossHelp.js'
 
-export const MIA = { BOOST: 1.15, STREAK_LEAVE: 3, OK_EVERY: 3, DROP_AT: 1200, EXIT_MS: 250, LEAVE_JUMP_MS: 1200, PUSH_AT: 1800, PANIC_AT: 4600, ANNOUNCE_AT: 6500, REPLY_AT: 8800, ANNOUNCE2_AT: 10800, ANNOUNCE3_AT: 13000, BACK_AT: 2600, BACK2_AT: 5200 }
+export const MIA = { BOOST: 1.15, STREAK_LEAVE: 3, OK_EVERY: 3, DROP_AT: 1200, EXIT_MS: 250, LEAVE_JUMP_MS: 1200, PUSH_AT: 1800, PANIC_AT: 4600, BACK_AT: 2600, BACK2_AT: 5200 } // PUSH_AT / PANIC_AT — «не раньше» (от входа в церемонию), дальше реплики идут очередью по РЕАЛЬНОМУ концу звука (miaSpeech + пауза mia.gap). Сроки REPLY_AT / ANNOUNCE*_AT убраны: были подобраны под прежние длины реплик и прежний состав (mia_announce_1, mia_attention) и после правки сценария давали тишину перед «зря стараешься…». BACK_AT / BACK2_AT в «Допросе» больше не используются (читает только boss/raceEndHold.js)
 
 const PIT_IN_BOX_MS = 1350 // v3.3.280 (владелец: «Пит говорит в коробке — она должна упасть ДО его слов»): коробка падает сразу (DROP_AT), реплика Пита начинается после удара (DROP_AT + IMPACT ≈ 1,45 с), остальное сдвинуто на столько же
 export const BOSS = { DROP_AT: 500, JUMP: 6.4, KEEP_REDS: 5, AFTER_PIT_MS: 450, PIT1_AT: 300 + PIT_IN_BOX_MS, JUMP_ABS: 6900 + PIT_IN_BOX_MS, HUSH_AT: 5200 + PIT_IN_BOX_MS, LOOK_AT: 8000 + PIT_IN_BOX_MS } // объяснение шкалы идёт подряд, без пауз: с LOOK_AT реплики look → think → green → yellow → red → five → Пит стоят в очереди одна за другой (очередь речи сама держит паузу GAP_MS), путь пилюли примера считается по их длительности (bossScale.demoPlan) // финал «Шкала памяти»: падение коробки, прыжок Мии (с от падения), порог красных слов, сроки реплик (мс от входа)
@@ -30,7 +30,7 @@ const leave = (m, now, why, say) => ({ mia: { ...m, phase: 'out', fast: false, a
 /** На сколько мс раньше начинается речь Мии, если реплика Пита короче запаса: Мия начинает через BOSS.AFTER_PIT_MS после неё (владелец, v3.3.283: «после фразы Пита долгое молчание, и лишь потом Мия»); 0 — как раньше */
 export const bossShift = pitMs => (pitMs > 0 ? Math.min(0, pauseMs('boss.pit1At') + pitMs + BOSS.AFTER_PIT_MS - BOSS.HUSH_AT) : 0) // первая реплика Пита — настройка boss.pit1At (по умолчанию BOSS.PIT1_AT)
 const bossCeremony = (first, d = 0) => [line(first ? 'boss_pit_new' : 'boss_pit_1', 'pit', pauseMs('boss.pit1At')), line('boss_mia_hush', 'mia', BOSS.HUSH_AT + d), ...['look', 'green', 'yellow', 'red', 'five'].map(k => line(`boss_mia_${k}`, 'mia', BOSS.LOOK_AT + d)), line('boss_pit_no', 'pit', BOSS.LOOK_AT + d), line('boss_mia_go', 'mia', BOSS.LOOK_AT + d)] // правка владельца 2026-11-24: exam и think склеены в look; после «Нет, только не это» Мия запускает слова
-const ceremony = () => [line('mia_push', 'mia', MIA.PUSH_AT), line('pit_panic', 'pit', MIA.PANIC_AT), line('pit_reply', 'pit', MIA.REPLY_AT), line('mia_announce_2', 'mia', MIA.ANNOUNCE2_AT), line('mia_announce_3', 'mia', MIA.ANNOUNCE3_AT)] // сценарий владельца 2026-11-24: «Посиди в коробке, пушистик…» (склеены push + announce_1) → Пит → «Это не важно, я ускоряю игру…» (склеены attention + announce_2) → условие
+const ceremony = () => [line('mia_push', 'mia', MIA.PUSH_AT), ...[['pit_panic', 'pit'], ['pit_reply', 'pit'], ['mia_announce_2', 'mia'], ['mia_announce_3', 'mia']].map(([id, who]) => line(id, who, MIA.PANIC_AT))] // сценарий владельца 2026-11-24: «Посиди в коробке, пушистик…» (склеены push + announce_1) → Пит → «Это не важно, я ускоряю игру…» (склеены attention + announce_2) → условие
 
 /** Счёт финала по блокам (английские слова, потом русские): блок со смещением offset (номер его первого слова в общем счёте) считается заново, прежние блоки остаются; total — всего слов к концу блока */
 const silentBlock = (m, stage) => {
@@ -45,7 +45,7 @@ export function reduceMia(m, ev) {
   if (t === 'try') return m.solo === 'keep' ? { mia: m, say: [line('boss_pit_try', 'pit')], boost: null } : none(m) // Мия ушла, Пит: «Она ушла? Попробую выбраться», потом трясёт коробку (RaceMia: try → rave)
   if (t === 'stuck') return m.solo === 'keep' ? { mia: { ...m, solo: 'stuck' }, say: [line('boss_pit_stuck', 'pit')], boost: null } : none(m)
   if (t === 'faster') return m.solo === 'stuck' ? { mia: m, say: [line('boss_pit_faster', 'pit')], boost: null } : none(m)
-  if (t === 'free') return m.solo === 'stuck' ? leave({ ...m, keep: false, solo: null, alone: true }, now, 'freed', [line('pit_back_1', 'pit', 1300)]) : none(m) // Пит про её характер: «Спасибо за помощь, вот это у неё характер» (озвучена)
+  if (t === 'free') return m.solo === 'stuck' ? leave({ ...m, keep: false, solo: null, alone: true }, now, 'freed', [line('boss_pit_free', 'pit', 1300)]) : none(m) // сценарий владельца 2026-11-24: коробка снята — Пит «Ух, спасибо вам, эти слова мы ещё встретим» (раньше здесь звучала pit_back_1, а boss_pit_free не звучала нигде); 1300 — отлёт коробки (анимация)
   if (t === 'enter') {
     if (stage?.mia === 'ann') { // церемония: Пит начинает репликой стадии, через DROP_AT падает коробка (at — момент падения), Мия запрыгивает, вступительные реплики (три ноты ждут их конца)
       // повторный вход в ту же стадию (пауза и «Продолжить», перезапуск ступени): церемония начинается заново — реплики снова в очереди, коробка падает снова (раньше такой вход ничего не делал: оба молчали, пример не шёл)
@@ -106,11 +106,11 @@ function ordinaryRound(m, ev) {
 export const circleAll = m => (m.rtotal ?? 0) > 0 && Object.keys(m.rwon ?? {}).length >= m.rtotal
 /** Остаётся ли Пит в коробке после стадии-конца st: финал — хоть одно неверное слово (bossEnd), круг с Мией — не все слова верны */
 export const endKeep = (m, st) => (st?.act === 'boss' ? bossEnd(m).keep : !circleAll(m))
-/** Конец круга с Мией (стадия `${act}3-end`): все слова верны — Мия уходит с коробкой («вы победили»); иначе Мия выпрыгивает одна, коробку снимает ученик (как в финале) */
+/** Конец круга с Мией (стадия `${act}3-end`): все слова верны — Мия уходит с коробкой («твоя взяла»), Пит благодарит; иначе Мия выпрыгивает одна, коробку снимает ученик (как в финале) */
 function circleEnd(m, now, ev) {
   const all = circleAll(m), won = Object.keys(m.rwon ?? {}).length
   const log = `круг с Мией кончился: слов ${m.rtotal}, названо верно ${won} — ${all ? 'все верно: Мия уходит с коробкой' : 'Пит остаётся в коробке'}`
-  if (all) return { ...leave(m, now, 'win', [line('mia_leave', 'mia'), line('pit_back_1', 'pit', MIA.BACK_AT), line('pit_back_2', 'pit', MIA.BACK2_AT)]), log }
+  if (all) return { ...leave(m, now, 'win', [line('mia_leave', 'mia'), line('pit_back_1', 'pit')]), log } // реплики идут очередью по концу звука (без сроков «от события»); «Едем дальше, теперь я говорю по-английски…» (pit_back_2) Пит говорит уже на развороте конвейера, вместе с анимацией (mia/miaCircleEnd.js), а после прохода B её нет вовсе
   return { mia: { ...m, fast: false, solo: 'keep', soloAt: now + (ev.keepMs ?? 3500), seq: m.seq + 1 }, say: [line('boss_mia_keep', 'mia')], boost: 1, log }
 }
 

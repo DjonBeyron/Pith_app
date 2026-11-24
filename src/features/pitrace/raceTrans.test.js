@@ -23,7 +23,8 @@ describe('озвучка переводов: ключи и наборы', () => 
   it('переводы: слова плана и extraWords без повторов; для прогрева — только слова «Разгона» в порядке выезда', () => {
     const all = transTexts(racePlan), sprintT = sprintTransTexts(racePlan)
     expect(all.length).toBeGreaterThan(3); expect(new Set(all.map(transKey)).size).toBe(all.length)
-    expect(sprintT.length).toBeGreaterThan(0); expect(sprintT.length).toBeLessThanOrEqual(sprintWords(racePlan).length + phraseMeanings(racePlan).length + phraseScenes(racePlan).length) // и смыслы и ситуации фраз этапа 2
+    expect(sprintT.length).toBeGreaterThan(0); expect(sprintT.length).toBeLessThanOrEqual(sprintWords(racePlan).length + phraseMeanings(racePlan).length) // и смыслы фраз этапа 2
+    phraseScenes({ source: 'sim' }).forEach(t => { expect(transTexts({ source: 'sim', words: [], chunks: [] })).not.toContain(t); expect(sprintTransTexts({ source: 'sim', words: [], chunks: [] })).not.toContain(t) }) // ситуации (вырезанный круг «Пойми») не озвучиваем и не греем
     sprintT.forEach(t => expect(all).toContain(t))
   })
   it('transRow / transItems: только записи с озвучкой, без повторов; transRows помечает озвученные', () => {

@@ -5,7 +5,7 @@
 // Чистая логика: часы и журнал — аргументами (директор useRaceActs зовёт stage / plate / line / pill / last).
 import { pLog } from '../../shared/lib/debug.js'
 
-const NAMES = { sprint: 'Пинг-понг A', sprint2: 'Пинг-понг A, круг 2', catch: 'Пинг-понг B', catch2: 'Пинг-понг B, круг 2', phrases: 'плашка «Фразы»', phrases1: 'Фразы, круг 1', phrases2: 'Фразы, круг 2', climb: 'Финал', descent: 'Спуск', summary: 'Итог' }
+const NAMES = { sprint: 'Пинг-понг A', sprint2: 'Пинг-понг A, круг 2', catch: 'Пинг-понг B', catch2: 'Пинг-понг B, круг 2', phrases: 'плашка «Фразы»', phrases2: 'Фразы, круг', climb: 'Финал', descent: 'Спуск', summary: 'Итог' }
 
 /** Отрезок игры стадии: sid без хвостов -ann / -sw (catch-sw, catch-ann, catch → catch), все стадии «Вершины» — climb, итог — summary */
 export function segOf(st) {

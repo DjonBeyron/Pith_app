@@ -31,7 +31,7 @@ await page.click('[data-testid="rotate-start"]'); await page.waitForSelector('[d
 const t0 = Date.now(), done = new Set()
 while (Date.now() - t0 < SECS * 1000) {
   const sid = await page.evaluate(() => document.querySelector('[data-testid="wl"]')?.dataset.sid ?? null)
-  if (sid?.startsWith('phrases1')) { await sleep(1500); break }
+  if (sid?.startsWith('phrases2')) { await sleep(1500); break } // круг «Пойми» (phrases1) вырезан: останавливаемся на входе в единственный круг фраз
   const pre = [...log].reverse().find(l => /\[race\] голос: повтор/.test(l.s))
   if (pre && !done.has(pre.t)) {
     const cap = pre.s.match(/на пилюле «(.*?)»/)?.[1]

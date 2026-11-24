@@ -3,9 +3,8 @@ import { createPhraseVoice } from './racePhraseVoice.js'
 import { normalizePhrase, phrasesOf } from './racePhraseData.js'
 import { transTexts, sprintTransTexts } from './raceTrans.js'
 
-// Круг 1 «Пойми» — Пит говорит ситуацию (scene), круг 2 «Скажи» — смысл (ru); scene пустой — круг 1 говорит ru
+// «Скажи» — Пит говорит смысл (ru). Ситуацию (scene) говорил только круг 1 «Пойми» — он вырезан (владелец 2026-11-24): в игре её нет ни голосом, ни подписью, ни в прогреве
 const nice = normalizePhrase({ text: 'Nice to meet you', ru: 'скажи, что рад знакомству', scene: 'ты знакомишься с новым человеком' })
-const bare = normalizePhrase({ text: 'See you later', ru: 'попрощайся до скорого' })
 
 function make(voiced = () => true) {
   const said = [], shown = [], logs = [], timers = []
@@ -16,32 +15,18 @@ function make(voiced = () => true) {
 }
 
 describe('голос перед ходом: ситуация и смысл', () => {
-  it('pick — ситуация (озвучена), say — смысл; журнал говорит, что сказано', () => {
-    const a = make()
-    a.v.pre({ mode: 'pick', target: nice }, a.e)
-    expect(a.said).toEqual(['ru:ты знакомишься с новым человеком'])
-    expect(a.logs.at(-1)).toContain('ситуация «ты знакомишься с новым человеком»')
+  it('say — смысл; ситуацию (scene) вырезанного круга «Пойми» Пит не говорит и подписью не показывает', () => {
     const b = make()
     b.v.pre({ mode: 'say', target: nice }, b.e)
     expect(b.said).toEqual(['ru:скажи, что рад знакомству']); expect(b.logs.at(-1)).toContain('смысл «скажи, что рад знакомству»')
+    const a = make(t => t !== nice.ru)
+    a.v.pre({ mode: 'say', target: nice }, a.e)
+    expect(a.said).toEqual([]); expect(a.shown).toEqual([nice.ru]) // смысл не озвучен — подпись смысла, не ситуации
   })
-  it('ситуация есть, но не озвучена — подпись ситуации без голоса (не смысл)', () => {
-    const a = make(t => t !== nice.scene)
-    a.v.pre({ mode: 'pick', target: nice }, a.e)
-    expect(a.said).toEqual([]); expect(a.shown).toEqual(['ты знакомишься с новым человеком'])
-  })
-  it('без ситуации круг 1 молчит: смысл «скажи, что…» — для круга «Скажи», в выборе он вводит в заблуждение (v3.3.302)', () => {
-    const a = make()
-    a.v.pre({ mode: 'pick', target: bare }, a.e)
-    expect(a.said).toEqual([])
-    const b = make(() => false)
-    b.v.pre({ mode: 'pick', target: bare }, b.e)
-    expect(b.shown).toEqual([])
-  })
-  it('ситуации попадают в фразы плана-симуляции и в набор озвучки / прогрева', () => {
+  it('ситуации остаются в данных фраз, но в набор озвучки / прогрева игры больше не идут', () => {
     const plan = { source: 'sim', words: [], chunks: [] }
     expect(phrasesOf(plan)[0].scene).toBe('ты знакомишься с новым человеком')
-    expect(transTexts(plan)).toContain('ты знакомишься с новым человеком')
-    expect(sprintTransTexts(plan)).toContain('ты знакомишься с новым человеком')
+    expect(transTexts(plan)).not.toContain('ты знакомишься с новым человеком')
+    expect(sprintTransTexts(plan)).not.toContain('ты знакомишься с новым человеком')
   })
 })

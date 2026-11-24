@@ -38,7 +38,7 @@ describe('реплики Мии и Пита в эпизоде', () => {
     feed('miss'); for (const t of ['win', 'win', 'miss', 'miss', 'miss', 'miss', 'win', 'win', 'win']) feed(t)
     feed('enter', { stage: { type: 'student', act: 'catch', sid: 'catch' } })
     for (const id of used) expect(miaLine(id), id).not.toBeNull()
-    expect([MIA.PUSH_AT, MIA.ANNOUNCE_AT, MIA.REPLY_AT, MIA.ANNOUNCE2_AT, MIA.ANNOUNCE3_AT]).toEqual([...[MIA.PUSH_AT, MIA.ANNOUNCE_AT, MIA.REPLY_AT, MIA.ANNOUNCE2_AT, MIA.ANNOUNCE3_AT]].sort((x, y) => x - y))
+    expect(MIA.PUSH_AT).toBeLessThan(MIA.PANIC_AT) // остальные реплики церемонии идут очередью по концу звука
   })
   it('variantOf: 1…3 по кругу', () => {
     expect([1, 2, 3, 4, 7].map(n => variantOf('mia_ok', n))).toEqual(['mia_ok_1', 'mia_ok_2', 'mia_ok_3', 'mia_ok_1', 'mia_ok_1'])

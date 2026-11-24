@@ -3,7 +3,7 @@ import { CENTER_Y } from './racePhraseScene.js'
 import { setupScene } from './racePhraseSceneRig.js'
 import { createPhraseListener, stubSay, stubDraft } from './racePhraseListenStub.js'
 import { phraseStep, PHRASE_SPEED, SAY_SPEED, PHRASE_GAP_MS } from './raceStagesPhrases.js'
-import { round1Turns, round2SayTurns } from './racePhraseTurns.js'
+import { round2HearTurns, round2SayTurns } from './racePhraseTurns.js'
 import { phrasesOf } from './racePhraseData.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
 import { EXIT_Y } from '../player/modules/rotate-phone/wordLaneTimeline.js'
@@ -12,10 +12,10 @@ import { POOL } from '../player/modules/rotate-phone/wordLanePool.js'
 // Круг 1 — единый конвейер: после итога хода остальные пилюли не гаснут, а доезжают вниз отыгранными (data-spent), следующий ход выезжает за ними тем же потоком.
 // Круг 2 «Скажи» — одна заливка на всю фразу: каждое слово — полная доля (черновое — когда устоялось, racePhraseFill.js), «аванса» по первому звуку нет (шум не заливает), экран догоняет цель каждый кадр без ступенек.
 const ph = phrasesOf({ phrases: PHRASE_FIXTURE })
-const turns = round1Turns(ph, 's1')
-const pick = () => phraseStep('phrases1', turns, { round: 1, mode: 'pick', voice: false, speed: PHRASE_SPEED })
+const turns = round2HearTurns(ph, 's1')
+const pick = () => phraseStep('phrases2', turns, { round: 2, mode: 'hear', voice: false, speed: PHRASE_SPEED })
 const untilCenter = (s, key) => { for (let i = 0; i < 2000; i++) { const p = s.run.api.state().pills.find(x => x.key === key); if (p && Math.abs(p.y - CENTER_Y) < 3) return p; s.go(16) } return null }
-const capOf = key => ph.find(p => p.key === key)?.text
+const capOf = key => ph.find(p => p.key === key)?.ru
 
 describe('круг 1: единый конвейер после зачёта', () => {
   it('верная взлетает, остальные выехавшие пилюли разлетаются влево и вправо поровну (без fade и взлёта, по очереди −1, +1); fail — только у следующих ходов', () => {
@@ -23,7 +23,7 @@ describe('круг 1: единый конвейер после зачёта', ()
     const before = s.pool.taken.length
     s.run.api.tap()
     expect(s.fx.win).toHaveBeenCalledTimes(1)
-    const rest = s.pool.taken.filter(p => p.cap !== turns[0].target.text)
+    const rest = s.pool.taken.filter(p => p.cap !== turns[0].target.ru)
     expect(rest.length).toBe(before - 1); expect(rest.length).toBeGreaterThan(0)
     rest.forEach((p, i) => { expect(p.scattered).toBe(i % 2 ? 1 : -1); expect(p.faded).toBeUndefined(); expect(p.rose).toBeUndefined(); expect(s.pool.live.has(p.k)).toBe(false) })
     expect(s.run.api.state().spent).toEqual([])
@@ -68,7 +68,7 @@ describe('круг 1: единый конвейер после зачёта', ()
     s.go(20000); expect(s.fx.fail.mock.calls.every(c => c[0].rep.idx > 0)).toBe(true)
   })
   it('голосом круг 1 тоже только тап: фраза, сказанная вслух, не засчитывается ни у верной, ни у отыгранной', () => {
-    const s = setupScene(phraseStep('phrases1', turns, { round: 1, mode: 'pick', voice: true, speed: PHRASE_SPEED }), { listen: createPhraseListener })
+    const s = setupScene(phraseStep('phrases2', turns, { round: 2, mode: 'hear', voice: true, speed: PHRASE_SPEED }), { listen: createPhraseListener })
     s.go(600); stubSay(turns[0].target.text); expect(s.fx.win).not.toHaveBeenCalled()
     untilCenter(s, turns[0].target.key); s.run.api.tap(); expect(s.fx.win).toHaveBeenCalledTimes(1)
     const spent = s.pool.taken.find(p => p.attrs.has('data-spent'))

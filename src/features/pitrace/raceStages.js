@@ -25,7 +25,7 @@ const ROUNDS = { sprint: sprintStages, catch: catchStages, phrases: phraseStages
 
 /**
  * Три нежные ноты перед КАЖДЫМ этапом и проходом (замечание владельца, v3.3.165: «как в самом начале игры»): у последней плашки перед первой пилюлей / читкой (announce прямо перед student или read) — count 'after', soft.
- * Цепочка плашек подряд (переключение слуха → объявление; «Фразы» → «Пойми») получает ноты один раз — на последней. Уже есть ноты в цепочке (старт: первая плашка-заставка) или count: false у плашки — не трогаем.
+ * Цепочка плашек подряд (переключение слуха → объявление) получает ноты один раз — на последней. Уже есть ноты в цепочке (старт: первая плашка-заставка) или count: false у плашки — не трогаем.
  * Ступени «Вершины» после первой, «Твоя очередь» «Спуска» и продолжение с середины ступени (useWordLaneControls.restartStage идёт на student) нот не дают — нот нет внутри этапа.
  */
 export function countBeforeRounds(stages) {
@@ -58,7 +58,7 @@ export function buildRaceStages({ plan, rate = 1, lib = () => null, tap = readTa
   if (plan.startAt && !sliceFrom(kit.stages, plan.startAt, plan.seed)) pLog(`[race] старт с этапа «${plan.startLabel ?? plan.startAt}»: такой плашки нет — с начала акта`) // «начать с этапа» (отладка): первой идёт его плашка
   if (tap) kit.stages.forEach(x => { if (x.step) x.step.tapOnly = true }) // «Тапаю»: ни одна ступень не слушает голос — слушатель без Vosk и без getUserMedia (wordLaneListen noVosk), микрофон игре не нужен
   const first = kit.stages[0]
-  if (first?.type === 'announce' && !first.mia) Object.assign(first, { count: 'after', soft: true, charge: true, pause: PLATE_HOLD_MS }) // старт: бар заставки САМ становится плашкой этапа (charge: отдельной плашки нет, raceOpening.js), плашка держится PLATE_HOLD_MS после речи Пита; потом три нежные ноты (шаг 600 мс, нота 1,1 с), первая пилюля — после них
+  if (first?.type === 'announce' && !first.mia) Object.assign(first, { count: first.count === false ? false : 'after', soft: true, charge: true, pause: PLATE_HOLD_MS }) // старт: бар заставки САМ становится плашкой этапа (charge: отдельной плашки нет, raceOpening.js), плашка держится PLATE_HOLD_MS после речи Пита; потом три нежные ноты (шаг 600 мс, нота 1,1 с), первая пилюля — после них
   countBeforeRounds(kit.stages)
   applyStagePauses(kit.stages)
   const { chunks } = plan

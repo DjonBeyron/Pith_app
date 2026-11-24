@@ -8,12 +8,13 @@ import { ROUND_PLATES } from './raceStagesPhrases.js'
 vi.mock('../player/modules/rotate-phone/wordLanePlateSound.js', () => ({ playPlate: () => true }))
 const { default: WordLaneTurnPlate } = await import('../player/modules/rotate-phone/WordLaneTurnPlate.jsx')
 const css = readFileSync(new URL('../../styles/player/modules/race-phrase-rounds.css', import.meta.url), 'utf8')
-const plate = look => renderToStaticMarkup(createElement(WordLaneTurnPlate, { text: 'Пойми\nТапни фразу', soft: true, look }))
+const plate = look => renderToStaticMarkup(createElement(WordLaneTurnPlate, { text: 'Узнай\nТапни смысл', soft: true, look }))
 
 describe('плашки кругов', () => {
-  it('круг 1 — data-tone="lane" и палец перед «Тапни фразу»; «Скажи» — accent и микрофон; без вида — как раньше (без значка и тона)', () => {
-    const p1 = plate(ROUND_PLATES.pick.look)
-    expect(p1).toContain('data-tone="lane"'); expect(p1).toContain('data-icon="tap"'); expect(p1).toContain('wlTurnIcon'); expect(p1).toContain('Тапни фразу')
+  it('вид плашки: «Узнай» — accent и палец, «Скажи» — accent и микрофон; без вида — как раньше (без значка и тона); круга «Пойми · Тапни фразу» нет', () => {
+    expect(ROUND_PLATES.pick).toBeUndefined(); expect(Object.keys(ROUND_PLATES)).toEqual(['say', 'hear'])
+    const p1 = plate(ROUND_PLATES.hear.look)
+    expect(p1).toContain('data-tone="accent"'); expect(p1).toContain('data-icon="tap"'); expect(p1).toContain('wlTurnIcon')
     const p2 = plate(ROUND_PLATES.say.look)
     expect(p2).toContain('data-tone="accent"'); expect(p2).toContain('data-icon="mic"')
     expect(plate(ROUND_PLATES.hear.look)).toContain('data-tone="accent"')

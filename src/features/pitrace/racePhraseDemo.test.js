@@ -36,12 +36,11 @@ describe('демо «Скажи»: какая фраза', () => {
   it('фикстура: дежурная «See you later»; голосом — в ступени круга 2 (step.phrases.demo), плашка без demo; «Пальцами» демо нет', () => {
     expect(demoPhrase(PHRASE_FIXTURE, round2SayTurns(PHRASE_FIXTURE)).text).toBe('See you later')
     const plan = { seed: 7, chunks: ['a'], words: [], phrases: PHRASE_FIXTURE }
-    const act = { id: 'phrases', title: 'Фразы', task: '', line: 'race_phrases', phrases: PHRASE_FIXTURE }
+    const act = { id: 'phrases', title: 'Фразы', task: '', line: null, phrases: PHRASE_FIXTURE }
     const v = createKit({ plan }); phraseStages(v, act)
     expect(v.stages.find(s => s.sid === 'phrases2').step.phrases.demo).toEqual({ text: 'See you later', key: 'see you later', spare: true })
-    expect(v.stages.find(s => s.sid === 'phrases2-ann').demo).toBeUndefined()
-    const st = v.stages.find(s => s.sid === 'phrases2'); st.fill(['nice to meet you'])
-    expect(st.step.phrases.demo?.text).toBe('See you later') // порядок «слабые последними» демо не теряет
+    expect(v.stages.find(s => s.sid === 'phrases-ann')).toMatchObject({ line: 'race_phrases_show', count: false, plateWithLine: true }); expect(v.stages.find(s => s.sid === 'phrases-ann').demo).toBeUndefined() // плашка этапа зовёт смотреть пример; нот на ней нет (они после демо)
+    expect(v.stages.find(s => s.sid === 'phrases2').fill).toBeUndefined() // порядка «слабые последними» больше нет: круга 1 нет
     const t = createKit({ plan, tap: true }); phraseStages(t, act)
     expect(t.stages.find(s => s.sid === 'phrases2').step.phrases.demo).toBeUndefined()
   })

@@ -8,7 +8,7 @@ import { createDodge } from './raceDodge.js'
 import { setupScene } from './racePhraseSceneRig.js'
 import { CENTER_Y } from './racePhraseScene.js'
 import { phraseStep, PHRASE_SPEED } from './raceStagesPhrases.js'
-import { round1Turns } from './racePhraseTurns.js'
+import { round2HearTurns } from './racePhraseTurns.js'
 import { phrasesOf } from './racePhraseData.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
 
@@ -73,8 +73,8 @@ describe('состояние гонки: enter с from — круг не обн�
 
 describe('сцена фраз с хода from (racePhraseScene)', () => {
   const ph = phrasesOf({ phrases: PHRASE_FIXTURE })
-  const turns = round1Turns(ph, 's1')
-  const step = phraseStep('phrases1', turns, { round: 1, mode: 'pick', voice: false, speed: PHRASE_SPEED })
+  const turns = round2HearTurns(ph, 's1')
+  const step = phraseStep('phrases2', turns, { round: 2, mode: 'hear', voice: false, speed: PHRASE_SPEED })
   it('первый ход — from (Пит говорит его смысл), resumeAt до итога — он же', () => {
     const s = setupScene(step, { from: 1 })
     expect(s.run.api.resumeAt()).toBe(1)

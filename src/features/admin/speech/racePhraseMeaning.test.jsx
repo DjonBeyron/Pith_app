@@ -59,7 +59,7 @@ describe('racePhraseMeaning', () => {
     expect(html).toContain('озвучено'); expect(html).toContain('читается по словам')
     expect(html).toContain('Смысл по-русски (намерение, не перевод)'); expect(html).toContain('скажи, что рад знакомству')
     expect(html).toContain('Сохранить'); expect(html).toContain('Смыслы озвучены')
-    expect(html).toContain('Смысл (круг 2)'); expect(html).toContain('Ситуация (круг 1)'); expect(html).toContain('placeholder="ты знакомишься с новым человеком"')
+    expect(html).toContain('>Смысл'); expect(html).not.toContain('круг 2'); expect(html).toContain('Ситуация (в игре не звучит: круг «Пойми» вырезан)'); expect(html).toContain('placeholder="ты знакомишься с новым человеком"')
     expect(html).toContain('data-testid="race-scene-nice to meet you"')
     expect(renderToStaticMarkup(createElement(RacePhraseMeaning, { plan: { words: [] } }))).toContain('В плане нет фраз')
   })

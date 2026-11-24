@@ -11,7 +11,7 @@ import { RACE_PHRASE_RU_KEY, RACE_PHRASE_SCENE_KEY, meaningMap, mergeMeanings } 
 import { saveLineText } from './raceLineText.js'
 import { CAT_LINES } from '../../player/modules/rotate-phone/wordLaneCatLines.js'
 import { auditVoice, raceCatalog } from './voiceAudit.js'
-import { lineRows, meaningVoiceRows, sceneVoiceRows, transVoiceRows, wholeRows, miaRows } from './raceVoiceTable.js'
+import { lineRows, meaningVoiceRows, transVoiceRows, wholeRows, miaRows } from './raceVoiceTable.js'
 import { MIA_LINES, isMiaLine } from '../../pitrace/mia/miaLines.js'
 
 // Данные и действия таблицы «Озвучка Пита» (RaceVoiceTable.jsx). Реплики — app_settings.rotate_cat_lines (озвучка voicePitLines: ElevenLabs → R2 → настройки, тот же путь, что «Озвучить реплики»),
@@ -57,9 +57,9 @@ export default function useRaceVoiceTable({ plan, list = RACE_LINES, onChange = 
 
   const audit = useMemo(() => auditVoice(raw, raceCatalog(), CAT_LINES), [raw]) // только реплики «Встряхни память»; остальные игры — в «Старом»
   const groups = useMemo(() => {
-    const meanings = meaningVoiceRows(plan, saved, lib), scenes = sceneVoiceRows(plan, savedScene, lib)
+    const meanings = meaningVoiceRows(plan, saved, lib), scenes = [] // ситуации говорил только вырезанный круг «Пойми»: в таблицу и в «не озвучено» не идут
     return { whole: wholeRows(plan, lib), lines: lineRows(list, lines, audit.byId), mia: miaRows(MIA_LINES.filter(l => isMiaLine(l.id)), lines, audit.byId), pitMia: miaRows(MIA_LINES.filter(l => !isMiaLine(l.id)), lines, audit.byId), meanings, scenes, trans: transVoiceRows(plan, [...meanings, ...scenes], lib) }
-  }, [plan, saved, savedScene, lib, list, lines, audit])
+  }, [plan, saved, lib, list, lines, audit])
 
   /** Озвучить строки (любых групп) заново; ошибки — по строкам */
   const voice = useCallback(async rows => {

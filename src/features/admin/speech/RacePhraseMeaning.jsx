@@ -57,12 +57,12 @@ export default function RacePhraseMeaning({ plan, locked = false, load = loadMea
         <div key={r.key} data-testid={`race-meaning-${r.key}`}>
           <div className="aspLabel">{r.text}{r.byWords && <span className="rhpHint" data-testid="race-meaning-bywords"> · читается по словам</span>}</div>
           <label className="aspLabel">
-            <span>Смысл (круг 2){mark(r.ru)}</span>
+            <span>Смысл{mark(r.ru)}</span>
             <input className="aspInput" type="text" value={drafts[r.key] ?? r.ru} placeholder={`Смысл по-русски (намерение, не перевод): «${MEANING_HINT}»`} disabled={off}
               onChange={e => { const v = e.target.value; setDrafts(d => ({ ...d, [r.key]: v })) }} />
           </label>
           <label className="aspLabel" data-testid={`race-scene-${r.key}`}>
-            <span>Ситуация (круг 1){mark(r.scene)}</span>
+            <span>Ситуация (в игре не звучит: круг «Пойми» вырезан){mark(r.scene)}</span>
             <input className="aspInput" type="text" value={sceneDrafts[r.key] ?? r.scene} placeholder={SCENE_HINT} disabled={off}
               onChange={e => { const v = e.target.value; setSceneDrafts(d => ({ ...d, [r.key]: v })) }} />
           </label>
