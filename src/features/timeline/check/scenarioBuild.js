@@ -3,7 +3,7 @@
 // → { blocks: [{ key, title, note, parts }], unused: [{ id, who, why }], ids: Set, sim } ; part = { key, title, kind, note, alt, items: [{ id, who, note, again }], cues, stage }
 //   kind: 'seq' — звучат подряд; 'variants' — случайно одна из; 'branch' — одна из по условию (условие — в note реплики). alt — ветка не основного пути (режим «Пальцами», редкая страховка).
 //   again — реплика уже стоит в блоке выше (в счёт проблем идёт один раз). cues — реплики со сроками машины Мии (для проверки пауз церемонии, sceneRisks.js).
-// ПРОДУБЛИРОВАНО (в игре это строки внутри функций, экспорта нет; сторож — scenarioBuild.test.js читает исходник игры): YES_LINE, NO_LINE, SHOW_LINE, DONE_LINES.
+// ПРОДУБЛИРОВАНО (в игре это строки внутри функций, экспорта нет; сторож — scenarioBuild.test.js читает исходник игры): YES_LINE, SHOW_LINE, DONE_LINES.
 // Чистые функции без React.
 import { MIA_LINES } from '../../pitrace/mia/miaLines.js'
 import { raceStartId } from '../../pitrace/raceTexts.js'
@@ -18,7 +18,6 @@ import { gameStages, ceremonyCues, roundCues, endCues, boxCues, fallbackCues, FA
 import { UNUSED_WHY } from './scenarioUnused.js'
 
 export const YES_LINE = 'race_phrase_yes'   // pitrace/racePhraseVoice.js, react(): фраза сказана
-export const NO_LINE = 'race_phrase_no'     // там же: выбрана чужая фраза / чужой смысл (только круги на тапе)
 export const SHOW_LINE = 'race_phrases_show' // pitrace/raceStagesPhrases.js: реплика плашки этапа фраз, когда есть пример (без примера — DEMO_GO)
 export const DONE_LINES = { gold: 'race_done_gold', usual: 'race_done' } // pitrace/useRaceActs.js: реплика итога
 
@@ -111,7 +110,7 @@ export function buildScenario() {
       part('turn', 'Ход игрока', 'seq', [item(AGAIN_LINE, 'перед вторым проходом той же фразы')]),
       part('res', 'Итог хода — одна из', 'branch', [item(YES_LINE, 'фраза сказана'), item(PAUSES_LINE, 'сказана, но с паузами')]),
       part('slip', 'Слово сказано неточно: «слово» + слово по-английски + одна из двух', 'seq', [item(SLIP_WORD_LINE), item(SLIP_RETRY_LINE, 'первая неточность'), item(SLIP_NEXT_LINE, 'вторая неточность')]),
-      ...tapPart('phrases', [NO_LINE]),
+      ...tapPart('phrases'),
     ] },
     { key: boss.key, title: boss.title, note: boss.note, parts: boss.parts },
     { key: 'summary', title: 'Итог', note: 'Если Пит остался в коробке после экзамена, обычная реплика итога не звучит.', parts: [part('line', 'Реплика итога — одна из', 'branch', [item(DONE_LINES.gold, 'золото во всех раундах'), item(DONE_LINES.usual, 'обычный итог')])] },

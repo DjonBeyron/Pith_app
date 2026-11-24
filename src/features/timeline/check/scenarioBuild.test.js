@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { buildScenario, YES_LINE, NO_LINE, SHOW_LINE, DONE_LINES } from './scenarioBuild.js'
+import { buildScenario, YES_LINE, SHOW_LINE, DONE_LINES } from './scenarioBuild.js'
 import { gameStages, ceremonyCues, endCues } from './scenarioGame.js'
 import { UNUSED_WHY } from './scenarioUnused.js'
 import { RACE_LINE_SET } from '../../admin/speech/voiceAudit.js'
@@ -36,15 +36,15 @@ describe('сценарий «Встряхни память» из кода иг�
   })
   it('продублированные строки игры (экспорта нет) совпадают с её исходником', () => {
     const voice = src('racePhraseVoice.js')
-    expect(voice).toContain(`'${YES_LINE}'`); expect(voice).toContain(`{ line: '${NO_LINE}' }`)
-    expect(src('raceStagesPhrases.js')).toContain(`line: demo ? '${SHOW_LINE}' : ROUND_PLATES[mode].line`)
+    expect(voice).toContain(`'${YES_LINE}'`); expect(voice).not.toContain("line: 'race_phrase_no'")
+    expect(src('raceStagesPhrases.js')).toContain(`line: demo ? '${SHOW_LINE}' : ROUND_PLATES.say.line`)
     expect(src('useRaceActs.js')).toContain(`res.gold ? '${DONE_LINES.gold}' : '${DONE_LINES.usual}'`)
   })
   it('этап фраз — сразу круг «Скажи»: плашка этапа несёт реплику круга, вырезанных реплик и стадий нет', () => {
     expect(gameStages().filter(s => s.act === 'phrases' && !/-sw$/.test(s.sid)).map(s => s.sid)).toEqual(['phrases-ann', 'phrases2'])
     for (const id of ['race_phrases', 'race_phrases_tap', 'race_phrases_pick']) { expect(sc.ids.has(id), id).toBe(false); expect(RACE_LINES.some(l => l.id === id), `${id} снова в каталоге`).toBe(false) }
     expect(idsOf(block('phrases'), p => !p.alt)).toEqual(['race_phrases_show', 'race_demo_1', 'race_demo_2', 'race_demo_3', 'race_demo_more', 'race_phrases_say', 'race_phrase_again', 'race_phrase_yes', 'race_phrase_pauses', 'race_slip_word', 'race_slip_retry', 'race_slip_next'])
-    expect(idsOf(block('phrases'), p => p.alt)).toEqual(['race_phrases_hear', 'race_phrase_no'])
+    expect(idsOf(block('phrases'), p => p.alt)).toEqual([]) // v3.3.365: круг «Узнай» вырезан — пальцами этапа фраз нет
   })
   it('разворот: обычная реплика либо «Едем дальше…» после победы над Мией — веткой «одна из»', () => {
     const ann = block('turn').parts.find(p => p.key === 'ann')
