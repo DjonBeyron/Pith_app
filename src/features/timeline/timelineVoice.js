@@ -33,6 +33,6 @@ export function voiceOf(line, src) {
     return { url: null, why: 'в библиотеке слов нет записи для этого текста — звук диктора здесь не проигрывается' }
   }
   const l = src.lines?.[line.id]
-  if (l?.url) return { url: l.url, from: 'настройки реплик', duration: l.duration ?? null, key: line.id, changed: !!l.text && !!line.text && l.text !== line.text }
+  if (l?.url) return { url: l.url, from: 'настройки реплик', duration: l.duration ?? null, key: line.id, changed: !!(l.said ?? l.text) && !!line.text && (l.said ?? l.text) !== line.text } // said — что говорит файл (записывается при озвучке)
   return { url: null, why: NO_VOICE }
 }

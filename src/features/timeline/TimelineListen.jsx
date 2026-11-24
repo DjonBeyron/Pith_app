@@ -20,6 +20,7 @@ export default function TimelineListen({ m, audio, make }) {
   const playFrom = (items, key) => { audio.stop(); const i = key ? items.findIndex(x => x.key === key) : 0; q.start(items, Math.max(0, i)) }
   const blockItems = b => flat.filter(x => x.block === b.key)
   const total = blocks.reduce((a, b) => a + b.sec, 0)
+  const stale = [...new Set(blocks.flatMap(b => b.items.filter(x => x.url && x.stale).map(x => x.line.id)))]
   const nowIdx = q.st.index >= 0 ? q.st.index + 1 : 0
   return (
     <div className="tlListen" data-testid="tl-listen">
@@ -32,6 +33,7 @@ export default function TimelineListen({ m, audio, make }) {
         <span className="tlGroup" role="radiogroup" aria-label="Скорость">{RATES.map(r => <button key={r} type="button" role="radio" aria-checked={q.rate === r} className="tlChip" onClick={() => q.setRate(r)}>{String(r).replace('.', ',')}×</button>)}</span>
         {live && <span className="tlMuted" data-testid="tl-listen-now">реплика {nowIdx} из {q.st.total}</span>}
       </div>
+      {stale.length > 0 && <p className="tlRed" role="status" data-testid="tl-listen-stale">Текст изменился, озвучка говорит старое — переозвучить ({stale.length}): {stale.join(', ')}. Вкладка «Голос» → «Озвучка Пита» → «Озвучить недостающее».</p>}
       {q.st.status === 'error' && <p className="tlRed" role="status">{q.st.error}</p>}
       {q.st.skipped.length > 0 && <p className="tlRed" role="status">не загрузились и пропущены: {q.st.skipped.length}</p>}
       {!blocks.length && <p className="tlMuted">В этом прохождении нет реплик «Встряхни память» для прослушивания.</p>}

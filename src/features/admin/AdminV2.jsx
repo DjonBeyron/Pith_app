@@ -14,6 +14,7 @@ import AdminReviewTab from './AdminReviewTab.jsx'
 import AdminCatchTab from './AdminCatchTab.jsx'
 import AdminAchievementsTab from './AdminAchievementsTab.jsx'
 import AdminSpeechTab from './speech/AdminSpeechTab.jsx'
+import useVoiceNeed from './speech/useVoiceNeed.js'
 import AdminStartTab from './start/AdminStartTab.jsx'
 import AdminSignalsTab from './signals/AdminSignalsTab.jsx'
 import AdminToggles from './AdminToggles.jsx'
@@ -49,6 +50,7 @@ function storedSub() {
 
 export default function AdminV2({ onOpenCanvas, onOpenProduction, onOpenCards, openModule = null, onModuleOpened, learnView = null }) {
   const [sub, setSubState] = useState(storedSub) // modules | files | push | race | streak | teacher | errors | analytics | decks | review | catch | achievements | speech | start | signals | launch | scenes
+  const voiceNeed = useVoiceNeed(sub) // красный счётчик на «Голос»: сколько реплик «Встряхни память» нужно переозвучить (текст в коде изменился)
   const setSub = id => {
     setSubState(id)
     try { localStorage.setItem(SUB_KEY, id) } catch { /* приватный режим — запомнится до перезагрузки */ }
@@ -111,7 +113,7 @@ export default function AdminV2({ onOpenCanvas, onOpenProduction, onOpenCards, o
           Достижения
         </button>
         <button className={sub === 'speech' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('speech')}>
-          Голос
+          Голос{voiceNeed?.total > 0 && <span className="avTabAlert" title={`Нужно озвучить: ${voiceNeed.text}`} data-testid="av-voice-need">{voiceNeed.total}</span>}
         </button>
         <button className={sub === 'start' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('start')}>
           Старт

@@ -238,3 +238,5 @@
   color: #9b7fd4; border-color: rgba(155, 127, 212, 0.5);
   background: rgba(155, 127, 212, 0.12);
 }
+/* красный счётчик «нужно переозвучить» на вкладке «Голос» (useVoiceNeed.js) */
+.avTabAlert { margin-left: 5px; min-width: 16px; padding: 0 5px; border-radius: 8px; background: #c24545; color: #fff; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; display: inline-block; vertical-align: middle; }
