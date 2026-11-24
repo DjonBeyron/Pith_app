@@ -22,7 +22,7 @@ export function listenBlocks(m, ofLine) {
     if (CUT_SID.test(s.sid ?? '')) return // этап «Конвейер ситуаций» вырезан
     const lines = m.lines.filter(l => inRace(l) && !l.silent && l.t >= (s.none ? -Infinity : s.t) && l.t < (s.end ?? Infinity)).sort((a, b) => a.t - b.t)
     if (!lines.length) return
-    const items = lines.map(l => { const text = l.who === 'dictor' ? l.text : TEXT_NOW.get(l.id) ?? l.text, line = { ...l, text }, v = ofLine?.(line) ?? {}; return { key: voiceKey(l), line, url: v.url ?? null, duration: v.duration ?? (l.ms > 0 ? l.ms / 1000 : null), why: v.why ?? '', stale: !!v.changed } })
+    const items = lines.map(l => { const base = l.who === 'dictor' ? l.text : TEXT_NOW.get(l.id) ?? l.text, v = ofLine?.({ ...l, text: base }) ?? {}, line = { ...l, text: v.text ?? base }; return { key: voiceKey(l), line, url: v.url ?? null, duration: v.duration ?? (l.ms > 0 ? l.ms / 1000 : null), why: v.why ?? '', stale: !!v.changed } })
     out.push({ key: `b${n}`, title: s.none ? 'до первой стадии' : stageTitle(s), t: s.none ? 0 : s.t, items, playable: items.filter(x => x.url).length, sec: items.reduce((a, x) => a + (x.url ? x.duration ?? 0 : 0), 0) })
   })
   return out

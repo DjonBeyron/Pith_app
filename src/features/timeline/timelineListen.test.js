@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { listenBlocks } from './timelineListen.js'
+import { voiceOf } from './timelineVoice.js'
 
 const L = (t, who, id, o = {}) => ({ t, end: t + 1000, who, id, text: o.text ?? id, ms: 1000, silent: !!o.silent, mouth: true, ...o })
 const m = {
@@ -32,4 +33,17 @@ describe('блоки прослушивания: только «Встряхни
     expect(b[2].playable).toBe(0)
   })
   it('пустая модель — пустой список', () => { expect(listenBlocks(null, ofLine)).toEqual([]) })
+})
+
+describe('текст, поправленный в админке (custom), не считается «старым»', () => {
+  const m3 = { stages: [{ t: 0, end: 5000, sid: 'sprint3-ann', title: '' }], lines: [L(500, 'mia', 'mia_push')] }
+  const mk = rec => listenBlocks(m3, l => voiceOf(l, { status: 'ready', lines: { mia_push: rec } }))[0].items[0]
+  it('custom: показан его текст, озвучка с тем же said — не stale', () => {
+    const x = mk({ url: 'u', text: 'мой текст', said: 'мой текст', custom: true })
+    expect(x.line.text).toBe('мой текст'); expect(x.stale).toBe(false)
+  })
+  it('без custom: файл говорит старое — stale; говорит текущее — нет', () => {
+    expect(mk({ url: 'u', text: 'старый', said: 'старый' }).stale).toBe(true)
+    expect(mk({ url: 'u', text: 'Посиди в коробке, пушистик, дальше командую я', said: 'Посиди в коробке, пушистик, дальше командую я' }).stale).toBe(false)
+  })
 })

@@ -24,7 +24,7 @@ import TimelineScreen from './TimelineScreen.jsx'
 // VOICES — озвучка для «▶ Слушать» на клипах: реплики Пита и Мии из настроек (rotate_cat_lines) и библиотека слов (диктор) — читаются один раз при открытии экрана.
 const SERVER = { read: () => readTimelines(), save: run => saveTimeline(packRun(run)), saveEdits: (run, draft) => saveTimelineEdits(run.savedAt ? run : packRun(run), draft) } // saveEdits — черновик правок монтажа (runs[i].edits)
 const PAUSE_API = { readServer: () => readScenePauses({ fresh: true }), saveServer: pauses => saveScenePauses(pauses, { by: 'таймлайн' }), readDevice: () => readDevicePauses(), saveDevice: obj => saveDevicePauses(obj) } // настройки пауз: сервер (всем игрокам) и это устройство
-const VOICES = { load: async () => { const [raw, lib] = await Promise.all([getCatLines(), listWordAudio()]); return { lines: normalizeLines(raw), lib } } }
+const VOICES = { load: async () => { const [raw, lib] = await Promise.all([getCatLines({ fresh: true }), listWordAudio()]); return { lines: normalizeLines(raw), lib } } }
 
 export default function TimelineOpenButton() {
   const [runs, setRuns] = useState(null) // null — экран закрыт

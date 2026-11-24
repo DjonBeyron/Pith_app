@@ -33,6 +33,9 @@ export function voiceOf(line, src) {
     return { url: null, why: 'в библиотеке слов нет записи для этого текста — звук диктора здесь не проигрывается' }
   }
   const l = src.lines?.[line.id]
-  if (l?.url) return { url: l.url, from: 'настройки реплик', duration: l.duration ?? null, key: line.id, changed: !!(l.said ?? l.text) && !!line.text && (l.said ?? l.text) !== line.text } // said — что говорит файл (записывается при озвучке)
+  if (l?.url) { // custom — текст поправлен в админке и главнее кода (так же считает аудит voiceAudit): сверяем с ним и показываем его
+    const now = l.custom && l.text ? l.text : line.text, said = l.said ?? l.text
+    return { url: l.url, from: 'настройки реплик', duration: l.duration ?? null, key: line.id, text: l.custom && l.text ? l.text : undefined, changed: !!said && !!now && said !== now } // said — что говорит файл (записывается при озвучке)
+  }
   return { url: null, why: NO_VOICE }
 }
