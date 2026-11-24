@@ -40,7 +40,7 @@ export function bossFill(stages, s, seed) {
   const list = bossWords(round.base ?? round.words, s, seed)
   const end = stages.find(x => x.sid === 'boss-end'), empty = list.length < BOSS_MIN
   stages[ann].empty = round.empty = empty
-  for (const x of stages) if (x.sid === 'boss-sw' || x.sid === 'boss2') x.empty = empty // второй блок (русские слова) и переключение слуха — вместе с финалом
+  for (const x of stages) if (['boss-intro-ann', 'boss-sw', 'boss2'].includes(x.sid)) x.empty = empty // второй блок (русские слова) и переключение слуха — вместе с финалом
   if (end) end.empty = empty
   if (!round.empty) round.fill(list) // fill делит слова пополам, если есть блок по-русски
   return ann

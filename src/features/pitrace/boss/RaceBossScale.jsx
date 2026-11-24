@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { setBossZoneNow } from './bossZoneNow.js'
 import { takeBossAnswerAt } from './bossAnswer.js'
-import { zoneAt, ZONES, EDGES, TICKS, spanOf, trackStep, lineOn, zoneRgb, marksStep, nextPill, fadeProgress, demoCaption } from './bossScale.js'
+import { zoneAt, ZONES, EDGES, TICKS, spanOf, trackStep, lineOn, zoneRgb, marksStep, nextPill, fadeProgress, demoCaption, demoSync } from './bossScale.js'
 
 // Шкала финала «Шкала памяти» поверх сцены игры (.wlStage; владелец 2026-11-15): справа вертикальная линейка с рисками цвета зоны и тусклым полупрозрачным фоном зон (зелёная 45 %, жёлтая 35 %, красная 20 % длины), без цифр.
 // Линейка идёт от верха ленты (под кнопками паузы и админа) до низа с отступом под скругление экрана. Через все дорожки идёт тонкая горизонтальная линия — от «ствола» линейки поверх рисок, к левому краю утончается от края
@@ -15,6 +15,8 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
   useEffect(() => { clock.current.paused = paused; clock.current.onZone = onZone }, [paused, onZone])
   const demoKey = demo?.key ?? null
   useEffect(() => { clock.current.demo = demo ? { plan: demo.plan, t: 0 } : null }, [demoKey]) // eslint-disable-line react-hooks/exhaustive-deps -- пример стартует с новой отметкой
+  const markN = demo?.mark?.n ?? null
+  useEffect(() => { const d = clock.current.demo; if (d && demo?.mark) d.t = demoSync(d.plan, demo.mark.k, d.t) }, [markN]) // eslint-disable-line react-hooks/exhaustive-deps -- следующая реплика объяснения РЕАЛЬНО началась: часы примера сверяются с началом её звука (озвучка другой длины пример не рассинхронит)
   useEffect(() => {
     if (!live) return undefined
     const stage = host.current?.parentElement, field = stage?.querySelector('.wlField')
@@ -65,7 +67,8 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
       if (tr && !tr.done && tr.y >= H) fadedId = tr.id // у нижней отметки линия растворяется и для этой пилюли больше не появляется (после «не успел» она не моргает снова)
       const accepted = !!tr && tr.done && pills.find(p => p.el === tr.el)?.locked
       if (accepted && exitId !== tr.id) { exitId = tr.id; el.dataset.exit = '' } else if (tr && !tr.done && el.dataset.exit !== undefined) delete el.dataset.exit // верный ответ: пилюля улетает вверх, а линия уходит слева направо с той же скоростью (CSS wlBossLineOut = RISE_DELAY_MS + RISE_MS, тот же easing)
-      if (tr && !tr.done) setBossZoneNow(zoneAt(Math.min(1, Math.max(0, tr.y / H)))) // зона слова в работе: игра читает её при ответе (без XP за красную)
+      if (tr && !tr.done) setBossZoneNow(zoneAt(Math.min(1, Math.max(0, tr.y / H)))) // зона слова в работе: игра читает её при ответе (трофеи слова — по зоне, bossTrophies.js)
+      else if (pills.some(p => !p.locked && !p.failed && p.bottom <= 0)) setBossZoneNow('fast') // следующая пилюля ещё не коснулась шкалы: ответ сейчас — зелёная зона (раньше здесь оставалась зона ПРОШЛОГО слова)
       const on = lineOn(tr, now) && tr.id !== fadedId && !(tr && !tr.done && tr.y >= H)
       el.style.opacity = on ? (tr.done ? '1' : Math.min(1, 0.15 + tr.y / (H * 0.2)).toFixed(2)) : '0' // появляется плавно, чуть проявляясь на зелёной (прозрачность растёт на первых 20 % шкалы)
       if (tr) {
@@ -79,7 +82,7 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
         const cur = tr && !tr.done && tr.id !== fd.id ? pills.find(x => x.el === tr.el) : nextPill(pills, H) // следующая пилюля: уже взятая линией или ближайшая к шкале
         if (cur) { if (fd.from == null) fd.from = cur.top; fd.p = Math.max(fd.p, fadeProgress(fd.from, cur.top)) }
       }
-      marks.current.forEach((e, k) => { if (!e) return; const m = slots.find(x => x.k === k); e.style.opacity = m && !m.dying ? '1' : '0'; if (m) e.style.setProperty('--g', (m.id === fd.id ? fd.p : m.id < fd.id ? 1 : 0).toFixed(3)); if (m) e.style.transform = `translate3d(0, ${(m.y * H).toFixed(1)}px, 0)`; e.toggleAttribute('data-set', !!m && fd.id != null && m.id <= fd.id) }) // слово закончено (ответ верный / неверный / «не успел») — маркер на месте, плавно крупнее на 20 % (CSS)
+      marks.current.forEach((e, k) => { if (!e) return; const m = slots.find(x => x.k === k); e.style.opacity = m && !m.dying ? '1' : '0'; if (m) e.style.setProperty('--g', (m.id === fd.id ? fd.p : m.id < fd.id ? 1 : 0).toFixed(3)); if (m) e.style.translate = `0 ${(m.y * H).toFixed(1)}px`; e.toggleAttribute('data-set', !!m && fd.id != null && m.id <= fd.id) }) // слово закончено (ответ верный / неверный / «не успел») — маркер на месте, плавно крупнее на 20 % (CSS); место — свойством translate, а не transform: у зафиксированного маркера CSS-свойство scale 1,2 умножало сдвиг из transform, и треугольник вставал на 20 % НИЖЕ линии слова (на y × 1,2) — тот самый «скачок вниз» из замечаний владельца
     }
     raf = requestAnimationFrame(frame)
     return () => cancelAnimationFrame(raf)

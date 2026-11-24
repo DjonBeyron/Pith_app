@@ -54,14 +54,16 @@ describe('проводка: панель настроек ставит игру 
   })
 })
 
-describe('финал: XP не за красную зону, «не успел» молча, взгляд Пита', () => {
+describe('финал: трофеи слова по зоне (было: XP не за красную зону), «не успел» молча, взгляд Пита', () => {
   const read2 = p => readFileSync(new URL(p, import.meta.url), 'utf8')
-  it('XP: красная зона не награждается, остальные — да; шкала пишет зону, игра читает при принятом слове', async () => {
-    const { xpAllowed, setBossZoneNow, getBossZoneNow } = await import('./bossZoneNow.js')
-    expect(xpAllowed('slow')).toBe(false); expect(xpAllowed('mid')).toBe(true); expect(xpAllowed('fast')).toBe(true); expect(xpAllowed(null)).toBe(true)
-    setBossZoneNow('slow'); expect(getBossZoneNow()).toBe('slow'); setBossZoneNow(null)
+  it('счётчик в углу: слово экзамена даёт трофеи по зоне — зелёная всё, жёлтая половину, красная почти ничего (правила 2026-11-24; было: красная — 0, остальные — 2 XP); шкала пишет зону, игра читает при принятом слове', async () => {
+    const { bossXp, setBossZoneNow, getBossZoneNow } = await import('./bossZoneNow.js'), { TROPHY_PER_WORD, ZONE_SHARE } = await import('./bossTrophies.js')
+    setBossZoneNow('slow'); expect(getBossZoneNow()).toBe('slow'); expect(bossXp()).toBe(Math.round(TROPHY_PER_WORD * ZONE_SHARE.slow)); expect(bossXp()).toBeGreaterThan(0)
+    setBossZoneNow('mid'); expect(bossXp()).toBe(TROPHY_PER_WORD / 2); setBossZoneNow('fast'); expect(bossXp()).toBe(TROPHY_PER_WORD)
+    setBossZoneNow(null); expect(bossXp()).toBe(TROPHY_PER_WORD) // слово принято раньше, чем пилюля коснулась шкалы — зелёная
     const flow = read2('../../player/modules/rotate-phone/useWordLaneFlow.js')
-    expect(flow).toContain('if (rep.last && !rep.res?.noXp && !(stages[sRef.current.idx]?.silent && !xpAllowed(getBossZoneNow()))) { xpApi.current?.add(')
+    expect(flow).toContain('if (rep.last && !rep.res?.noXp) { xpApi.current?.add(stages[sRef.current.idx]?.silent ? bossXp() : XP_PER_PILL * rep.count, rect, XP_ARRIVE_MS); return true }')
+    expect(read2('./RaceBossScale.jsx')).toContain("else if (pills.some(p => !p.locked && !p.failed && p.bottom <= 0)) setBossZoneNow('fast')") // зона прошлого слова не остаётся следующему
     expect(read2('./RaceBossScale.jsx')).toContain('setBossZoneNow(zoneAt(')
   })
   it('«не успел» в финале (silent): ни реплики, ни текста сверху, ни подсказки слова над дорожками', () => {
@@ -81,15 +83,15 @@ describe('финал: XP не за красную зону, «не успел» 
 })
 
 describe('эпилог финала кончается, когда договорили', () => {
-  it('bossEnd: красные = слова без верно названных не в красной зоне; Пит остаётся, если хоть одно слово не названо верно (v3.3.295)', async () => {
+  it('bossEnd: красные = слова без верно названных не в красной зоне; Пит остаётся, когда собрано меньше 40 % трофеев (правила 2026-11-24; было: хоть одно слово не названо верно, v3.3.295)', async () => {
     const { bossEnd } = await import('../mia/raceMia.js')
-    expect(bossEnd({ total: 8, won: { 0: 1, 1: 1, 2: 1 }, redWins: 0, reds: 0 })).toEqual({ won: 3, reds: 5, missed: 5, keep: true })
-    expect(bossEnd({ total: 8, won: { 0: 1, 1: 1, 2: 1, 3: 1 }, redWins: 0, reds: 0 })).toMatchObject({ reds: 4, missed: 4, keep: true })
-    expect(bossEnd({ total: 4, won: { 0: 1, 1: 1, 2: 1, 3: 1 }, redWins: 2, reds: 0 })).toMatchObject({ reds: 2, missed: 0, keep: false }) // все названы: два были в красной зоне, но верные
+    expect(bossEnd({ total: 8, won: { 0: 1, 1: 1, 2: 1 }, redWins: 0, reds: 0 })).toMatchObject({ won: 3, reds: 5, missed: 5, keep: true, got: 60, max: 160, lost: 100, outcome: 'stay' }) // 3 зелёных из 8 — 37 %
+    expect(bossEnd({ total: 8, won: { 0: 1, 1: 1, 2: 1, 3: 1 }, redWins: 0, reds: 0 })).toMatchObject({ reds: 4, missed: 4, keep: false, outcome: 'mid' }) // 4 зелёных из 8 — ровно 50 %: Пит свободен, потерянное у Мии (было keep: true)
+    expect(bossEnd({ total: 4, won: { 0: 1, 1: 1, 2: 1, 3: 1 }, zones: { 2: 'slow', 3: 'slow' }, redWins: 2, reds: 0 })).toMatchObject({ reds: 2, missed: 0, keep: false, got: 46, outcome: 'mid' }) // все названы: два были в красной зоне — верные, но трофеев за них почти нет (57 %)
   })
-  it('директор: эпилог держится по длине реплик Мии и Пита (не фиксированные 11 с), с потолком st.ms', () => {
+  it('директор: эпилог «Допроса» держится по длине реплик Мии и Пита (не фиксированные 11 с), с потолком st.ms; эпилог ЭКЗАМЕНА отпускает реальный конец речи (boss/examEndWait.js)', () => {
     const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')
-    expect(src).toContain("st?.mia !== 'end' ? rh.holdMs(st) : endHoldMs(st, mb, mspeech)"); expect(readFileSync(new URL('./raceEndHold.js', import.meta.url), 'utf8')).toContain('Math.min(st.ms, pre + Math.max(2500,')
+    expect(src).toContain("st?.mia !== 'end' ? rh.holdMs(st) : endHoldMs(st, mb, mspeech)"); expect(readFileSync(new URL('./raceEndHold.js', import.meta.url), 'utf8')).toContain('Math.min(st.ms, pre + Math.max(2500,'); expect(readFileSync(new URL('./raceEndHold.js', import.meta.url), 'utf8')).toContain("if (st.act === 'boss') return st.ms"); expect(src).toContain('afterCount: examEnd(boxFree.afterCount)')
   })
 })
 
@@ -105,18 +107,18 @@ describe('финал: колкость после ошибки, порог «х�
     expect(reduceMia(b.mia, { t: 'fail', stage, idx: 0 }).say).toEqual([]) // та же пилюля — вторая колкость не нужна
     expect(reduceMia(b.mia, { t: 'fail', stage, idx: 1 }).say.filter(c => c.who === 'mia')).toHaveLength(1)
   })
-  it('Пит остаётся, когда хоть одно слово финала неверно или не названо (v3.3.295, было — красных больше половины)', async () => {
-    const { keepNeed, bossEnd } = await import('../mia/raceMia.js')
-    expect([0, 3, 6].map(keepNeed)).toEqual([1, 1, 1])
-    expect(bossEnd({ total: 6, won: { 0: 1, 1: 1 }, redWins: 0, reds: 0 })).toEqual({ won: 2, reds: 4, missed: 4, keep: true })
-    expect(bossEnd({ total: 6, won: { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1 }, redWins: 0, reds: 0 })).toMatchObject({ missed: 1, keep: true }) // одно слово — достаточно
-    expect(bossEnd({ total: 6, won: { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 }, redWins: 6, reds: 0 })).toMatchObject({ reds: 6, missed: 0, keep: false }) // все названы, даже в красной зоне
+  it('Пит остаётся, когда собрано меньше 40 % трофеев (правила «трофеи на кону» 2026-11-24; было с v3.3.295 — хоть одно слово неверно или не названо)', async () => {
+    const mia = await import('../mia/raceMia.js'), { bossEnd } = mia
+    expect(mia.keepNeed).toBeUndefined() // порога «хоть одно неверное» больше нет: исход — по доле трофеев (boss/bossTrophies.js)
+    expect(bossEnd({ total: 6, won: { 0: 1, 1: 1 }, redWins: 0, reds: 0 })).toMatchObject({ won: 2, reds: 4, missed: 4, keep: true, outcome: 'stay' }) // 33 %
+    expect(bossEnd({ total: 6, won: { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1 }, redWins: 0, reds: 0 })).toMatchObject({ missed: 1, keep: false, outcome: 'free' }) // одно слово не названо — 83 %: Пит свободен (было keep: true)
+    expect(bossEnd({ total: 6, won: { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 }, zones: { 0: 'slow', 1: 'slow', 2: 'slow', 3: 'slow', 4: 'slow', 5: 'slow' }, redWins: 6, reds: 0 })).toMatchObject({ reds: 6, missed: 0, keep: true, outcome: 'stay' }) // все названы, но все в красной зоне — 15 % трофеев: Пит остаётся (было keep: false)
     expect(bossEnd({ total: 0, won: {}, redWins: 0, reds: 0 })).toMatchObject({ keep: false })
   })
   it('Пит говорит верное слово, когда пилюля ушла (после ошибки тоже: ученик успевает поправиться), один раз на слово; линия шкалы упирается в левую полосу конвейера; колонки без жёлтой заливки', () => {
     const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')
     expect(src).toContain("if (kind === 'fail' && running.act === 'boss') redAlarm()"); expect(src).toContain("if (kind === 'miss' && running.act === 'boss') redAlarm()"); expect(src).not.toContain('sayCorrect') // верное слово теперь ставит в очередь машина Мии (один раз на слово: dug), после колкости
-    expect(readFileSync(new URL('../mia/raceMia.js', import.meta.url), 'utf8')).toContain("const dig = t === 'fail' && !m.dug?.[gi]")
+    expect(readFileSync(new URL('./bossMia.js', import.meta.url), 'utf8')).toContain("const dig = t === 'fail' && !m.dug?.[gi]") // круг экзамена вынесен из машины Мии в boss/bossMia.js
     expect(readFileSync(new URL('./RaceBossScale.jsx', import.meta.url), 'utf8')).toContain("setProperty('--bl'")
     expect(readFileSync(new URL('../../../styles/player/modules/race-boss.css', import.meta.url), 'utf8')).toMatch(/\.wlBossLine \{[^}]*left: var\(--bl, 0px\)/)
   })
@@ -126,7 +128,7 @@ describe('комментарии 2026-11-15 (v3.3.256): уход Мии, пау�
   it('Мия ушла после трёх верных — круг кончается, директор идёт к следующему этапу; перед церемонией пауза короче', () => {
     const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')
     expect(src).toContain("miaView.mia.phase === 'out' && miaView.mia.why === 'win' && running?.mia === 'round' && !running.silent"); expect(src).toContain('jump(nextIdx(running.idx + 1))')
-    expect(src).toContain('miaComesNext(st) ? MIA.EXIT_MS : undefined')
+    expect(src).toContain("miaComesNext(st) ? MIA.EXIT_MS : st?.act === 'boss' && st.type === 'student' ? BOSS_EXIT_MS : undefined") // круг экзамена: пауза выхода — время взлёта принятой пилюли
   })
   it('константы: пауза перед Мией короче обычной (1,3 с), коробка падает быстрее (≤ 1,2 с)', async () => {
     const { MIA } = await import('../mia/raceMia.js')
@@ -172,8 +174,8 @@ describe('экзамен: слова блоками (английские, по�
 })
 
 describe('пауза смены языка длится, пока Мия объявляет', () => {
-  it('holdMs служебной стадии = реплика Мии + отступ (не меньше SWITCH_MS); переключение слуха идёт в это время', () => {
+  it('holdMs служебной стадии = реплика Мии + короткий хвост (не меньше SWITCH_MS); дальше пилюлю держит очередь речи — реальный конец звука (было: + пауза очереди + 300 мс)', () => {
     const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')
-    expect(src).toContain("if (st?.mia === 'hold') return Math.max(st.ms ?? 0, st.say ? mspeech.msOf(st.say) + GAP_MS + 300 : 0)")
+    expect(src).toContain("if (st?.mia === 'hold') return Math.max(st.ms ?? 0, st.say ? mspeech.msOf(st.say) + BOSS_SAY_TAIL_MS : 0)")
   })
 })

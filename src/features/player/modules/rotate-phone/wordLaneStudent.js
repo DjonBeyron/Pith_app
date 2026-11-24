@@ -41,7 +41,7 @@ export const SPEAK_GRACE_MS = 450 // голос ещё звучит (или ит
 export const FAIL_Y = CLAIM_TO_Y        // центр последней пилюли ниже — не успел
 export const LEAD_IN_MS = 0             // первая пилюля выезжает из-за верхнего края на глазах (появиться посреди экрана рывком нельзя)
 export const LOCK_STAGGER_MS = 140      // куски принятого повтора защёлкиваются по очереди
-export const MAX_HOLD_MS = 8000          // Пит не заставит ждать дольше (страховка от зависшей реплики): пилюля выезжает не позже
+export const MAX_HOLD_MS = 8000          // Пит не заставит ждать дольше (страховка от зависшей реплики): пилюля выезжает не позже; step.holdMax — свой потолок ступени (экзамен: цепочка «колкость Мии → это значит + слово → следующее слово» длиной ≈ 7 с не должна упираться в общий потолок, когда озвучку заменят более длинной)
 export const BUDGET_PAD_MS = 1000       // запас на повтор в бюджете ступени…
 export const BUDGET_BASE_MS = 3000      // …и общий запас
 
@@ -108,8 +108,8 @@ export function createStudentGame({ step, chunks, estMs = c => estChunkMs(chunks
     const cum = cnt.reduce((a, k) => [...a, a.at(-1) + k], [0])      // сколько слов цели приходится на начало каждого куска и на конец всех
     return { idx, parts: rp.parts, target: repTarget[idx], text: textOf(chunks, rp.parts), state: idx < from ? 'skip' : 'todo', tries: 0, pills: [], tk: 0, cnt, cum, durs, offs, lanes: rp.lane != null ? [rp.lane] : rp.parts.map(c => laneOf(n, c, idx)), speed: rp.speed ?? 1, y0: rp.y0 ?? null, cap: rp.cap ?? null, say: rp.say ?? null, trap: !!rp.trap, reveal: rp.reveal ?? null } // lane / speed / cap / reveal — «Гонка с Питом»: своя дорожка, скорость, подпись внутри пилюли и слово, которое проявится при промахе
   })
-  const life = Math.max(0, ...reps.map(r => repLifeMs(r.offs.at(-1))))
-  return { t: 0, boost: step.boost ?? null, overlap, holdAll: !!step.holdAll, preSay: !!step.preSay, claimGap: step.claimGap ?? 0, preGap: step.preGap ?? 0, gapAt: step.goodAt ?? [], maxTries, leadIn, budget: budget ?? budgetOf(reps.length - from, life), reps, pills: [], nextId: 1, nextSpawn: 0, claimed: 0, locked: 0, failed: [], seenSeq: 0, seenMisses: 0, spentTail: null, finished: false, spawned: 0, waited: 0 }
+  const life = Math.max(0, ...reps.map(r => repLifeMs(r.offs.at(-1)) / Math.min(1, r.speed > 0 ? r.speed : 1))) // медленная пилюля (экзамен «Шкала памяти»: скорость 0,5) живёт на экране дольше — бюджет ступени считает её настоящую жизнь; раньше он считался по полной скорости конвейера, и при нескольких «не успел» подряд последнее слово блока экзамена не выезжало вовсе (время ступени «вышло»). Быстрые пилюли бюджет не уменьшают
+  return { t: 0, boost: step.boost ?? null, overlap, holdAll: !!step.holdAll, holdMax: step.holdMax > 0 ? step.holdMax : MAX_HOLD_MS, preSay: !!step.preSay, claimGap: step.claimGap ?? 0, preGap: step.preGap ?? 0, gapAt: step.goodAt ?? [], maxTries, leadIn, budget: budget ?? budgetOf(reps.length - from, life), reps, pills: [], nextId: 1, nextSpawn: 0, claimed: 0, locked: 0, failed: [], seenSeq: 0, seenMisses: 0, spentTail: null, finished: false, spawned: 0, waited: 0 }
 }
 
 /** Принять повтор rep: защёлкнуть куски, учесть паузу до следующего, событие claim (слово из итога или — «в последний момент» — из черновика, см. stepStudent) */
@@ -200,7 +200,7 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
   const early = hold && !!next?.pre && spawnEarly(pitMs, next.speed)   // «Гонка»: перевод уже говорят — пилюля выезжает ЗА время пути до 50 % до конца речи, чтобы Пит договорил ровно к её 50 % (wordLaneConveyorSpeed.spawnEarly)
   const wait = hold && !early && (g.holdAll || !(g.overlap && g.spawned > 0))  // очередь: Пит ждёт только первую пилюлю, следующие выезжают сразу; у «Разгона» (step.holdAll) ждут все — пока Пит не договорит реплику успеха
   g.waited = spawnReady && wait ? g.waited + dt * 1000 : 0
-  if (spawnReady && wait && g.waited <= MAX_HOLD_MS) g.budget += dt * 1000   // Пит говорит: пилюля выедет через паузу после его реплики (busyLeft включает её), а ожидание ступень не съедает; дольше MAX_HOLD_MS не ждём — пилюля выедет в любом случае
+  if (spawnReady && wait && g.waited <= (g.holdMax ?? MAX_HOLD_MS)) g.budget += dt * 1000   // Пит говорит: пилюля выедет через паузу после его реплики (busyLeft включает её), а ожидание ступень не съедает; дольше MAX_HOLD_MS не ждём — пилюля выедет в любом случае
   else if (spawnReady) {
     if (t >= g.budget) g.reps.forEach(r => { if (r.state === 'todo') r.state = 'lost' })   // время ступени вышло: недоигранное потеряно
     const rep = next?.state === 'todo' ? next : null   // время вышло — следующего уже нет

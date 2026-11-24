@@ -16,6 +16,7 @@ import { useShowDebugUi } from '../player/useShowDebugUi.js'
 // Экран итога на всю сцену (v3.3.118): заголовок «Встряхни память: итог», счёт проходов, метрики двумя строками, список слов от слабых к сильным (строка: слово, перевод, пометка, цвет по слабости — стиль «Моей памяти»; у каждого слова — полоса точности RaceAccuracyBar.jsx, raceAccuracy.js), кнопки внизу.
 // Под кнопками — «⬇ Скачать журнал игры · Скопировать» (RaceJournalLinks.jsx), только при отладочном интерфейсе: journal — dbg.enabled игры (RaceActs), или админ / player_debug_ui (useShowDebugUi, как «⬇ лог» в шапке).
 const mark = d => (d === 'ok' ? '✓' : d === 'miss' ? '✗' : '—')
+const EXAM_PIT = { free: 'свободен', mid: 'свободен', stay: 'остался в коробке' } // исход экзамена «Шкала памяти» (boss/bossTrophies.js): строки «Экзамен: трофеи N из M», «Забрала Мия K», «Пит …» — только если экзамен был (result.exam)
 
 export default function RaceSummary({ plan, result, onAgain = null, onShown = null, onDone, journal = false }) {
   const showJournal = useShowDebugUi() || journal
@@ -43,6 +44,9 @@ export default function RaceSummary({ plan, result, onAgain = null, onShown = nu
         {r?.phrasesTotal > 0 && <div><dt>Фразы</dt><dd data-testid="race-summary-phrases">{`${r.phrasesOk}/${r.phrasesTotal}`}</dd></div>}
         {!twoStages && <div><dt>Вершина</dt><dd data-testid="race-summary-climb" data-medal={r?.medal}>{r ? climbTitle(r) : '…'}</dd></div>}
         {!twoStages && <div><dt>Спуск</dt><dd data-testid="race-summary-descent">{r ? mark(r.descent) : '…'}</dd></div>}
+        {r?.exam && <div><dt>Экзамен: трофеи</dt><dd data-testid="race-summary-exam">{`${r.exam.got} из ${r.exam.max}`}</dd></div>}
+        {r?.exam && <div><dt>Забрала Мия</dt><dd data-testid="race-summary-exam-mia">{r.exam.lost}</dd></div>}
+        {r?.exam && <div><dt>Пит</dt><dd data-testid="race-summary-exam-pit" data-outcome={r.exam.outcome}>{EXAM_PIT[r.exam.outcome]}</dd></div>}
         <div><dt>XP</dt><dd data-testid="race-summary-xp">{r ? `+${r.xp}${r.capped ? ' (потолок дня)' : ''}` : '…'}</dd></div>
       </dl>
       <RaceMetrics metrics={r?.metrics} />

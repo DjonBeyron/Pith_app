@@ -57,7 +57,8 @@ describe('финал в стадиях гонки', () => {
     expect(bossFill(st, s, 3)).toBe(i); const all = [...r.words, ...st[i + 3].words]; expect(all.map(w => w.text)).toContain(sp.words[0].text); expect(r.step.reps).toHaveLength(r.words.length); expect(st[i].empty).toBe(false)
     expect(r.words.length).toBe(Math.ceil(all.length / 2)); expect(st[i + 3].offset).toBe(r.words.length); expect(st[i + 3].step.lang).toBe('ru'); expect(st[i + 3].step.chunks).toEqual(st[i + 3].words.map(w => w.translation)) // половина английских слов, вторая половина — русские: цель — перевод
     expect(miaSkip(st, i, { phase: 'off' })).toBe(i)
-    st[i].empty = r.empty = st[i + 2].empty = st[i + 3].empty = st[i + 4].empty = true; expect(miaSkip(st, i, { phase: 'off' }, j => j)).toBe(i + 5) // мало слов — обходятся церемония, оба круга, переключение и эпилог
+    expect(st[i - 1]).toMatchObject({ sid: 'boss-intro-ann', mia: 'intro', always: true }); expect(st[i - 1].empty).toBe(false) // заставка экзамена — стадия эпизода Мии: при «начать с этапа» не получает ноты и зарядку бара стартовой плашки
+    st[i - 1].empty = st[i].empty = r.empty = st[i + 2].empty = st[i + 3].empty = st[i + 4].empty = true; expect(miaSkip(st, i - 1, { phase: 'off' }, j => j)).toBe(i + 5) // мало слов — обходятся заставка, церемония, оба круга, переключение и эпилог
   })
 })
 
@@ -107,13 +108,14 @@ describe('финал: сценарий Мии, красные слова, «ос
   const finish = events => { let m = reduceMia(start().mia, { t: 'enter', stage: round }).mia; for (const e of events) m = reduceMia(m, { stage: round, ...e }).mia; return reduceMia(m, { t: 'enter', stage: end, now: 9000 }) }
   it('ничего не ответил на все слова — Пит остаётся внутри (красные считаются от слов, которых не назвали верно: события «не успел» не нужны)', () => {
     const r = finish([]); expect(r.mia).toMatchObject({ phase: 'in', reds: 6, keep: true }); expect(ids(r)).toEqual(['boss_mia_stay', 'boss_pit_keep']); expect(r.mia.solo).toBeFalsy(); // + Пит «приходи завтра, вытащи меня» // владелец 2026-11-22: в экзамене Мия остаётся на коробке и про уход не говорит, Пит наружу не просится (было с v3.3.290: boss_mia_keep + solo keep)
-    expect(r.log).toContain('неверно или не названо 6 (нужно 1)'); expect(r.log).toContain('красных 6'); expect(r.log).toContain('Пит остаётся в коробке')
+    expect(r.log).toContain('неверно или не названо 6'); expect(r.log).toContain('трофеи 0 из 120 (0 %), у Мии 120'); expect(r.log).toContain('Пит остаётся в коробке')
   })
-  it('хоть одно слово неверно или не названо (v3.3.295) — Пит остаётся (Мия сидит на коробке); все названы верно — Мия отпускает; верный ответ в красной зоне — верный', () => {
-    expect(finish([{ t: 'win', idx: 0 }, { t: 'zone', zone: 'fast' }]).mia).toMatchObject({ keep: true, phase: 'in', solo: null })
-    const five = finish([0, 1, 2, 3, 4].flatMap(i => [{ t: 'win', idx: i }, { t: 'zone', zone: 'fast' }])); expect(five.mia).toMatchObject({ keep: true, phase: 'in' }) // пять из шести: одно слово не названо — остаётся
-    const all = finish([0, 1, 2, 3, 4, 5].flatMap(i => [{ t: 'win', idx: i }, { t: 'zone', zone: i % 2 ? 'mid' : 'fast' }])); expect(all.mia).toMatchObject({ keep: false, phase: 'out' }); expect(ids(all)).toEqual(['boss_mia_free', 'boss_mia_bye', 'boss_pit_well']); expect(all.log).toContain('Мия отпускает Пита')
-    const red = finish([0, 1, 2, 3, 4, 5].flatMap(i => [{ t: 'win', idx: i }, { t: 'zone', zone: 'slow' }])); expect(red.mia).toMatchObject({ keep: false, reds: 6 }) // все названы, пусть и в красной зоне: коробка уходит с Мией
+  it('исход — по доле трофеев (правила 2026-11-24; было с v3.3.295: хоть одно слово неверно — Пит остаётся): мало собрано — Пит остаётся (Мия сидит на коробке); ≥ 70 % — Мия отпускает и уходит ПОСЛЕ своей последней реплики; верный ответ в красной зоне — верный, но трофеев почти не даёт', () => {
+    expect(finish([{ t: 'win', idx: 0 }, { t: 'zone', zone: 'fast' }]).mia).toMatchObject({ keep: true, phase: 'in', solo: null }) // одно слово из шести — 16 %
+    const five = finish([0, 1, 2, 3, 4].flatMap(i => [{ t: 'win', idx: i }, { t: 'zone', zone: 'fast' }])); expect(five.mia).toMatchObject({ keep: false, phase: 'in', outcome: 'free' }) // пять из шести зелёных — 83 %: Пит свободен (было keep: true)
+    const all = finish([0, 1, 2, 3, 4, 5].flatMap(i => [{ t: 'win', idx: i }, { t: 'zone', zone: i % 2 ? 'mid' : 'fast' }])); expect(all.mia).toMatchObject({ keep: false, phase: 'in', bye: 'boss_mia_bye' }); expect(ids(all)).toEqual(['boss_mia_free', 'boss_mia_bye']); expect(all.log).toContain('трофеи 90 из 120 (75 %), у Мии 30'); expect(all.log).toContain('Мия уходит с коробкой') // было: phase out сразу и реплика Пита с задержкой 2,8 с — теперь Мия уходит по событию bye
+    const gone = reduceMia(all.mia, { t: 'bye', id: 'boss_mia_bye', now: 12000 }); expect(gone.mia).toMatchObject({ phase: 'out', why: 'end', at: 12000, bye: null }); expect(ids(gone)).toEqual(['boss_pit_well'])
+    const red = finish([0, 1, 2, 3, 4, 5].flatMap(i => [{ t: 'win', idx: i }, { t: 'zone', zone: 'slow' }])); expect(red.mia).toMatchObject({ keep: true, reds: 6, outcome: 'stay' }) // все названы, но в красной зоне: 15 % трофеев — Пит остаётся (было keep: false)
   })
   it('эпилог boss-end: Пит остался в коробке — коробка стоит под итогом (без мигания Пита без коробки)', () => {
     const kept = finish([]); expect(reduceMia(kept.mia, { t: 'enter', stage: summary, now: 20000 })).toMatchObject({ mia: { phase: 'in', keep: true }, say: [] })
@@ -148,7 +150,7 @@ describe('повторный вход в церемонию (пауза и «П�
   it('директор: повторный вход сбрасывает очередь речи и пример (stop), три ноты ждут только очередь речи; пример по длительностям реплик; конвейер на объяснении как в круге финала', () => {
     const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8'), me = readFileSync(new URL('../mia/useMiaEnter.js', import.meta.url), 'utf8')
     expect(me).toContain("if (running.mia === 'ann' && mb.m.phase === 'in' && mb.m.act === running.act) mspeech.stop()")
-    expect(src).toContain('countWait: () => (mspeech.pending() > 0 || revBack.busy ? 1 : 0)'); expect(src).toContain("sp.msOf(id)"); expect(src).toContain('demoPlan(')
+    expect(src).toContain('countWait: () => (mspeech.pending() > 0 || revBack.busy ? 1 : 0)'); expect(src).toContain('useExamSpeech(lines)'); { const sp = readFileSync(new URL('./useExamSpeech.js', import.meta.url), 'utf8'); expect(sp).toContain('sp.msOf(id)'); expect(sp).toContain('demoPlan(') } // очередь речи и пример вынесены из директора в boss/useExamSpeech.js
     expect(readFileSync(new URL('../../player/modules/rotate-phone/WordLaneGame.jsx', import.meta.url), 'utf8')).not.toContain('miaDemoSpeed') // конвейер на объяснении — как в круге финала
     expect(readFileSync(new URL('../../../styles/player/modules/race-bar.css', import.meta.url), 'utf8')).toContain('z-index: 50')
   })

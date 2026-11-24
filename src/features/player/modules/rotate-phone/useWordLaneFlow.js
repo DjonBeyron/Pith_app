@@ -4,7 +4,7 @@ import { createRmsLevel } from '../../../../shared/lib/vosk/sayVoskLevel.js'
 import { createWordListener } from './wordLaneListen.js'
 import { speakWord, playTrack, stopVoice } from './wordLaneVoice.js'
 import { playNote, releaseNotes } from './wordLaneNotes.js'
-import { buildStages, listenStepOf } from './wordLaneStages.js'; import { useBuiltLabels } from './useLaneLabels.js'; import { getBossZoneNow, xpAllowed, failMute } from '../../../pitrace/boss/bossZoneNow.js'
+import { buildStages, listenStepOf } from './wordLaneStages.js'; import { useBuiltLabels } from './useLaneLabels.js'; import { bossXp, failMute } from '../../../pitrace/boss/bossZoneNow.js'
 import { stepTargets, textOf } from './wordLaneRecipe.js'
 import { clipsFor, playSpan, estChunkMs } from './wordLaneAudio.js'
 import { playClip, playWordSlot, releaseClips, speechOfUrl, wordBufferMs } from './wordLaneClips.js'
@@ -103,7 +103,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       sceneAnswer('win', rep); rh.rec('win', { ...rep, order }); if (playNote(order)) { listenerRef.current?.mute(900); dbg.note('note'); scenePush('note', { order }) }
       catApi?.current?.react('love', 1600)
       catApi?.current?.peek?.()
-      if (rep.last && !rep.res?.noXp && !(stages[sRef.current.idx]?.silent && !xpAllowed(getBossZoneNow()))) { xpApi.current?.add(XP_PER_PILL * rep.count, rect, XP_ARRIVE_MS); return true } // у повтора из нескольких кусков одна цифра («+6»), когда принят последний кусок; true — пилюля летит в счётчик (wordLaneRiseXp), число прибавляется и идёт вверх от счётчика, когда она долетела (XP_ARRIVE_MS)
+      if (rep.last && !rep.res?.noXp) { xpApi.current?.add(stages[sRef.current.idx]?.silent ? bossXp() : XP_PER_PILL * rep.count, rect, XP_ARRIVE_MS); return true } // экзамен (silent): трофеи слова по зоне шкалы (pitrace/boss/bossTrophies.js), а не обычные XP_PER_PILL; // у повтора из нескольких кусков одна цифра («+6»), когда принят последний кусок; true — пилюля летит в счётчик (wordLaneRiseXp), число прибавляется и идёт вверх от счётчика, когда она долетела (XP_ARRIVE_MS)
     },
     miss(e) { rh.rec('miss', e?.rep); sceneAnswer('miss', e?.rep); const face = missFace(plan?.game === 'race'); if (face) catApi?.current?.react(face, 1300, !!stages[sRef.current.idx]?.step?.quiet) }, claim(e) { rh.claim?.(e.rep, e.ms, e.y); sceneClaim(e) }, pre(e) { rh.pre?.(e.rep, e) }, spawn(e) { rh.spawn?.(e); scenePill(e) }, // гонка (spawn — выезд пилюли: журнал переходов raceTransChron.js): на промах Пит не меняет лицо (missFace, wordLaneCatPeek.js)
     fail(e) {

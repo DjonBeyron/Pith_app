@@ -60,7 +60,7 @@ describe('один залп искр и одна цифра XP на повтор
     expect(wins).toHaveLength(3)
     expect(wins.map(w => w.last)).toEqual([false, false, true])
     const flow = read('./useWordLaneFlow.js')
-    expect(flow).toContain('if (rep.last && !rep.res?.noXp && !(stages[sRef.current.idx]?.silent && !xpAllowed(getBossZoneNow()))) { xpApi.current?.add(XP_PER_PILL * rep.count, rect, XP_ARRIVE_MS); return true }')
+    expect(flow).toContain('if (rep.last && !rep.res?.noXp) { xpApi.current?.add(stages[sRef.current.idx]?.silent ? bossXp() : XP_PER_PILL * rep.count, rect, XP_ARRIVE_MS); return true }') // экзамен: трофеи слова по зоне (правила 2026-11-24)
   })
 
   it('XP: счётчик и цифры живут в своём компоненте — награда не перерисовывает оверлей', () => {

@@ -66,7 +66,7 @@ describe('miaOn: включатель эпизода', () => {
 describe('игра: события раунда идут в машину Мии', () => {
   it('useRaceActs подключает машину: вход в стадию, win / miss / fail, вид mia в результате хука', () => {
     const src = read('./useRaceActs.js')
-    expect(src).toContain('useMiaEnter({ running, at, mb, mspeech, setMiaView, log: pLog })'); expect(src).toContain('miaEvent({ t: kind, stage: running, idx: info?.idx })'); expect(src).toContain('mia: miaView, miaCap, miaTalk'); expect(src).toContain('mspeech.enqueue(r.say)')
+    expect(src).toContain('useMiaEnter({ running, at, mb, mspeech, setMiaView, log: pLog })'); expect(src).toContain('miaEvent({ t: kind, stage: running, idx: info?.idx,'); expect(src).toContain('mia: miaView, miaCap, miaTalk'); expect(src).toContain('mspeech.enqueue(r.say)')
     expect(src).toContain("!(kind === 'win' && info?.last === false)")
   })
   it('ступени очереди несут step.boost = { k: 1 }; движок читает его', () => {

@@ -26,7 +26,7 @@ describe('финал: пилюля выезжает до слова Пита', (
 
 describe('Мия и Пит', () => {
   it('реплика Мии на «не успел» в финале идёт ПЕРВОЙ, без задержки (владелец 2026-11-22; было — после слова Пита, MISS_AT ≥ 1,5 с)', () => {
-    expect(BOSS.MISS_AT).toBeUndefined(); expect(rd('../mia/raceMia.js')).toContain("[line(variantOf('boss_mia_miss', m.hits + 1), 'mia'), ...(told ?")
+    expect(BOSS.MISS_AT).toBeUndefined(); expect(rd('./bossMia.js')).toContain("[line(MISS_LINE[missWhy(m, gi, ev)], 'mia'), ...(told ?") // колкость по причине (было: по кругу variantOf), круг экзамена — в boss/bossMia.js
   })
   it('Мия ушла по трём верным: следующее слово круга не выезжает и не озвучивается до перехода (pitLeft = LOCK_MS)', () => {
     expect(rd('../useRaceActs.js')).toContain('pitLeft: () => (leftByWin ? LOCK_MS :')

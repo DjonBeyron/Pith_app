@@ -5,7 +5,10 @@ import { BOSS } from '../mia/raceMia.js'
 import { SWITCH_MS } from '../raceSwitch.js'
 
 export const BOSS_WAIT_CAP_MS = 70000 // страховка: три ноты ждут конца объяснения не дольше (Пит и «помолчи» ≈ 8 с, пример 15,75 с, последние реплики ≈ 8 с)
-export const BOSS_END_MS = 18000 // эпилог финала держится столько (реплики Мии и Пита, уход Мии с коробкой)
+export const BOSS_END_MS = 1200  // эпилог экзамена: минимум стадии; на деле её держит РЕАЛЬНЫЙ конец речи Мии и Пита и уход Мии (boss/examEndWait.js), а не расчёт по длинам реплик
+export const BOSS_EXIT_MS = 700   // пауза выхода из круга экзамена (к смене языка и к концу): принятая пилюля уже улетает вверх и звучит нота награды; общая пауза конца круга 1,3 с оставляла после них тишину ≈ 1,3 с до реплики Мии
+export const BOSS_SAY_TAIL_MS = 100 // стадия смены языка: столько после оценки длины реплики Мии; дальше пилюлю держит сама очередь речи (реальный конец звука + пауза очереди)
+export const BOSS_HOLD_MAX_MS = 20000 // сколько пилюля экзамена ждёт конца речи (колкость Мии → «это значит» + слово → «Следующее слово»): с запасом на длинную озвучку; общий потолок движка — 8 с (wordLaneStudent.MAX_HOLD_MS)
 
 // Финал «Шкала памяти» (CONCEPT_RACE.md, «Финал»; владелец 2026-11-14) → стадии акта boss. Проводит Мия (эпизод mia/raceMia.js): церемония `boss-ann` (коробка падает на Пита, Мия запрыгивает,
 // Пит начинает репликой pit_forgot, три ноты — после речи Мии) и круг `boss`: слова — слабые слова этой игры (bossWords.js, вписывает директор перед входом), по одному на одной широкой ленте по центру,
@@ -15,13 +18,14 @@ export function bossStages(kit, act, o = {}) {
   const { push, announce, plan } = kit
   const words = act.words.map((w, idx) => ({ ...w, idx, lane: 1, speed: BOSS_SPEED }))
   announce(act, { sid: 'boss-intro', brief: act.brief, look: { cat: 'mia' }, line: null, ms: MIA_INTRO_MS }) // плашка финала «Шкала памяти» с мини-описанием, серая (кот Мия); дальше — церемония Мии без плашки (владелец 2026-11-17)
+  Object.assign(kit.stages.at(-1), { mia: 'intro', always: true }) // стадия эпизода Мии (как `…3-intro-ann` «Допроса»): при «начать с этапа» она первая в списке и НЕ должна получить ноты и зарядку бара стартовой плашки (raceStages: first.mia) — иначе церемония оставалась без нот, длилась 1,2 с, и слова экзамена выезжали поверх объяснения Мии
   announce(act, { sid: 'boss', title: '', task: '', line: null, ms: MIA_ANN_MS, look: { cat: 'mia' } })
   Object.assign(kit.stages.at(-1), { mia: 'ann', miaPlate: { title: act.title, brief: act.brief }, always: true, waitCap: BOSS_WAIT_CAP_MS, script: 'boss', demoRun: true, dropAt: BOSS.DROP_AT, jumpAt: BOSS.JUMP }) // свой сценарий (boss_*): коробка падает почти сразу, Мия прыгает после реплик Пита и её из-за края
   // Блок слов: ru — пилюля с английским словом, ученик называет русское (русская модель Vosk), иначе пилюля с переводом, ученик называет английское слово; offset — номер первого слова блока в общем счёте (машина Мии)
   const round = (list, b = {}) => {
     const sid = b.sid ?? 'boss', ru = !!b.ru, good = goodPlan(plan.seed, sid, list.length, { first: !b.offset })
     const rep = ru ? w => ({ cap: w.text, say: w.text }) : w => ({ cap: w.translation, say: w.translation })
-    return { type: 'student', act: act.id, sid, mia: 'round', noBoost: true, noLeave: true, silent: true, ...(ru ? { always: true } : {}), offset: b.offset ?? 0, words: list, good, step: { ...queueStep(kit, sid, list, good, rep, ru ? { target: w => w.translation, lang: 'ru' } : {}), wide: true, overlap: false } }
+    return { type: 'student', act: act.id, sid, mia: 'round', noBoost: true, noLeave: true, silent: true, ...(ru ? { always: true } : {}), offset: b.offset ?? 0, words: list, good, step: { ...queueStep(kit, sid, list, good, rep, ru ? { target: w => w.translation, lang: 'ru' } : {}), wide: true, overlap: false, holdMax: BOSS_HOLD_MAX_MS } }
   }
   const split = o.voice && words.length >= 2 // финал-экзамен: половина слов — английские (ответ по-английски), половина — русские (ответ по-русски); русской модели нет — все английские
   const k = split ? Math.ceil(words.length / 2) : words.length

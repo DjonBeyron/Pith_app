@@ -136,8 +136,9 @@ describe('переопределение доходит до речи', () => {
     }
     expect(gapOf()).toBe(350); expect(knobs()).toEqual([{ key: 'mia.gap', ms: 350, from: 'mia_push', until: 'mia_announce_1' }])
     setPauseOverrides({ 'mia.gap': 950 }); expect(gapOf()).toBe(950); expect(miaGap()).toBe(950)
-    const hold = () => endHoldMs({ act: 'boss', ms: 99999, mia: 'end' }, { m: miaInit() }, { msOf: () => 3000 })
-    const long = hold(); resetPauses(); expect(long - hold()).toBe(1200) // экзамен сдан: две реплики Мии подряд (вот твои трофеи → коробка пригодится) и Пит — две паузы очереди по 600 мс
+    const hold = () => endHoldMs({ act: 'catch', ms: 99999, mia: 'end' }, { m: { ...miaInit(), rtotal: 1, rwon: { 0: true } } }, { msOf: () => 3000 })
+    const long = hold(); resetPauses(); expect(long - hold()).toBe(600) // «Допрос» пройден: оценка конца круга считает ту же паузу очереди (950 − 350). Экзамен оценкой больше не держится: его конец ведёт реальный конец речи (boss/examEndWait.js)
+    expect(endHoldMs({ act: 'boss', ms: 1200, mia: 'end' }, { m: miaInit() }, { msOf: () => 3000 })).toBe(1200)
   })
   it('boss.pit1At — срок первой реплики Пита в экзамене и сдвиг речи Мии за ней', () => {
     const cue = () => reduceMia(miaInit(), { t: 'enter', now: 0, stage: { mia: 'ann', act: 'boss', script: 'boss', sid: 'boss-ann' } }).say.find(c => c.who === 'pit')

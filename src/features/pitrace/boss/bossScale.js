@@ -52,11 +52,14 @@ export const DEMO_START = 'boss_mia_look'
 export const DEMO_IDS = ['boss_mia_look', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five'] // правка владельца 2026-11-24: think склеена с look
 export const DEMO_FROM = -0.75               // где пилюля ждёт (над шкалой, за верхним краем экрана)
 export const DEMO_OUT = 1.25                 // куда улетает (за нижний край экрана)
-export const DEMO_GAP_MS = 350               // пауза очереди речи между репликами (miaSpeech.GAP_MS)
+export const DEMO_GAP_MS = 350               // пауза очереди речи между репликами по умолчанию (miaSpeech.GAP_MS); игра передаёт действующую настройку mia.gap (useExamSpeech)
 export const DEMO_MOVE_MS = 650              // сколько занимает переход к центру следующей зоны: плавно (smoothstep), но быстро
 export const DEMO_CENTERS = ZONES.map((z, i) => (EDGES[i] + z.to) / 2) // центры зон: 0,225 / 0,625 / 0,9
 const smooth = x => { const u = Math.min(1, Math.max(0, x)); return u * u * (3 - 2 * u) }
 /** План примера по длительностям реплик ms = { look, green, yellow, red, five } (мс) → { total, pos(t), starts } — t в мс от начала реплики «видите шкалу справа?» */
+/** Сверка часов примера с РЕАЛЬНЫМ началом реплики k (green / yellow / red / five): t — часы примера сейчас → часы, как будто реплика началась по плану. Реплика началась позже плана — пилюля уже стоит в центре
+ *  зоны и ждёт (назад не едет); раньше — догоняет. На «условии» (five) пилюля уже улетает — назад её не возвращаем */
+export const demoSync = (plan, k, t) => { const s = plan?.starts?.[k]; return s == null ? t : k === 'five' ? Math.max(t, s) : s }
 export function demoPlan(ms, gap = DEMO_GAP_MS) {
   const starts = {}; let t = 0
   for (const k of ['look', 'green', 'yellow', 'red', 'five']) { starts[k] = t; t += ms[k] + gap }
@@ -78,7 +81,16 @@ export function zoneRgb(p) {
 }
 /** Реплики Мии, на которых загорается зона (мигает полупрозрачной заливкой), и реплики, с которых шкалу видно на церемонии («видите шкалу справа?» и дальше) */
 export const FLASH_LINES = { boss_mia_green: 'fast', boss_mia_yellow: 'mid', boss_mia_red: 'slow' }
-export const REVEAL_AT = 0.55 // доля длины реплики «Эй, вы за экраном, это экзамен для вашей памяти, шкала покажет…», на которой шкала начинает мигать (слова «шкала покажет»; было 0,45 на «видите шкалу»)
+export const REVEAL_AT = 0.55 // запасная доля длины реплики «…шкала покажет…», на которой шкала начинает мигать: только когда слова «шкала» в тексте реплики нет (обычный путь — revealAtMs ниже)
+export const REVEAL_WORD = 'шкал' // слово реплики, на котором шкала появляется («…шкала покажет…»)
+/** Когда на реплике «…шкала покажет…» показать шкалу, мс от РЕАЛЬНОГО начала её звука. line — запись реплики { text, words: [{ w, t, e }] (секунды в файле), duration }, ms — длина звука (по буферу).
+ *  Есть тайминги слов записи — момент слова «шкала» в файле; нет — доля по месту слова в тексте; слова в тексте нет — REVEAL_AT. Заменили озвучку — срок берётся из новой записи, числа под старый файл нет */
+export function revealAtMs(line, ms) {
+  const text = String(line?.text ?? '').toLowerCase(), w = (Array.isArray(line?.words) ? line.words : []).find(x => String(x?.w ?? '').toLowerCase().startsWith(REVEAL_WORD))
+  if (w && Number.isFinite(w.t) && line.duration > 0) return Math.round(ms * Math.min(1, Math.max(0, w.t / line.duration)))
+  const at = text.indexOf(REVEAL_WORD)
+  return Math.round(ms * (at >= 0 ? at / text.length : REVEAL_AT))
+}
 export const REVEAL_LINES = ['boss_mia_look', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five']
 /** talk — реплика Мии { id, key, ms } (miaSpeech.onSpeak) → { zone, key, ms } или null */
 export const flashOf = talk => (talk && FLASH_LINES[talk.id] ? { zone: FLASH_LINES[talk.id], key: talk.key, ms: talk.ms } : null)
