@@ -24,6 +24,7 @@ import TimelineOpenButton from '../../timeline/TimelineOpenButton.jsx'
 import GameVolumeBlock from './GameVolumeBlock.jsx'
 import GameSoundsBlock from './GameSoundsBlock.jsx'
 import GameTestBlock from './GameTestBlock.jsx'
+import OtherLinesAudit from './OtherLinesAudit.jsx'
 import SpeechMemo from './SpeechMemo.jsx'
 import SpeechCaptureMemo from './SpeechCaptureMemo.jsx'
 import '../../../styles/admin-speech.css'
@@ -84,6 +85,7 @@ export default function AdminSpeechTab() {
       <details className="aspOld" data-testid="speech-old">
       <summary className="aspOldSum">🗄 Старое — прежние проверки и настройки (нажми, чтобы открыть)</summary>
       <section className="aspBlock rhpBlock" data-testid="race-old-home"><h3 className="aspH">Встряхни память — старое (old), не в прод</h3><div ref={setOldSlot} data-testid="race-old-slot" /></section>
+      <OtherLinesAudit />
       <StartModeBlock />
       <GameVolumeBlock />
       <RehearsalPolishBlock />

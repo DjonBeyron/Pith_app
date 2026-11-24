@@ -58,3 +58,20 @@ describe('корень проблемы: правка текста реплик�
     expect(r.status).toBe('stale'); expect(r.note).toContain('Старая реплика Мии'); expect(r.note).toContain(MIA.text)
   })
 })
+
+const raceCatalog0 = () => CAT_LINES.filter(d => ['race_start', 'mia_push'].includes(d.id))
+
+describe('аудит делится на «Встряхни память» и другие игры (v3.3.356)', () => {
+  it('реплики других игр не попадают в аудит блока «Озвучка Пита», а в «Старом» они есть', async () => {
+    const { raceCatalog, otherCatalog, RACE_LINE_SET } = await import('./voiceAudit.js')
+    const ids = c => c.map(d => d.id)
+    expect(ids(raceCatalog())).toContain('race_start'); expect(ids(raceCatalog())).toContain('mia_push')
+    for (const id of ['round_discern', 'round_blind', 'well_done', 'rh2_shadow']) { expect(ids(raceCatalog())).not.toContain(id); expect(ids(otherCatalog())).toContain(id) }
+    expect(ids(raceCatalog()).length + ids(otherCatalog()).length).toBe(CAT_LINES.length)
+    expect(ids(raceCatalog()).every(id => RACE_LINE_SET.has(id))).toBe(true)
+  })
+  it('запись реплики другой игры не считается «лишней» в аудите гонки', () => {
+    const a = auditVoice({ lines: { well_done: { url: 'u', text: 'x', duration: 1 } } }, raceCatalog0(), CAT_LINES)
+    expect(a.orphans).toEqual([])
+  })
+})

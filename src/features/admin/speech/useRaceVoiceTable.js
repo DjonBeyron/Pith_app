@@ -9,7 +9,8 @@ import { RACE_LINES } from '../../pitrace/raceLines.js'
 import { transKey } from '../../pitrace/raceTrans.js'
 import { RACE_PHRASE_RU_KEY, RACE_PHRASE_SCENE_KEY, meaningMap, mergeMeanings } from './racePhraseMeaning.js'
 import { saveLineText } from './raceLineText.js'
-import { auditVoice } from './voiceAudit.js'
+import { CAT_LINES } from '../../player/modules/rotate-phone/wordLaneCatLines.js'
+import { auditVoice, raceCatalog } from './voiceAudit.js'
 import { lineRows, meaningVoiceRows, sceneVoiceRows, transVoiceRows, wholeRows, miaRows } from './raceVoiceTable.js'
 import { MIA_LINES, isMiaLine } from '../../pitrace/mia/miaLines.js'
 
@@ -54,7 +55,7 @@ export default function useRaceVoiceTable({ plan, list = RACE_LINES, onChange = 
     return subscribeWordAudio(setLib)
   }, [])
 
-  const audit = useMemo(() => auditVoice(raw), [raw])
+  const audit = useMemo(() => auditVoice(raw, raceCatalog(), CAT_LINES), [raw]) // только реплики «Встряхни память»; остальные игры — в «Старом»
   const groups = useMemo(() => {
     const meanings = meaningVoiceRows(plan, saved, lib), scenes = sceneVoiceRows(plan, savedScene, lib)
     return { whole: wholeRows(plan, lib), lines: lineRows(list, lines, audit.byId), mia: miaRows(MIA_LINES.filter(l => isMiaLine(l.id)), lines, audit.byId), pitMia: miaRows(MIA_LINES.filter(l => !isMiaLine(l.id)), lines, audit.byId), meanings, scenes, trans: transVoiceRows(plan, [...meanings, ...scenes], lib) }
