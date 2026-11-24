@@ -1,0 +1,66 @@
+/* «Таймлайн игры»: вкладка «Проверка 🎧» — проверка сценария из кода (features/timeline/check/TimelineCheck.jsx, TimelineScenario.jsx, ScenarioItem.jsx, ScenarioExtras.jsx) и итог проверки
+   реплики в карточке после сохранения (TimelineCheckNote.jsx). Блоки и строки реплик берут стили вкладки «Прослушать» (timeline-listen.css), цвета говорящих — переменные .tl. На 375 px всё в одну колонку. */
+.tlCkWrap { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.tlCkSrc { align-self: flex-start; flex-wrap: wrap; }
+.tlCk { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+/* строка-светофор */
+.tlCkTop { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 10px; border: 1px solid #2a2d35; border-left-width: 5px; background: #14161b; min-width: 0; }
+.tlCkTop[data-light='green'] { border-left-color: var(--tl-ok); }
+.tlCkTop[data-light='yellow'] { border-left-color: var(--tl-warn); }
+.tlCkTop[data-light='red'] { border-left-color: var(--tl-dead); }
+.tlCkSum { color: #fff; font-size: 15px; line-height: 1.35; overflow-wrap: anywhere; }
+.tlCkLights { display: flex; flex-wrap: wrap; gap: 6px; }
+.tlCkLight { padding: 3px 8px; border-radius: 999px; border: 1px solid #3a3f4b; color: #dfe3ea; font-size: 12px; text-decoration: none; white-space: nowrap; }
+.tlCkLight[data-light='red'] { border-color: var(--tl-dead); color: #ffb3b6; }
+.tlCkLight[data-light='yellow'] { border-color: var(--tl-warn); color: #f5dc9a; }
+.tlCkActs { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; color: #dfe3ea; font-size: 13px; overflow-wrap: anywhere; }
+.tlCkActs li[data-level='todo'], .tlCkActs li[data-level='warn'] { color: #ffb3b6; }
+.tlCkActs li[data-level='note'] { color: #f5dc9a; }
+.tlCkOnly { display: inline-flex; align-items: center; gap: 5px; color: #dfe3ea; font-size: 13px; cursor: pointer; }
+.tlCkGood { margin: 0; color: var(--tl-ok); font-size: 13px; }
+
+/* блок, часть, реплика */
+.tlCkBlock { scroll-margin-top: 8px; }
+.tlCkBlock[data-light='red'] { border-color: #6b2a2d; }
+.tlCkBlock[data-light='yellow'] { border-color: #6b5a25; }
+.tlCkPart { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.tlCkPart[data-kind='variants'] .tlLList, .tlCkPart[data-kind='branch'] .tlLList { padding-left: 8px; border-left: 2px dashed #4b5060; }
+.tlCkPart[data-alt='1'] { opacity: 0.85; }
+.tlCkPartHead { margin: 4px 0 0; color: #b9bdc7; font-size: 12px; overflow-wrap: anywhere; }
+.tlCkBadge { font-style: normal; padding: 1px 6px; border-radius: 999px; background: #2b3550; color: #cfd8f5; font-size: 11px; margin-right: 2px; }
+.tlCkAlt { background: #33363f; color: #b9bdc7; }
+.tlCkItem { border-left: 3px solid #4b5060; border-radius: 6px; min-width: 0; }
+.tlCkItem[data-who='pit'] { border-left-color: var(--tl-pit); }
+.tlCkItem[data-who='mia'] { border-left-color: var(--tl-mia); }
+.tlCkItem.tlCkOn, .tlCkItem[data-open='1'] { background: #20242d; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25); }
+.tlCkItem[data-tone='red'] .tlCkLine { background: rgba(229, 72, 77, 0.12); }
+.tlCkItem[data-tone='yellow'] .tlCkLine { background: rgba(245, 196, 81, 0.08); }
+.tlCkLine { display: flex; align-items: baseline; gap: 6px; width: 100%; padding: 6px 9px; text-align: left; font: inherit; color: #dfe3ea; background: none; border: 0; border-radius: 6px; cursor: pointer; min-width: 0; }
+.tlCkWho { flex: none; font-style: normal; font-weight: 700; }
+.tlCkItem[data-who='pit'] .tlCkWho { color: var(--tl-pit); }
+.tlCkItem[data-who='mia'] .tlCkWho { color: var(--tl-mia); }
+.tlCkText { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.tlCkText em { color: #8a8f9a; font-size: 12px; }
+.tlCkMeta { flex: none; color: #8a8f9a; font-size: 12px; white-space: nowrap; }
+.tlCkIcons { font-weight: 400; font-size: 14px; }
+.tlCkFine { color: var(--tl-ok); font-weight: 400; }
+.tlCkCard { display: flex; flex-direction: column; gap: 6px; padding: 4px 8px 8px; min-width: 0; }
+.tlCkFlags { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: #f5dc9a; overflow-wrap: anywhere; }
+.tlCkFlags li[data-level='todo'], .tlCkFlags li[data-level='warn'] { color: #ffb3b6; }
+
+/* риски, запас, лишние записи */
+.tlCkExtras { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.tlCkMore { padding: 8px 12px; border-radius: 10px; background: #14161b; border: 1px solid #2a2d35; min-width: 0; }
+.tlCkMore summary { cursor: pointer; color: #fff; font-weight: 600; overflow-wrap: anywhere; }
+.tlCkRisks { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #dfe3ea; overflow-wrap: anywhere; }
+.tlCkRisks li[data-status='bad'] { color: #ffb3b6; }
+.tlCkRisks li[data-status='edge'] { color: #f5dc9a; }
+
+/* итог проверки реплики в карточке после сохранения */
+.tlCkNote { margin: 0; padding: 7px 9px; border-radius: 8px; border: 1px solid #2a2d35; border-left-width: 4px; background: #0e1013; display: flex; flex-direction: column; gap: 4px; font-size: 13px; overflow-wrap: anywhere; }
+.tlCkNote[data-light='green'] { border-left-color: var(--tl-ok); }
+.tlCkNote[data-light='yellow'] { border-left-color: var(--tl-warn); }
+.tlCkNote[data-light='red'] { border-left-color: var(--tl-dead); }
+.tlCkNote b { color: #fff; }
+.tlCkNote ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; color: #dfe3ea; }

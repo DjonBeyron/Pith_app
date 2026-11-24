@@ -76,7 +76,7 @@ describe('паузы: «ждём игрока» и «игра молчит»', (
     expect(long.map(p => p.ms)).toEqual([3350, 1900, 3200])
     expect(long[0]).toMatchObject({ kind: 'dead', sid: 'sprint', act: 'sprint', stage: 'Конвейер слов — круг', before: { who: 'player', text: 'не успел «bring»' }, after: { who: 'pit', id: 'race_catch', text: 'Теперь наоборот, я говорю слово, а ты ловишь перевод', quoted: true } })
     expect(long[0].mid).toEqual(['Плашка: Конвейер слов (реверс)']) // плашка следующего круга вышла внутри паузы
-    expect(long[2]).toMatchObject({ before: { who: 'dictor', text: 'See you later', id: '' }, after: { who: 'pit', id: 'race_phrases_pick', note: 'без озвучки — подпись' }, sid: 'phrases1', stage: 'Фразы — круг 1 «Пойми»' })
+    expect(long[2]).toMatchObject({ before: { who: 'dictor', text: 'See you later', id: '' }, after: { who: 'pit', id: 'race_phrases_pick', note: 'без озвучки — подпись' }, sid: 'phrases1', stage: 'Фразы — круг 1 «Пойми» (вырезан)' })
   })
 
   it('порог — параметр: 1 с находит больше долгих пауз, 2 с — меньше; топ — самые длинные первыми', () => {
@@ -112,7 +112,7 @@ describe('сводка и текстовый отчёт', () => {
     expect(text[0]).toBe('== ТАЙМЛАЙН ИГРЫ ==')
     expect(text).toContain('   +12,860 с  Пит: «отличное произношение» (race_good_1, 1,5 с)')
     expect(text).toContain('   +52,120 с  Мия: «Быстро, быстро» (mia_fast, 1,6 с, без озвучки — подпись)')
-    expect(text).toContain('   +81,900 с  ⚠ пауза 3,2 с — игра молчит: перед: Диктор: «See you later»; после: Пит: «я описываю ситуацию, а ты тапни фразу, которая подходит» (без озвучки — подпись) [race_phrases_pick]; этап: Фразы — круг 1 «Пойми»')
+    expect(text).toContain('   +81,900 с  ⚠ пауза 3,2 с — игра молчит: перед: Диктор: «See you later»; после: Пит: «я описываю ситуацию, а ты тапни фразу, которая подходит» (без озвучки — подпись) [race_phrases_pick]; этап: Фразы — круг 1 «Пойми» (вырезан)')
     expect(text.slice(text.indexOf('1. 3,4 с на 0:31 (+31,300 с) — этап: Конвейер слов — круг [sprint]')).slice(1, 5)).toEqual(['   перед:  игрок: не успел «bring»', '           последняя реплика: Диктор: «приносить» — 3,7 с до паузы', '   после:  Пит: «Теперь наоборот, я говорю слово, а ты ловишь перевод» [race_catch]', '   внутри: началась стадия «Плашка: Конвейер слов (реверс)»'])
     expect(text.some(l => l.includes('Конвейер слов — реверс [catch]: 37,0 с; Пит 6,8 с, Мия 7,0 с'))).toBe(true)
     expect(reportLines(m, { dropped: 40 })[3]).toContain('начало трассы вытеснено (40 событий)')

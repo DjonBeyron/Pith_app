@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { stageInfo, stageTitle, actTitle, STAGE_NAMES, ACT_NAMES } from './timelineStageNames.js'
+import { stageInfo, stageTitle, actTitle, isCutStage, STAGE_NAMES, ACT_NAMES } from './timelineStageNames.js'
 import { buildRaceStages } from '../pitrace/raceStages.js'
 import { RACE_ROUNDS, STAGES_ROUND } from '../pitrace/raceOnly.js'
 import { fixturePlan, FIXTURE_IDS } from '../rehearsal/rehearsalFixtures.js'
@@ -26,7 +26,7 @@ describe('названия стадий для админа (sid → назва�
     expect(stageTitle('sprint-ann')).toBe('Плашка: Конвейер слов'); expect(stageTitle('sprint')).toBe('Конвейер слов — круг')
     expect(stageTitle('sprint3-ann')).toBe('Допрос у Мии — церемония (Мия забирает Пита)'); expect(stageTitle('sprint3-end')).toBe('Допрос у Мии — концовка')
     expect(stageTitle('catch3')).toBe('Допрос у Мии — круг (реверс)'); expect(stageTitle('catch-rev')).toBe('Разворот конвейера')
-    expect(stageTitle('phrases1')).toBe('Фразы — круг 1 «Пойми»'); expect(stageTitle('boss')).toBe('Шкала памяти — круг'); expect(stageTitle('summary')).toBe('Итог')
+    expect(stageTitle('phrases1')).toBe('Фразы — круг 1 «Пойми» (вырезан)'); expect(stageTitle('phrases2')).toBe('Фразы — круг «Скажи» (пальцами — «Узнай»)'); expect(isCutStage('phrases1')).toBe(true); expect(isCutStage('phrases1-ann')).toBe(true); expect(isCutStage('phrases2')).toBe(false); expect(isCutStage('phrases-ann')).toBe(false); expect(stageTitle('boss')).toBe('Шкала памяти — круг'); expect(stageTitle('summary')).toBe('Итог')
     expect(stageTitle('climb-7')).toBe('Вершина — ступень 7'); expect(stageTitle({ sid: 'climb-2', title: '' })).toBe('Вершина — ступень 2')
     expect(stageTitle('warmup-x')).toBe('warmup-x'); expect(stageTitle({ sid: 'lane-1', title: 'Разминка' })).toBe('lane-1 «Разминка»'); expect(stageInfo('toString')).toBeNull()
     expect(stageTitle(null)).toBe('до первой стадии'); expect(actTitle('catch')).toBe('Конвейер слов — реверс'); expect(actTitle('lane')).toBe('lane'); expect(actTitle('')).toBe('до первой стадии')

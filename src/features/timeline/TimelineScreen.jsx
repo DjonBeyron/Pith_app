@@ -23,7 +23,8 @@ import TimelineList from './TimelineList.jsx'
 import TimelineCard from './TimelineCard.jsx'
 import TimelinePausesTab from './TimelinePausesTab.jsx'
 import TimelineActs from './TimelineActs.jsx'
-import TimelineListen from './TimelineListen.jsx'
+import TimelineCheck from './check/TimelineCheck.jsx'
+import { checkScenario, LIGHT_ICON } from './check/scenarioCheck.js'
 import TimelineMontage from './montage/TimelineMontage.jsx'
 import { buildMontage } from './montage/montageModel.js'
 import { applyEdits, editsSummary } from './montage/montageEdits.js'
@@ -37,6 +38,7 @@ import '../../styles/timeline-pauses.css'
 import '../../styles/timeline-block.css'
 import '../../styles/timeline-line-edit.css'
 import '../../styles/timeline-listen.css'
+import '../../styles/timeline-check.css'
 
 // «Таймлайн игры» для админа (CONCEPT_TIMELINE.md): реальное прохождение «Встряхни память» на весь экран. Вкладки: «Монтаж» (монтажный стол — слои, клипы по реальной длине звука, зазоры тишины, указатель,
 // режим «Правка» с черновиком правок — montage/TimelineMontage.jsx; на ПК, ширина от WIDE_PX, экран открывается на ней), «Паузы» (на телефоне открывается первой: все паузы «игра молчит» дольше порога
@@ -46,6 +48,8 @@ import '../../styles/timeline-listen.css'
 // (useClipAudio: озвучка из текущих настроек обычным <audio>; на «Монтаже» и «Ленте» клип играет по нажатию). voices — { load() → { lines, lib } } (TimelineOpenButton; null — звука нет).
 // У реплики Пита / Мии в карточке — копирование, правка текста (меняет реплику ВЕЗДЕ: общие настройки реплик игры), «Озвучить заново», свой файл, «вернуть прежний текст» (useLineEdit + lineApi); в шапке —
 // «🎙 Нужно озвучить (N)» (TimelineVoiceTodo), на клипах монтажа — метка (voiceMarks). todo0 — список «Нужно озвучить» сразу раскрыт (тесты разметки).
+// Вкладка «Проверка 🎧» (check/TimelineCheck.jsx): проверка сценария ИЗ КОДА по текущим настройкам реплик (check/scenarioCheck.js — светофор на вкладке) и прослушивание — сценарий сейчас либо последняя игра;
+// работает и без единой игры (пустой экран показывает её же). check0 — { src0, only0, open0 } начальный вид проверки (тесты разметки, стенд).
 // Настройки пауз (usePauseKnobs + pauseApi): у тишины — «Чем задана эта тишина» с правкой, на столе — ⚙ у зазора, в шапке — «⚙ Настройки пауз» (TimelineKnobsPanel); knobs0 — панель сразу открыта (тесты разметки).
 // Черновик правок монтажа (useMontageDraft) живёт здесь: хранилище устройства (store — подмена для тестов), сервер (server.saveEdits, runs[i].edits); в отправку логов уходит файлом со списком правок.
 // Экран открывается ВНЕ игры и на неё не влияет: читает готовые события трассы. runs — прохождения этого устройства (sceneTrace.runs()); server — { read, save } (shared/api/timelineApi.js через
@@ -56,12 +60,12 @@ export const PHONE_SCALE = 0.025  // узкий экран: 25 px на секу�
 export const WIDE_PX = 900        // экран шире — открывается на «Монтаже»
 export const MONTAGE_SCALE = 0.05 // монтаж на ПК: 50 px на секунду — реплика в 1,8 с — клип 90 px с текстом
 export const MONTAGE_PHONE = 0.03
-const TABS = [['montage', 'Монтаж'], ['pauses', 'Паузы'], ['ribbon', 'Лента'], ['list', 'Список'], ['listen', '🎧 Прослушать']]
+const TABS = [['montage', 'Монтаж'], ['pauses', 'Паузы'], ['ribbon', 'Лента'], ['list', 'Список'], ['listen', 'Проверка 🎧']] // у «Проверки» перед названием — светофор сценария (✅ / 🟡 / 🔴)
 const vw = () => (typeof window === 'undefined' ? 0 : window.innerWidth)
 const LABEL_W = 62
 const EMPTY = { off: 'Игр в этом сеансе ещё не было — сыграй и вернись.', loading: 'Загружаю сохранённые игры с сервера…', ready: 'Игр в этом сеансе ещё не было, на сервере сохранённых игр тоже нет — сыграй и вернись.' }
 
-export default function TimelineScreen({ runs = [], onClose = null, send = null, tab0 = null, server = null, server0 = null, store = null, edit0 = false, voices = null, lineApi = null, todo0 = false, pauseApi = null, knobs0 = false }) {
+export default function TimelineScreen({ runs = [], onClose = null, send = null, tab0 = null, server = null, server0 = null, store = null, edit0 = false, voices = null, lineApi = null, todo0 = false, pauseApi = null, knobs0 = false, check0 = null }) {
   const srv = useTimelineServer(server, server0)
   const edit = useLineEdit(lineApi) // правка реплики из карточки: текст, озвучка, свой файл (lineApi — timelineLineApi.LINE_API; null — правки нет)
   const audio = useClipAudio(voices, undefined, edit?.lines ?? null)
@@ -85,6 +89,7 @@ export default function TimelineScreen({ runs = [], onClose = null, send = null,
   const list = useMemo(() => (m ? buildRows(m, pauses) : []), [m, pauses])
   const base = useMemo(() => (m ? buildMontage(m, thr) : null), [m, thr])
   const audit = edit?.audit ?? null
+  const check = useMemo(() => checkScenario({ audit, lines: edit?.lines, orphans: edit?.orphans }), [audit, edit?.lines, edit?.orphans]) // проверка сценария из кода по текущим настройкам реплик: после каждой правки реплики пересчитывается сама
   const todo = useMemo(() => (m && audit ? voiceTodo(m, audit) : null), [m, audit])
   const marks = useMemo(() => (m && audit ? voiceMarks(m, audit) : null), [m, audit])
   const knobs = usePauseKnobs({ run, api: pauseApi, store }) // настройки пауз: что дала какая настройка в этой игре, черновик значений, проба на устройстве и применение всем (pauseApi; null — только показ)
@@ -100,6 +105,7 @@ export default function TimelineScreen({ runs = [], onClose = null, send = null,
           <p>{st.status === 'error' ? `Игр в этом сеансе ещё не было, а сервер недоступен: ${st.error || 'нет ответа'}. Сыграй на этом устройстве или обнови позже.` : EMPTY[st.status]}</p>
           {hasServer && st.status !== 'loading' && <button type="button" className="tlBtn" onClick={srv.reload} data-testid="tl-reload">↻ Обновить с сервера</button>}
         </div>
+        {edit && <div className="tlBody"><p className="tlMuted">Сценарий и озвучку можно проверить и без игры:</p><TimelineCheck res={check} edit={edit} audio={audio} {...check0} /></div>}
       </div>
     )
   }
@@ -129,7 +135,7 @@ export default function TimelineScreen({ runs = [], onClose = null, send = null,
       <div className="tlBody" ref={bodyRef}>
         <div className="tlBar" data-testid="tl-bar">
           <div className="tlGroup" role="tablist">
-            {TABS.map(([k, t]) => <button key={k} type="button" role="tab" aria-selected={tab === k} className="tlChip" onClick={() => setTab(k)} data-testid={`tl-tab-${k}`}>{t}</button>)}
+            {TABS.map(([k, t]) => <button key={k} type="button" role="tab" aria-selected={tab === k} className="tlChip" onClick={() => setTab(k)} data-light={k === 'listen' ? check.light ?? undefined : undefined} data-testid={`tl-tab-${k}`}>{k === 'listen' && check.ready ? `${LIGHT_ICON[check.light]} ` : ''}{t}</button>)}
           </div>
           <div className="tlGroup" role="radiogroup" aria-label="Порог долгой паузы">
             <span className="tlMuted">долгая от</span>
@@ -154,7 +160,7 @@ export default function TimelineScreen({ runs = [], onClose = null, send = null,
         {tab === 'montage' && <TimelineMontage key={cur.key} base={base} draft={draft} scale0={vw() && vw() < 600 ? MONTAGE_PHONE : MONTAGE_SCALE} labelW={width < 600 ? 58 : 92} send={send ? (comment, opts, text) => send(comment, opts, report(), text) : null} edit0={edit0} label={cur.label} audio={audio} block={block} rows={list} lineEdit={edit} voiceMarks={marks} knobs={knobs} />}
         {tab === 'pauses' && <TimelinePausesTab key={cur.key} pauses={pauses} total={sum.dur} onGo={go} block={block} knobs={knobs} />}
         {tab === 'ribbon' && <TimelineRibbon m={m} pauses={pauses} scale={Math.max(scale, fit)} focus={focus} selected={sel} onPick={pickSeg} />}
-        {tab === 'listen' && <TimelineListen key={cur.key} m={m} audio={audio} />}
+        {tab === 'listen' && <TimelineCheck key={cur.key} m={m} res={check} edit={edit} audio={audio} {...check0} />}
         {tab === 'list' && <TimelineList rows={list} pauses={pauses} selected={sel} onPick={setSel} />}
         {tab === 'ribbon' && <p className="tlLegend">{[['pit', 'Пит'], ['mia', 'Мия'], ['dictor', 'диктор — слово, перевод, фраза голосом Пита'], ['silent', 'без озвучки (подпись)'], ['dead', 'игра молчит дольше порога']].map(([k, t]) => <span key={k}><i data-who={k} />{t}</span>)}</p>}
         {tab !== 'list' && tab !== 'montage' && tab !== 'listen' && <TimelineActs sum={sum} />}

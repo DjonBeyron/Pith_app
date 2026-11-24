@@ -11,13 +11,14 @@ const ofLine = l => (l.id === 'pit_forgot' ? { url: 'u', duration: 2 } : { url: 
 
 describe('актуальный текст (v3.3.360)', () => {
   const m2 = {
-    stages: [{ t: 0, end: 5000, sid: 'sprint3-ann', title: '' }, { t: 5000, end: 9000, sid: 'phrases-demo', title: '' }],
-    lines: [L(500, 'mia', 'mia_push', { text: 'СТАРЫЙ ТЕКСТ' }), L(1000, 'pit', 'pit_gone_old_id'), L(6000, 'mia', 'mia_push')],
+    stages: [{ t: 0, end: 5000, sid: 'sprint3-ann', title: '' }, { t: 5000, end: 9000, sid: 'phrases1', title: '' }, { t: 9000, end: 12000, sid: 'phrases2', title: '' }],
+    lines: [L(500, 'mia', 'mia_push', { text: 'СТАРЫЙ ТЕКСТ' }), L(1000, 'pit', 'pit_gone_old_id'), L(6000, 'pit', 'race_phrase_yes'), L(9500, 'pit', 'race_phrase_again')],
   }
   const b = listenBlocks(m2, l => ({ url: 'u', duration: 1, changed: l.text === 'СТАРЫЙ ТЕКСТ' }))
-  it('текст берётся из текущего каталога, удалённый id и вырезанный этап скрыты', () => {
-    expect(b).toHaveLength(1)
+  it('текст берётся из текущего каталога, удалённый id и вырезанный круг «Тапни фразу» (phrases1) скрыты, круг «Скажи» (phrases2) показан', () => {
+    expect(b).toHaveLength(2)
     expect(b[0].items.map(i => i.line.id)).toEqual(['mia_push'])
+    expect(b[1].title).toMatch(/Скажи/); expect(b[1].items.map(i => i.line.id)).toEqual(['race_phrase_again'])
     expect(b[0].items[0].line.text).toMatch(/Посиди в коробке/)
   })
 })
