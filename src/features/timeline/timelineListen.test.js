@@ -8,6 +8,19 @@ const m = {
 }
 const ofLine = l => (l.id === 'pit_forgot' ? { url: 'u', duration: 2 } : { url: l.id === 'mia_push' ? 'u2' : null, why: 'нет озвучки (подпись)' })
 
+describe('актуальный текст (v3.3.360)', () => {
+  const m2 = {
+    stages: [{ t: 0, end: 5000, sid: 'sprint3-ann', title: '' }, { t: 5000, end: 9000, sid: 'phrases-demo', title: '' }],
+    lines: [L(500, 'mia', 'mia_push', { text: 'СТАРЫЙ ТЕКСТ' }), L(1000, 'pit', 'pit_gone_old_id'), L(6000, 'mia', 'mia_push')],
+  }
+  const b = listenBlocks(m2, l => ({ url: 'u', duration: 1, changed: l.text === 'СТАРЫЙ ТЕКСТ' }))
+  it('текст берётся из текущего каталога, удалённый id и вырезанный этап скрыты', () => {
+    expect(b).toHaveLength(1)
+    expect(b[0].items.map(i => i.line.id)).toEqual(['mia_push'])
+    expect(b[0].items[0].line.text).toMatch(/Посиди в коробке/)
+  })
+})
+
 describe('блоки прослушивания: только «Встряхни память», по стадиям, в порядке игры', () => {
   const b = listenBlocks(m, ofLine)
   it('до первой стадии и две стадии; чужая реплика (well_done другой игры) и «без звука» не берутся', () => {

@@ -49,7 +49,7 @@ export default function TimelineListen({ m, audio, make }) {
                 <li key={x.key} ref={on ? nowRef : null} className={`tlLItem${on ? ' tlLOn' : ''}`} data-who={x.line.who} data-has={x.url ? '1' : '0'}>
                   <button type="button" className="tlLLine" disabled={!x.url} onClick={() => playFrom(blockItems(b), x.key)} title={x.url ? 'Играть блок с этой реплики' : x.why}>
                     <i className="tlLWho">{WHO[x.line.who]}</i> <span>{x.line.text || x.line.id}</span>
-                    {!x.url && <em className="tlMuted"> · нет озвучки</em>}
+                    {!x.url && <em className="tlMuted"> · нет озвучки</em>}{x.url && x.stale && <em className="tlRed"> · озвучка со старым текстом, переозвучить</em>}
                   </button>
                 </li>
               )
