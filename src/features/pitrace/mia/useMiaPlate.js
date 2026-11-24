@@ -4,7 +4,7 @@ import { ARR } from './miaMotion.js'
 // Плашка Мии («Допрос у Мии» / «Шкала памяти») показывается, только когда Мия говорит за кадром (владелец, v3.3.271): от первой реплики из-за правого края (mia_push, boss_mia_hush) до её прыжка
 // на коробку (jumpAt стадии — секунды от падения коробки, m.at; у обычной церемонии — ARR.JUMP). Пока плашка стоит, дорожки плавно желтеют и конвейер ускоряется (go → WordLaneGame / miaTint).
 // Раньше плашка шла отдельной стадией до церемонии и уходила раньше, чем Мия заговорила. Чистая часть — jumpMsAt: когда плашка гаснет (по часам performance.now).
-export const SPEED_ID = 'mia_attention' // «А вы, за экраном, слушайте внимательно» (вариант B владельца, v3.3.354; раньше — «ускоряю игру», v3.3.272): только с этой реплики дорожки желтеют и ускоряются
+export const SPEED_ID = 'mia_announce_2' // «Это не важно, я ускоряю игру…» (сценарий владельца 2026-11-24: склеены «А ты, за экраном…» и «Я ускоряю игру…»; v3.3.272): только с этой реплики дорожки желтеют и ускоряются
 export const OFFSCREEN_IDS = ['mia_push', 'boss_mia_hush'] // реплики Мии из-за правого края (она ещё не прыгнула): справа дуги звука (RaceMia.jsx)
 
 /** Когда (performance.now, мс) плашка гаснет: падение коробки at + секунды до прыжка jumpAt (по умолчанию ARR.JUMP) */
@@ -26,7 +26,7 @@ export function useMiaPlate({ talk, m, stage }) {
     const t = setTimeout(() => setOver(seq), Math.max(0, end - performance.now())) // момент прыжка: плашка гаснет
     return () => clearTimeout(t)
   }, [ann, end, seq])
-  const [fastSeq, setFastSeq] = useState(-1) // seq прихода, на котором Мия обратилась к ученику (mia_attention)
+  const [fastSeq, setFastSeq] = useState(-1) // seq прихода, на котором Мия сказала «ускоряю игру» (mia_announce_2)
   useEffect(() => {
     if (!ann || id !== SPEED_ID) return undefined
     const t = setTimeout(() => setFastSeq(seq), 0)

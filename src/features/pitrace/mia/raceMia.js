@@ -29,8 +29,8 @@ const none = m => ({ mia: m, say: [], boost: null })
 const leave = (m, now, why, say) => ({ mia: { ...m, phase: 'out', fast: false, at: now, why, seq: m.seq + 1 }, say, boost: 1 })
 /** На сколько мс раньше начинается речь Мии, если реплика Пита короче запаса: Мия начинает через BOSS.AFTER_PIT_MS после неё (владелец, v3.3.283: «после фразы Пита долгое молчание, и лишь потом Мия»); 0 — как раньше */
 export const bossShift = pitMs => (pitMs > 0 ? Math.min(0, pauseMs('boss.pit1At') + pitMs + BOSS.AFTER_PIT_MS - BOSS.HUSH_AT) : 0) // первая реплика Пита — настройка boss.pit1At (по умолчанию BOSS.PIT1_AT)
-const bossCeremony = (first, d = 0) => [line(first ? 'boss_pit_new' : 'boss_pit_1', 'pit', pauseMs('boss.pit1At')), line('boss_mia_hush', 'mia', BOSS.HUSH_AT + d), line('boss_mia_exam', 'mia', BOSS.HUSH_AT + d), ...['look', 'think', 'green', 'yellow', 'red', 'five'].map(k => line(`boss_mia_${k}`, 'mia', BOSS.LOOK_AT + d)), line('boss_pit_no', 'pit', BOSS.LOOK_AT + d)]
-const ceremony = () => [line('mia_push', 'mia', MIA.PUSH_AT), line('pit_panic', 'pit', MIA.PANIC_AT), line('mia_announce_1', 'mia', MIA.ANNOUNCE_AT), line('pit_reply', 'pit', MIA.REPLY_AT), line('mia_attention', 'mia', MIA.ANNOUNCE2_AT), line('mia_announce_2', 'mia', MIA.ANNOUNCE2_AT), line('mia_announce_3', 'mia', MIA.ANNOUNCE3_AT)]
+const bossCeremony = (first, d = 0) => [line(first ? 'boss_pit_new' : 'boss_pit_1', 'pit', pauseMs('boss.pit1At')), line('boss_mia_hush', 'mia', BOSS.HUSH_AT + d), ...['look', 'green', 'yellow', 'red', 'five'].map(k => line(`boss_mia_${k}`, 'mia', BOSS.LOOK_AT + d)), line('boss_pit_no', 'pit', BOSS.LOOK_AT + d), line('boss_mia_go', 'mia', BOSS.LOOK_AT + d)] // правка владельца 2026-11-24: exam и think склеены в look; после «Нет, только не это» Мия запускает слова
+const ceremony = () => [line('mia_push', 'mia', MIA.PUSH_AT), line('pit_panic', 'pit', MIA.PANIC_AT), line('pit_reply', 'pit', MIA.REPLY_AT), line('mia_announce_2', 'mia', MIA.ANNOUNCE2_AT), line('mia_announce_3', 'mia', MIA.ANNOUNCE3_AT)] // сценарий владельца 2026-11-24: «Посиди в коробке, пушистик…» (склеены push + announce_1) → Пит → «Это не важно, я ускоряю игру…» (склеены attention + announce_2) → условие
 
 /** Счёт финала по блокам (английские слова, потом русские): блок со смещением offset (номер его первого слова в общем счёте) считается заново, прежние блоки остаются; total — всего слов к концу блока */
 const silentBlock = (m, stage) => {
@@ -59,7 +59,7 @@ export function reduceMia(m, ev) {
       const { won, reds, missed, keep } = bossEnd(m) // красные — все слова, кроме верно названных не в красной зоне (молчание и ошибки тоже красные, даже если события «не успел» не дошли)
       const log = `финал кончился: слов ${m.total}, названо верно ${won} (из них в красной зоне ${m.redWins}), неверно или не названо ${missed} (нужно ${keepNeed()}), красных ${reds} — ${keep ? 'Пит остаётся в коробке' : 'Мия отпускает Пита'}`
       if (keep) return { mia: { ...m, reds, keep, fast: false, seq: m.seq + 1 }, say: [line('boss_mia_stay', 'mia'), line('boss_pit_keep', 'pit')], boost: 1, log } // владелец 2026-11-22: в экзамене Мия НЕ говорит «а я пошла» и остаётся на коробке, Пит наружу не просится (solo не ставится: try / stuck / free молчат) — коробка с Мией стоит под итогом. Снятие коробки учеником осталось у круга «Допрос у Мии» (circleEnd)
-      return { ...leave({ ...m, reds, keep }, now, 'end', [line('boss_mia_free', 'mia'), line('boss_pit_free', 'pit', 2800)]), log }
+      return { ...leave({ ...m, reds, keep }, now, 'end', [line('boss_mia_free', 'mia'), line('boss_mia_bye', 'mia'), line('boss_pit_well', 'pit', 2800)]), log }
     }
     if (m.phase === 'in' && m.keep && m.act === 'boss') return none(m) // Пит остался в коробке: она стоит под итогом до конца игры (раньше убиралась на экране итога — Пит на миг мигал без коробки)
     if (m.phase === 'in') return leave(m, now, 'end', [line('mia_end', 'mia'), line('pit_end', 'pit', 2400)]) // круг кончился: Мия отпускает Пита
@@ -76,7 +76,7 @@ export function reduceMia(m, ev) {
     if (t === 'zone') return { mia: { ...m, redWins: m.redWins + (ev.zone === 'slow' ? 1 : 0) }, say: [], boost: null }
     if (t === 'miss' || t === 'fail') { // miss — слово сказано неверно (пилюля ещё едет, ученик может поправиться: только красный счёт); fail — пилюля ушла: порядок речи (владелец 2026-11-22) — Мия коротко подкалывает → Пит «это значит» + верное слово (одна реплика очереди: word) → Пит «следующее слово» (если в блоке есть ещё слово) → новая пилюля и её слово; на слово — один раз
       const dig = t === 'fail' && !m.dug?.[gi], failed = { ...m.failed, [gi]: true }, w = stage.words?.[ev.idx ?? 0], ru = stage.step?.lang === 'ru', told = ru ? w?.translation : w?.text
-      const say = dig ? [line(variantOf('mia_miss', m.hits + 1), 'mia'), ...(told ? [{ ...line(HELP_LINES[Object.keys(m.dug ?? {}).length % HELP_LINES.length], 'pit'), word: told, ...(ru ? { ru: true } : {}) }] : []), ...((ev.idx ?? 0) + 1 < (stage.words?.length ?? 0) ? [line('boss_pit_next', 'pit')] : [])] : []
+      const say = dig ? [line(variantOf('boss_mia_miss', m.hits + 1), 'mia'), ...(told ? [{ ...line(HELP_LINES[Object.keys(m.dug ?? {}).length % HELP_LINES.length], 'pit'), word: told, ...(ru ? { ru: true } : {}) }] : []), ...((ev.idx ?? 0) + 1 < (stage.words?.length ?? 0) ? [line('boss_pit_next', 'pit')] : [])] : []
       return { mia: { ...m, streak: 0, hits: dig ? m.hits + 1 : m.hits, dug: dig ? { ...m.dug, [gi]: true } : m.dug, failed, reds: Object.keys(failed).length + m.redWins }, say, boost: null }
     }
     return none(m)

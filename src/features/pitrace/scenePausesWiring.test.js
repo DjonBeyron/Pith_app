@@ -137,7 +137,7 @@ describe('переопределение доходит до речи', () => {
     expect(gapOf()).toBe(350); expect(knobs()).toEqual([{ key: 'mia.gap', ms: 350, from: 'mia_push', until: 'mia_announce_1' }])
     setPauseOverrides({ 'mia.gap': 950 }); expect(gapOf()).toBe(950); expect(miaGap()).toBe(950)
     const hold = () => endHoldMs({ act: 'boss', ms: 99999, mia: 'end' }, { m: miaInit() }, { msOf: () => 3000 })
-    const long = hold(); resetPauses(); expect(long - hold()).toBe(600)
+    const long = hold(); resetPauses(); expect(long - hold()).toBe(1200) // экзамен сдан: две реплики Мии подряд (вот твои трофеи → коробка пригодится) и Пит — две паузы очереди по 600 мс
   })
   it('boss.pit1At — срок первой реплики Пита в экзамене и сдвиг речи Мии за ней', () => {
     const cue = () => reduceMia(miaInit(), { t: 'enter', now: 0, stage: { mia: 'ann', act: 'boss', script: 'boss', sid: 'boss-ann' } }).say.find(c => c.who === 'pit')

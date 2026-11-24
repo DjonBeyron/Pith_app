@@ -16,20 +16,20 @@ const brief = r => r.say.map(c => [c.who, c.id, c.word ?? '', c.delay ?? 0])
 describe('экзамен: порядок речи на ошибке и «не успел»', () => {
   it('«не успел» (fail): колкость Мии сразу → Пит «это значит» + несданное слово → Пит «следующее слово»', () => {
     const st = exam(), r = reduceMia(start(st), { t: 'fail', stage: st, idx: 0 })
-    expect(brief(r)).toEqual([['mia', 'mia_miss_1', '', 0], ['pit', HELP_LINES[0], 'meet', 0], ['pit', 'boss_pit_next', '', 0]])
+    expect(brief(r)).toEqual([['mia', 'boss_mia_miss_1', '', 0], ['pit', HELP_LINES[0], 'meet', 0], ['pit', 'boss_pit_next', '', 0]])
     expect(r.say[1].ru).toBeFalsy()
   })
   it('сказал неверно (miss): пока пилюля едет — тишина (ученик может поправиться); пилюля ушла — тот же порядок, один раз на слово; фраза помощи идёт по кругу', () => {
     const st = exam(), a = reduceMia(start(st), { t: 'miss', stage: st, idx: 0 })
     expect(a.say).toEqual([])
     const b = reduceMia(a.mia, { t: 'fail', stage: st, idx: 0 })
-    expect(b.say.map(c => c.id)).toEqual(['mia_miss_1', HELP_LINES[0], 'boss_pit_next'])
+    expect(b.say.map(c => c.id)).toEqual(['boss_mia_miss_1', HELP_LINES[0], 'boss_pit_next'])
     expect(reduceMia(b.mia, { t: 'fail', stage: st, idx: 0 }).say).toEqual([])
-    expect(reduceMia(b.mia, { t: 'fail', stage: st, idx: 1 }).say.map(c => c.id)).toEqual(['mia_miss_2', HELP_LINES[1], 'boss_pit_next'])
+    expect(reduceMia(b.mia, { t: 'fail', stage: st, idx: 1 }).say.map(c => c.id)).toEqual(['boss_mia_miss_2', HELP_LINES[1], 'boss_pit_next'])
   })
   it('последнее слово блока: «следующее слово» не говорится (дальше не слово, а Мия или конец)', () => {
     const st = exam(), r = reduceMia(start(st), { t: 'fail', stage: st, idx: 2 })
-    expect(r.say.map(c => c.id)).toEqual(['mia_miss_1', HELP_LINES[0]])
+    expect(r.say.map(c => c.id)).toEqual(['boss_mia_miss_1', HELP_LINES[0]])
   })
   it('русский блок: несданное слово — перевод (русская озвучка)', () => {
     const st = exam({ sid: 'boss2', offset: 3, step: { lang: 'ru' } }), m = reduceMia({ ...start(exam()), fast: true }, { t: 'enter', stage: st }).mia
@@ -41,7 +41,7 @@ describe('экзамен: порядок речи на ошибке и «не у
   })
   it('«Допрос у Мии» (не экзамен) : колкость Мии — когда пилюля ушла (на неверное слово при едущей пилюле молчит, v3.3.348), Пит ничего не добавляет', () => {
     const st = { mia: 'round', act: 'catch', sid: 'catch3', words: W }, m = reduceMia({ ...miaInit(), phase: 'in', act: 'catch' }, { t: 'enter', stage: st }).mia
-    expect(brief(reduceMia(m, { t: 'fail', stage: st, idx: 0 }))).toEqual([['mia', 'mia_miss_1', '', 0]])
+    expect(brief(reduceMia(m, { t: 'fail', stage: st, idx: 0 }))).toEqual([['mia', 'mia_miss_1', '', 0]]) // в «Допросе» прежние колкости (mia_miss_*), в экзамене — boss_mia_miss_* про трофеи
     expect(brief(reduceMia(m, { t: 'miss', stage: st, idx: 0 }))).toEqual([])
   })
 })
@@ -55,7 +55,7 @@ describe('экзамен: очередь речи играет пачку по �
     const advance = ms => { const end = t + ms; for (;;) { const next = [...timers.entries()].filter(([, v]) => v.at <= end).sort((a, b) => a[1].at - b[1].at)[0]; if (!next) break; t = next[1].at; timers.delete(next[0]); next[1].fn() } t = end }
     const cat = { busyLeft: () => Math.max(0, busy - t), holdBusy: ms => { busy = Math.max(busy, t + ms) }, sayLine: vi.fn((i, v, o) => { if (t < busy) return false; log.push(`${t} пит: ${i}`); busy = t + 1000; setTimer(() => o.onEnd(), 1000); return true }) }
     const sayText = vi.fn((text, o) => { log.push(`${t} пит-слово: ${text}${o.ru ? ' (ru)' : ''}`); busy = t + 900; o.onSay?.(900); setTimer(() => o.onEnd?.(), 900) })
-    const lines = { mia_miss_1: { text: 'Мимо', url: null }, boss_help_1: { text: 'это значит', url: 'h', duration: 1 }, boss_pit_next: { text: 'Следующее слово', url: null } }
+    const lines = { boss_mia_miss_1: { text: 'Мимо', url: null }, boss_help_1: { text: 'это значит', url: 'h', duration: 1 }, boss_pit_next: { text: 'Следующее слово', url: null } }
     const sp = createMiaSpeech({ now: () => t, setTimer, clearTimer, onCaption: () => {}, log: () => {}, trace: (k, p) => { if (k === 'line-start') log.push(`${t} мия: ${p.id}`) } })
     sp.use({ lines, cat, sayText, listener: { current: { mute: () => {} } } })
     return { sp, advance, log }
@@ -65,7 +65,7 @@ describe('экзамен: очередь речи играет пачку по �
     r.sp.enqueue(reduceMia(start(st), { t: 'fail', stage: st, idx: 0 }).say)
     r.advance(200); expect(r.sp.leftMs()).toBeGreaterThan(3000)
     r.advance(12000)
-    expect(r.log.map(s => s.replace(/^\d+ /, ''))).toEqual(['мия: mia_miss_1', 'пит: boss_help_1', 'пит-слово: meet', 'пит: boss_pit_next'])
+    expect(r.log.map(s => s.replace(/^\d+ /, ''))).toEqual(['мия: boss_mia_miss_1', 'пит: boss_help_1', 'пит-слово: meet', 'пит: boss_pit_next'])
     const at = r.log.map(s => Number(s.split(' ')[0])); expect([...at].sort((a, b) => a - b)).toEqual(at)
     expect(r.sp.pending()).toBe(0); expect(r.sp.leftMs()).toBe(0)
   })
@@ -88,7 +88,7 @@ describe('конец экзамена: Мия не «уходит», Пит не
   })
   it('экзамен без ошибок — как раньше: Мия уходит с коробкой', () => {
     const r = finish('boss', [0, 1, 2].map(idx => ({ t: 'win', idx })))
-    expect(r.say.map(c => c.id)).toEqual(['boss_mia_free', 'boss_pit_free']); expect(r.mia.phase).toBe('out')
+    expect(r.say.map(c => c.id)).toEqual(['boss_mia_free', 'boss_mia_bye', 'boss_pit_well']); expect(r.mia.phase).toBe('out')
   })
   it('«Допрос у Мии» — как раньше: «…а я пошла», Мия выпрыгивает одна, Пит просит помочь, коробку снимает ученик', () => {
     const r = finish('catch', [{ t: 'win', idx: 0 }, { t: 'fail', idx: 1 }])
@@ -118,7 +118,7 @@ describe('конец экзамена: Мия не «уходит», Пит не
   it('Б. провал: после вердикта Мии Пит из коробки говорит, что ждёт завтра, чтобы ему помогли выбраться; стадия-конец ждёт обе реплики (итог не выезжает поверх)', () => {
     const r = finish('boss', [{ t: 'fail', idx: 0 }])
     expect(r.say.map(c => [c.who, c.id])).toEqual([['mia', 'boss_mia_stay'], ['pit', 'boss_pit_keep']])
-    expect(miaLine('boss_pit_keep').text).toMatch(/завтра/); expect(miaLine('boss_pit_keep').text).toMatch(/вытащи|выбраться/); expect(miaLine('boss_pit_keep').text).toMatch(/ждать|жду/)
+    expect(miaLine('boss_pit_keep').text).toMatch(/завтра/); expect(miaLine('boss_pit_keep').text).toMatch(/жду/) // правка владельца 2026-11-24: «Я видел, как ты старался, у тебя неплохо получается, жду тебя завтра» (просьбы вытащить больше нет)
     const sp = { msOf: (id, who) => (id === 'boss_mia_stay' ? 3000 : id === 'boss_pit_keep' && who === 'pit' ? 5000 : 1000) }
     expect(endHoldMs({ act: 'boss', mia: 'end', ms: 18000, preWait: 500 }, { m: r.mia }, sp)).toBeGreaterThanOrEqual(500 + 3000 + 5000)
     expect(finish('boss', [0, 1, 2].map(idx => ({ t: 'win', idx }))).say.map(c => c.id)).not.toContain('boss_pit_keep')

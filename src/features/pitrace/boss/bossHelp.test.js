@@ -12,7 +12,7 @@ describe('финал: помощь Пита перед колкостью Мии
     const { reduceMia, miaInit } = await import('../mia/raceMia.js')
     const stage = { mia: 'round', silent: true, act: 'boss', words: [{ text: 'a', translation: 'а' }, { text: 'b', translation: 'б' }] }
     const m = reduceMia({ ...miaInit(), phase: 'in', act: 'boss' }, { t: 'enter', stage }).mia
-    expect(reduceMia(m, { t: 'fail', stage, idx: 0 }).say.map(c => [c.who, c.id, c.delay])).toEqual([['mia', 'mia_miss_1', 0], ['pit', HELP_LINES[0], 0], ['pit', 'boss_pit_next', 0]])
+    expect(reduceMia(m, { t: 'fail', stage, idx: 0 }).say.map(c => [c.who, c.id, c.delay])).toEqual([['mia', 'boss_mia_miss_1', 0], ['pit', HELP_LINES[0], 0], ['pit', 'boss_pit_next', 0]])
     expect(BOSS.MISS_AT).toBeUndefined()
   })
 })

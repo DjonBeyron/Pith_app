@@ -7,7 +7,7 @@ import { miaRows, lineRows } from './raceVoiceTable.js'
 import { MIA_LINES, isMiaLine } from '../../pitrace/mia/miaLines.js'
 
 // «Озвучка Пита»: группа «Эпизод Мия» (v3.3.230): строки реплик Мии и Пита-в-эпизоде, свой счёт, кнопка «Озвучить Мию», остаток аккаунта Мии, ▶ у озвученных
-const deps = { cachedLines: () => ({ lines: { mia_push: { text: 'Иди сюда, пушистик, дальше командую я', url: 'https://r2.dev/mia_push.mp3', duration: 2.1 } } }), loadLines: () => new Promise(() => {}), loadMeanings: () => new Promise(() => {}), loadScenes: () => new Promise(() => {}) }
+const deps = { cachedLines: () => ({ lines: { mia_push: { text: 'Посиди в коробке, пушистик, дальше командую я', url: 'https://r2.dev/mia_push.mp3', duration: 2.1 } } }), loadLines: () => new Promise(() => {}), loadMeanings: () => new Promise(() => {}), loadScenes: () => new Promise(() => {}) }
 const html = props => renderToStaticMarkup(createElement(RaceVoiceTable, { plan: null, open: true, onToggle() {}, miaOpen: true, deps, ...props }))
 
 describe('группа «Эпизод Мия» в таблице озвучки', () => {
@@ -34,7 +34,7 @@ describe('группа «Эпизод Мия» в таблице озвучки'
     const load = async () => ({ lines: {} }), save = async v => { saved.push(v) }
     const r = await voicePitLines({ ids: ['mia_push', 'pit_back_1'], speak, upload: async () => 'https://r2.dev/x.mp3', probe: async () => 1.5, load, save, loadVoice: async () => null })
     expect(r.done).toBe(2)
-    expect(speak.mock.calls[0]).toEqual(['Иди сюда, пушистик, дальше командую я', expect.objectContaining({ account: 'mia' })])
+    expect(speak.mock.calls[0]).toEqual(['Посиди в коробке, пушистик, дальше командую я', expect.objectContaining({ account: 'mia' })])
     expect(speak.mock.calls[1]).toEqual(['Спасибо за помощь, вот это у неё характер']) // Пит — голос по умолчанию, второго аргумента нет
     expect(Object.keys(saved[0].lines ?? saved[0])).toEqual(expect.arrayContaining(['mia_push', 'pit_back_1']))
   })

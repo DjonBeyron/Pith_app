@@ -49,17 +49,17 @@ export const lineOn = (tr, now) => !!tr && (!tr.done || now - tr.at < HOLD_MS)
  *  зелёной зоны (до этого ждёт за верхним краем, на «видите шкалу» и «чем дольше думаете»), к началу «жёлтая» — в центре жёлтой, к началу «красная» — в центре красной, к началу «пять красных» улетает. p — нижний край
  *  пилюли в долях длины шкалы (линия идёт за ним). */
 export const DEMO_START = 'boss_mia_look'
-export const DEMO_IDS = ['boss_mia_look', 'boss_mia_think', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five']
+export const DEMO_IDS = ['boss_mia_look', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five'] // правка владельца 2026-11-24: think склеена с look
 export const DEMO_FROM = -0.75               // где пилюля ждёт (над шкалой, за верхним краем экрана)
 export const DEMO_OUT = 1.25                 // куда улетает (за нижний край экрана)
 export const DEMO_GAP_MS = 350               // пауза очереди речи между репликами (miaSpeech.GAP_MS)
 export const DEMO_MOVE_MS = 650              // сколько занимает переход к центру следующей зоны: плавно (smoothstep), но быстро
 export const DEMO_CENTERS = ZONES.map((z, i) => (EDGES[i] + z.to) / 2) // центры зон: 0,225 / 0,625 / 0,9
 const smooth = x => { const u = Math.min(1, Math.max(0, x)); return u * u * (3 - 2 * u) }
-/** План примера по длительностям реплик ms = { look, think, green, yellow, red, five } (мс) → { total, pos(t), starts } — t в мс от начала реплики «видите шкалу справа?» */
+/** План примера по длительностям реплик ms = { look, green, yellow, red, five } (мс) → { total, pos(t), starts } — t в мс от начала реплики «видите шкалу справа?» */
 export function demoPlan(ms, gap = DEMO_GAP_MS) {
   const starts = {}; let t = 0
-  for (const k of ['look', 'think', 'green', 'yellow', 'red', 'five']) { starts[k] = t; t += ms[k] + gap }
+  for (const k of ['look', 'green', 'yellow', 'red', 'five']) { starts[k] = t; t += ms[k] + gap }
   const [cg, cy, cr] = DEMO_CENTERS, M = DEMO_MOVE_MS
   const steps = [[starts.green - M, starts.green, DEMO_FROM, cg], [starts.yellow - M, starts.yellow, cg, cy], [starts.red - M, starts.red, cy, cr], [starts.five - M, starts.five + 250, cr, DEMO_OUT]]
   const pos = u => { let p = DEMO_FROM; for (const [t0, t1, a, b] of steps) { if (u < t0) return p; p = u >= t1 ? b : a + (b - a) * smooth((u - t0) / (t1 - t0)); if (u < t1) return p } return p }
@@ -78,8 +78,8 @@ export function zoneRgb(p) {
 }
 /** Реплики Мии, на которых загорается зона (мигает полупрозрачной заливкой), и реплики, с которых шкалу видно на церемонии («видите шкалу справа?» и дальше) */
 export const FLASH_LINES = { boss_mia_green: 'fast', boss_mia_yellow: 'mid', boss_mia_red: 'slow' }
-export const REVEAL_AT = 0.45 // доля длины реплики «Эй, вы за экраном, видите шкалу справа?», на которой шкала начинает мигать (слова «видите шкалу»)
-export const REVEAL_LINES = ['boss_mia_look', 'boss_mia_think', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five']
+export const REVEAL_AT = 0.55 // доля длины реплики «Эй, вы за экраном, это экзамен для вашей памяти, шкала покажет…», на которой шкала начинает мигать (слова «шкала покажет»; было 0,45 на «видите шкалу»)
+export const REVEAL_LINES = ['boss_mia_look', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five']
 /** talk — реплика Мии { id, key, ms } (miaSpeech.onSpeak) → { zone, key, ms } или null */
 export const flashOf = talk => (talk && FLASH_LINES[talk.id] ? { zone: FLASH_LINES[talk.id], key: talk.key, ms: talk.ms } : null)
 

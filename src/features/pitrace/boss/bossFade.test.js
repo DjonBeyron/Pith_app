@@ -29,8 +29,8 @@ describe('церемония: цвет дорожек и шкала', () => {
   it('шкала мигает не с начала «видите шкалу справа», а на этих словах', () => {
     expect(REVEAL_AT).toBeGreaterThan(0.3); expect(REVEAL_AT).toBeLessThan(0.6); expect(REVEAL_LINES[0]).toBe(DEMO_START)
   })
-  it('реплика «Тише, пушистик»; Пит остаётся в коробке — признак для итога', () => {
-    expect(miaLine('boss_mia_hush').text).toBe('Тише, пушистик')
+  it('реплика «Сиди тихо, пушистик, теперь командую я»; Пит остаётся в коробке — признак для итога', () => {
+    expect(miaLine('boss_mia_hush').text).toBe('Сиди тихо, пушистик, теперь командую я')
     const mb = makeMiaBox(); expect(miaStays(mb)).toBe(false)
     mb.m = { ...mb.m, keep: true, act: 'boss' }; expect(miaStays(mb)).toBe(true)
   })
@@ -101,7 +101,7 @@ describe('финал: колкость после ошибки, порог «х�
     const a = reduceMia(m, { t: 'miss', stage, idx: 0 })
     expect(a.say).toEqual([]); expect(a.mia.reds).toBe(1)
     const b = reduceMia(a.mia, { t: 'fail', stage, idx: 0 })
-    expect(b.say.map(c => c.who)).toEqual(['mia', 'pit', 'pit']); expect(b.say[0]).toMatchObject({ who: 'mia', delay: 0 }); expect(b.say[0].id).toMatch(/^mia_miss/); expect(b.say[1]).toMatchObject({ id: 'boss_help_1', word: 'w1' }); expect(b.say[2].id).toBe('boss_pit_next'); expect(b.mia.reds).toBe(1) // красных по-прежнему одно слово; было: одна колкость с задержкой MISS_AT (после слова Пита)
+    expect(b.say.map(c => c.who)).toEqual(['mia', 'pit', 'pit']); expect(b.say[0]).toMatchObject({ who: 'mia', delay: 0 }); expect(b.say[0].id).toMatch(/^boss_mia_miss/); expect(b.say[1]).toMatchObject({ id: 'boss_help_1', word: 'w1' }); expect(b.say[2].id).toBe('boss_pit_next'); expect(b.mia.reds).toBe(1) // красных по-прежнему одно слово; было: одна колкость с задержкой MISS_AT (после слова Пита)
     expect(reduceMia(b.mia, { t: 'fail', stage, idx: 0 }).say).toEqual([]) // та же пилюля — вторая колкость не нужна
     expect(reduceMia(b.mia, { t: 'fail', stage, idx: 1 }).say.filter(c => c.who === 'mia')).toHaveLength(1)
   })

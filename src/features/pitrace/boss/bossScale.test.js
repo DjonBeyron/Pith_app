@@ -48,12 +48,12 @@ describe('какую пилюлю толкает линия', () => {
 })
 
 describe('пример при объяснении: пилюля встаёт в центр каждой зоны', () => {
-  const ms = { look: 2500, think: 3200, green: 1500, yellow: 1600, red: 1700, five: 3000 }
+  const ms = { look: 2500, green: 1500, yellow: 1600, red: 1700, five: 3000 }
   const plan = demoPlan(ms), g = DEMO_GAP_MS, M = DEMO_MOVE_MS
   const st = plan.starts
   it('реплики подряд: старты = сумма длительностей + пауза очереди; ждёт за верхним краем до перехода к центру зелёной зоны', () => {
-    expect(DEMO_START).toBe('boss_mia_look'); expect(DEMO_IDS).toEqual(['boss_mia_look', 'boss_mia_think', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five']); expect(DEMO_FROM).toBe(-0.75); expect(DEMO_OUT).toBe(1.25)
-    expect(st.look).toBe(0); expect(st.think).toBe(ms.look + g); expect(st.green).toBe(ms.look + g + ms.think + g); expect(st.yellow).toBe(st.green + ms.green + g); expect(st.red).toBe(st.yellow + ms.yellow + g); expect(st.five).toBe(st.red + ms.red + g)
+    expect(DEMO_START).toBe('boss_mia_look'); expect(DEMO_IDS).toEqual(['boss_mia_look', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five']); expect(DEMO_FROM).toBe(-0.75); expect(DEMO_OUT).toBe(1.25)
+    expect(st.look).toBe(0); expect(st.green).toBe(ms.look + g); expect(st.yellow).toBe(st.green + ms.green + g); expect(st.red).toBe(st.yellow + ms.yellow + g); expect(st.five).toBe(st.red + ms.red + g)
     expect(plan.pos(0)).toBe(DEMO_FROM); expect(plan.pos(st.green - M - 1)).toBe(DEMO_FROM)
   })
   it('к началу реплики о зоне пилюля уже в центре этой зоны (0,225 / 0,625 / 0,9) и стоит, пока Мия о ней говорит; к началу следующей — в центре следующей', () => {
