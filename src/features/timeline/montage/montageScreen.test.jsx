@@ -28,9 +28,9 @@ afterEach(() => { delete globalThis.window })
 describe('вкладка «Монтаж»', () => {
   it('на ПК (ширина окна от 900 px) экран открывается на «Монтаже», на телефоне — как раньше на «Паузах»', () => {
     expect(WIDE_PX).toBe(900)
-    expect(tabs(screen())).toEqual(['Монтаж:false', 'Паузы:true', 'Лента:false', 'Список:false'])
+    expect(tabs(screen())).toEqual(['Монтаж:false', 'Паузы:true', 'Лента:false', 'Список:false', '🎧 Прослушать:false'])
     globalThis.window = { innerWidth: 1440 }
-    expect(tabs(screen())).toEqual(['Монтаж:true', 'Паузы:false', 'Лента:false', 'Список:false'])
+    expect(tabs(screen())).toEqual(['Монтаж:true', 'Паузы:false', 'Лента:false', 'Список:false', '🎧 Прослушать:false'])
     expect(screen()).toContain('data-testid="tl-montage"')
     globalThis.window = { innerWidth: 375 }
     expect(tabs(screen())[1]).toBe('Паузы:true'); expect(screen()).not.toContain('data-testid="tl-montage"')

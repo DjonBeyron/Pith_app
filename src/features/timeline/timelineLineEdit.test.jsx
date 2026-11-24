@@ -40,7 +40,7 @@ describe('сохранение текста реплики из карточки
     expect(st.done).toMatchObject({ id: ID }); expect(st.undo).toMatchObject({ id: ID, prev: { text: TXT[ID], url: 'https://r2/a.mp3' } })
     const api = readFileSync(new URL('./timelineLineApi.js', import.meta.url), 'utf8'), table = readFileSync(new URL('../admin/speech/useRaceVoiceTable.js', import.meta.url), 'utf8')
     expect(api).toContain('saveText: (id, text) => saveLineText(id, text)'); expect(api).toContain('voice: id => voicePitLines({ ids: [id] })'); expect(api).toContain('audit: raw => auditVoice(raw).byId')
-    expect(table).toContain('saveText: saveLineText'); expect(table).toContain('voiceLines: voicePitLines'); expect(table).toContain('auditVoice(raw)')
+    expect(table).toContain('saveText: saveLineText'); expect(table).toContain('voiceLines: voicePitLines'); expect(table).toContain('auditVoice(raw, raceCatalog(), CAT_LINES)') // v3.3.356: таблица аудитит только «Встряхни память»; таймлайн — весь каталог (его реплики — этой же игры)
   })
   it('пустой текст не сохраняется; отказ записи без прав админа — понятная ошибка, настройки не тронуты, отмены нет', async () => {
     const s = server(true), { st, core } = await edit(s)

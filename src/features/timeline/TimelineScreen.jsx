@@ -23,6 +23,7 @@ import TimelineList from './TimelineList.jsx'
 import TimelineCard from './TimelineCard.jsx'
 import TimelinePausesTab from './TimelinePausesTab.jsx'
 import TimelineActs from './TimelineActs.jsx'
+import TimelineListen from './TimelineListen.jsx'
 import TimelineMontage from './montage/TimelineMontage.jsx'
 import { buildMontage } from './montage/montageModel.js'
 import { applyEdits, editsSummary } from './montage/montageEdits.js'
@@ -35,6 +36,7 @@ import '../../styles/timeline-ribbon.css'
 import '../../styles/timeline-pauses.css'
 import '../../styles/timeline-block.css'
 import '../../styles/timeline-line-edit.css'
+import '../../styles/timeline-listen.css'
 
 // «Таймлайн игры» для админа (CONCEPT_TIMELINE.md): реальное прохождение «Встряхни память» на весь экран. Вкладки: «Монтаж» (монтажный стол — слои, клипы по реальной длине звука, зазоры тишины, указатель,
 // режим «Правка» с черновиком правок — montage/TimelineMontage.jsx; на ПК, ширина от WIDE_PX, экран открывается на ней), «Паузы» (на телефоне открывается первой: все паузы «игра молчит» дольше порога
@@ -54,7 +56,7 @@ export const PHONE_SCALE = 0.025  // узкий экран: 25 px на секу�
 export const WIDE_PX = 900        // экран шире — открывается на «Монтаже»
 export const MONTAGE_SCALE = 0.05 // монтаж на ПК: 50 px на секунду — реплика в 1,8 с — клип 90 px с текстом
 export const MONTAGE_PHONE = 0.03
-const TABS = [['montage', 'Монтаж'], ['pauses', 'Паузы'], ['ribbon', 'Лента'], ['list', 'Список']]
+const TABS = [['montage', 'Монтаж'], ['pauses', 'Паузы'], ['ribbon', 'Лента'], ['list', 'Список'], ['listen', '🎧 Прослушать']]
 const vw = () => (typeof window === 'undefined' ? 0 : window.innerWidth)
 const LABEL_W = 62
 const EMPTY = { off: 'Игр в этом сеансе ещё не было — сыграй и вернись.', loading: 'Загружаю сохранённые игры с сервера…', ready: 'Игр в этом сеансе ещё не было, на сервере сохранённых игр тоже нет — сыграй и вернись.' }
@@ -152,11 +154,12 @@ export default function TimelineScreen({ runs = [], onClose = null, send = null,
         {tab === 'montage' && <TimelineMontage key={cur.key} base={base} draft={draft} scale0={vw() && vw() < 600 ? MONTAGE_PHONE : MONTAGE_SCALE} labelW={width < 600 ? 58 : 92} send={send ? (comment, opts, text) => send(comment, opts, report(), text) : null} edit0={edit0} label={cur.label} audio={audio} block={block} rows={list} lineEdit={edit} voiceMarks={marks} knobs={knobs} />}
         {tab === 'pauses' && <TimelinePausesTab key={cur.key} pauses={pauses} total={sum.dur} onGo={go} block={block} knobs={knobs} />}
         {tab === 'ribbon' && <TimelineRibbon m={m} pauses={pauses} scale={Math.max(scale, fit)} focus={focus} selected={sel} onPick={pickSeg} />}
+        {tab === 'listen' && <TimelineListen key={cur.key} m={m} audio={audio} />}
         {tab === 'list' && <TimelineList rows={list} pauses={pauses} selected={sel} onPick={setSel} />}
         {tab === 'ribbon' && <p className="tlLegend">{[['pit', 'Пит'], ['mia', 'Мия'], ['dictor', 'диктор — слово, перевод, фраза голосом Пита'], ['silent', 'без озвучки (подпись)'], ['dead', 'игра молчит дольше порога']].map(([k, t]) => <span key={k}><i data-who={k} />{t}</span>)}</p>}
-        {tab !== 'list' && tab !== 'montage' && <TimelineActs sum={sum} />}
+        {tab !== 'list' && tab !== 'montage' && tab !== 'listen' && <TimelineActs sum={sum} />}
       </div>
-      {tab !== 'pauses' && tab !== 'montage' && <TimelineCard sel={sel} rows={list} onClose={() => { setSel(null); audio?.stop() }} audio={audio} block={block} edit={edit} knobs={knobs} />}
+      {tab !== 'pauses' && tab !== 'montage' && tab !== 'listen' && <TimelineCard sel={sel} rows={list} onClose={() => { setSel(null); audio?.stop() }} audio={audio} block={block} edit={edit} knobs={knobs} />}
       <TimelineKnobsPanel knobs={knobs0 && !knobs.open ? { ...knobs, open: true } : knobs} />
     </div>
   )
