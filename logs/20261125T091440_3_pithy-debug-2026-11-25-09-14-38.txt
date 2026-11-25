@@ -1,0 +1,63 @@
+[19:04:37.483] [DB READ] curricula list
+[19:04:37.484] [DB READ] app_settings prompt_control
+[19:04:37.485] [DB READ] app_settings ui_sound_volume eq_sensitivity
+[19:04:37.485] [DB READ] app_settings feed_signals
+[19:04:39.180] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[19:04:39.180] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[19:04:39.180] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[19:04:39.180] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[19:04:39.180] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[19:04:39.180] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[19:04:39.180] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[19:04:39.180] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[19:04:39.180] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[19:04:39.180] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[19:04:39.180] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[19:04:39.182] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[19:04:39.182] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[19:04:39.182] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[19:04:39.182] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[19:04:39.182] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[19:04:39.182] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[19:04:39.182] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[19:04:39.182] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[19:04:39.182] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[19:04:39.182] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[19:04:39.182] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[19:04:39.183] [AUTH] restore: user accuratekemper@gmail.com
+[19:04:39.183] [AUTH] restore: user accuratekemper@gmail.com
+[19:04:39.183] [AUTH] restore: user accuratekemper@gmail.com
+[19:04:39.183] [AUTH] restore: user accuratekemper@gmail.com
+[19:04:39.183] [AUTH] restore: user accuratekemper@gmail.com
+[19:04:39.183] [AUTH] restore: user accuratekemper@gmail.com
+[19:04:39.183] [AUTH] restore: user accuratekemper@gmail.com
+[19:04:39.183] [AUTH] restore: user accuratekemper@gmail.com
+[19:04:39.183] [AUTH] restore: user accuratekemper@gmail.com
+[19:04:39.183] [AUTH] restore: user accuratekemper@gmail.com
+[19:04:39.183] [AUTH] restore: user accuratekemper@gmail.com
+[19:04:39.224] [DB READ] curricula list
+[19:04:39.225] [DB RPC] set_prompt_group
+[19:04:39.229] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[19:04:39.229] [AUTH] restore: user accuratekemper@gmail.com
+[19:04:40.015] [RATING] мои достижения: journey_start, level10, clean_final
+[19:04:40.067] [RACE] гонок с датами: 1 → выбрана: «Новая гонка» 2026-10-09T14:00:00+00:00 — 2026-10-11T13:59:00+00:00
+[19:04:40.129] [RACE] гонок с датами: 1 → выбрана: «Новая гонка» 2026-10-09T14:00:00+00:00 — 2026-10-11T13:59:00+00:00
+[19:04:40.129] [RACE-POPUP] проверка: фаза ended | юзер: есть | итоги видел: false
+[19:04:40.188] [RATING] топ: 15 строк лидер: Eеуууу (8960 XP)
+[19:04:40.197] [RATING] моё место: 3 из 15
+[19:04:40.248] [DB OK] curricula loaded 9 rows
+[19:04:40.258] [DB OK] curricula loaded 9 rows
+[19:04:41.001] [RACE] моя запись в гонке: нет
+[19:04:41.001] [RACE] состояние: фаза ended, модули: нет
+[19:04:41.006] [RACE] моя запись в гонке: нет
+[19:04:41.006] [RACE-POPUP] итоги не показываем: не финишировал
+[19:04:41.006] [RACE-POPUP] анонс: неделя 2026-11-23 | модуль пройден: — | анонс показан: — → нет
+[19:04:41.102] [STREAK] touch_daily_login → {"ok":true,"today":"2026-11-25","is_pro":true,"streak":0,"longest":190,"saved_by":null,"first_today":false,"pro_weekday_used":false,"has_freeze_charge":false,"auto_freeze_charges_left":0}
+[19:04:41.400] [DB READ] app_settings race_mia_voice
+[19:04:41.400] [DB READ] app_settings rotate_cat_lines
+[19:04:41.400] [DB READ] app_settings race_phrase_ru
+[19:04:41.400] [DB READ] app_settings race_phrase_scene
+[19:04:41.401] [DB READ] app_settings race_scene_pauses
+[19:04:41.402] [DB READ] app_settings game2_phrases
+[19:04:41.407] [DB READ] app_settings race_phrase_ru
+[19:04:41.407] [DB READ] app_settings race_phrase_scene
