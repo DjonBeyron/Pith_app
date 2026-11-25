@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { createDodgeDrive, measureHead, planLine, claimLine, PEEK_MS, DOWN_Y } from './raceDodgeDrive.js'
-import { HEAD_TOP, leadOf, DIVE_DOWN_MS, DIVE_MS, JUMP_MS } from './raceDodge.js'
+import { HEAD_TOP, SKULL_TOP, leadOf, DIVE_DOWN_MS, DIVE_MS, JUMP_MS } from './raceDodge.js'
 
 // Привод «Пит ныряет и уворачивается» на поддельной голове (в тестах нет DOM): класс слежения, --wl-dx / --wl-dy у головы (raceHeadDepth.js), data-dodge и их порядок, журнал «[dodge]», ожидание left(); CSS — только transform / translate / opacity
 function fakeCat({ catX = '', up = true, lite = false } = {}) {
@@ -28,7 +28,7 @@ function clock() {
   }
 }
 const pill = (y, o = {}) => ({ id: 'a', rep: 0, lane: 0, y, speed: 1, state: 'fly', ...o })
-const atJump = HEAD_TOP - leadOf(1) - 10 + 0.5
+const atJump = SKULL_TOP - leadOf(1) - 10 + 0.5 // порог — от верха черепа (v3.3.366)
 const make = (o = {}) => { const c = clock(), f = fakeCat(o), log = vi.fn(), peek = vi.fn(); const d = createDodgeDrive({ cat: f.cat, lanes: o.lanes ?? [0, 2, 2], log, peek, now: c.now, setTimer: c.setTimer, clearTimer: c.clearTimer, quick: o.quick ?? false }); return { c, d, log, peek, ...f } }
 
 describe('raceDodgeDrive', () => {
@@ -157,7 +157,7 @@ describe('raceDodgeDrive', () => {
     expect(planLine({ kind: 'jump', from: 1, toLane: 2, x: 73, why: 'не успел' })).toBe('[dodge] прыжок с 2 на 3 (не успел) → x 73.0 %')
   })
   it('measureHead: без размеров — средние', () => {
-    expect(measureHead({ parentElement: null })).toEqual({ headW: 50, headTop: HEAD_TOP })
+    expect(measureHead({ parentElement: null })).toEqual({ headW: 50, headTop: HEAD_TOP, skullTop: SKULL_TOP })
     const m = measureHead({ parentElement: { offsetWidth: 375, offsetHeight: 812 }, offsetWidth: 187.5, offsetHeight: 159.5 })
     expect(m.headW).toBe(50)
     expect(m.headTop).toBeCloseTo(81.1, 1)

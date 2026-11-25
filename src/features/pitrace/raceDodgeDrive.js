@@ -8,7 +8,7 @@
 //  • x головы между ступенями хранится в data-dodge-x (и в цели raceHeadDepth): следующая ступень вынырнет сразу к своей дорожке.
 //  • Журнал: одна строка «[dodge] …» на переход (pLog); у каждого зачёта — «[dodge] зачёт N: голова …, следующая …, прыжок начат/нет → решение (почему)» (claimLine); переход не нужен — «[dodge] нырок подавлен — …»;
 //    начатый переход ещё идёт, а пришла новая цель — «[dodge] очередь: …» (новая цель выполнится одним переходом после него, raceHeadDepth.js).
-import { createDodge, HEAD_W, HEAD_TOP, DIVE_DOWN_MS, DIVE_UP_MS, CENTER, ASIDE } from './raceDodge.js'
+import { createDodge, HEAD_W, HEAD_TOP, SKULL_TOP, SKULL_DROP, DIVE_DOWN_MS, DIVE_UP_MS, CENTER, ASIDE } from './raceDodge.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { headDepth, DOWN_Y } from './raceHeadDepth.js'
 
@@ -17,12 +17,13 @@ export { DOWN_Y }
 export const PEEK_MS = 700        // пилюля подходит или Пит прыгнул — голова торчит ещё столько (продлевается, пока нужно)
 const PEEK_EVERY_MS = 250
 
-/** Размер головы в долях сцены: ширина (% ширины) и макушка поднятой головы (% высоты: торчит на 96 %, word-lane.css). Нет размеров (тесты, скрытая сцена) — средние */
+/** Размер головы в долях сцены: ширина (% ширины), верхний край поднятой головы с ушами (headTop, % высоты: торчит на 96 %, word-lane.css) и верх черепа без ушей (skullTop). Нет размеров (тесты, скрытая сцена) — средние */
 export function measureHead(cat) {
   const stage = cat?.parentElement
   const sw = stage?.offsetWidth ?? 0, sh = stage?.offsetHeight ?? 0
-  if (!sw || !sh || !cat.offsetWidth) return { headW: HEAD_W, headTop: HEAD_TOP }
-  return { headW: (cat.offsetWidth / sw) * 100, headTop: 100 - ((cat.offsetHeight * 0.96) / sh) * 100 }
+  if (!sw || !sh || !cat.offsetWidth) return { headW: HEAD_W, headTop: HEAD_TOP, skullTop: SKULL_TOP }
+  const h = (cat.offsetHeight / sh) * 100, headTop = 100 - h * 0.96
+  return { headW: (cat.offsetWidth / sw) * 100, headTop, skullTop: headTop + h * SKULL_DROP } // skullTop — верх черепа без ушей (raceDodge.SKULL_DROP, из SVG кота): по нему — момент уворота
 }
 
 const lab = (l, from) => (l === CENTER ? (from ? 'из центра' : 'в центр') : l === ASIDE ? (from ? 'из стороны' : 'в сторону') : l == null ? 'с прежнего места' : `${from ? 'с' : 'на'} ${l + 1}`)
@@ -49,10 +50,10 @@ export const trackHead = cat => (cat?.querySelector?.('.wlCatSvg') ? headDepth(c
 export function createDodgeDrive({ cat, lanes = [], from = 0, peek = () => {}, log = pLog, now = () => performance.now(), setTimer = setTimeout, clearTimer = clearTimeout, quick }) {
   const svg = cat?.querySelector('.wlCatSvg')
   if (!svg) return null
-  const { headW, headTop } = measureHead(cat)
+  const { headW, headTop, skullTop } = measureHead(cat)
   const fast = quick ?? fastOf(cat)
   const depth = headDepth(cat, { x0: Number(cat.style.getPropertyValue('--cat-x')) || 50, headW, fast, now, setTimer, clearTimer }) // голова уже в слежении (прошлая ступень, trackHead) — её цель и есть прежнее место
-  const model = createDodge({ lanes, headTop, headW, x0: depth.x, from }) // from — «Продолжить» после паузы: ступень идёт с этого повтора
+  const model = createDodge({ lanes, headTop, skullTop, headW, x0: depth.x, from }) // from — «Продолжить» после паузы: ступень идёт с этого повтора
   let pills = []
   let peekAt = -Infinity
 

@@ -40,9 +40,10 @@ export function reduceMia(m, ev) {
   const { t, stage, now = 0 } = ev
   // Пит в коробке без Мии (финал пройден плохо, v3.3.290): stuck — Мия выпрыгнула, Пит просит помочь; faster — одно касание без второго; free — коробка снята: отлетает без Мии (alone), Пит благодарит
   if (t === 'bye') return examBye(m, { ...ev, now }) ?? none(m) // экзамен: последняя реплика Мии реально доиграла — она уходит с коробкой, Пит говорит следом (boss/bossMia.examBye)
-  if (m.act === 'boss' && ['try', 'stuck', 'faster', 'free'].includes(t)) return none(m) // экзамен (владелец 2026-11-22): снятия коробки касанием нет никогда — исходов два: Мия убегает с коробкой или Мия и коробка остаются
-  if (t === 'try') return m.solo === 'keep' ? { mia: m, say: [line('boss_pit_try', 'pit')], boost: null } : none(m) // Мия ушла, Пит: «Она ушла? Попробую выбраться», потом трясёт коробку (RaceMia: try → rave)
+  if (m.act === 'boss' && ['try', 'stuck', 'nudge', 'faster', 'free'].includes(t)) return none(m) // экзамен (владелец 2026-11-22): снятия коробки касанием нет никогда — исходов два: Мия убегает с коробкой или Мия и коробка остаются
+  if (t === 'try') return m.solo === 'keep' ? { mia: m.fast ? { ...m, fast: false } : m, say: [line('boss_pit_try', 'pit')], boost: null } : none(m) // событие «Мия оттолкнулась и прыгает за экран» (RaceMia): только теперь дорожки возвращают обычный цвет (владелец 2026-11-25: «цвет меняется слишком рано, нужно когда она отпрыгивает за экран в конце») // Мия ушла, Пит: «Она ушла? Попробую выбраться», потом трясёт коробку (RaceMia: try → rave)
   if (t === 'stuck') return m.solo === 'keep' ? { mia: { ...m, solo: 'stuck' }, say: [line('boss_pit_stuck', 'pit')], boost: null } : none(m)
+  if (t === 'nudge') return m.solo === 'stuck' ? { mia: m, say: [line('boss_pit_stuck', 'pit')], boost: null } : none(m) // игрок бездействует: Пит повторяет просьбу (mia/miaBoxFree.nudgeStep — не чаще и не больше заданного)
   if (t === 'faster') return m.solo === 'stuck' ? { mia: m, say: [line('boss_pit_faster', 'pit')], boost: null } : none(m)
   if (t === 'free') return m.solo === 'stuck' ? leave({ ...m, keep: false, solo: null, alone: true }, now, 'freed', [line('boss_pit_free', 'pit', 1300)]) : none(m) // сценарий владельца 2026-11-24: коробка снята — Пит «Ух, спасибо вам, эти слова мы ещё встретим» (раньше здесь звучала pit_back_1, а boss_pit_free не звучала нигде); 1300 — отлёт коробки (анимация)
   if (t === 'enter') {
@@ -54,7 +55,7 @@ export function reduceMia(m, ev) {
     if (stage?.mia === 'hold') return m.phase === 'in' && m.act === stage.act ? { mia: m, say: stage.say ? [line(stage.say, 'mia')] : [], boost: null } : none(m) // служебная стадия внутри эпизода (финал: переключение слуха между блоками): Мия остаётся, говорит свою реплику
     if (stage?.mia === 'end') { // конец финала (стадия boss-end перед итогом): красных меньше пяти — Мия уходит с коробкой, пять и больше — Пит остаётся внутри до следующей встречи (коробка и Мия на сцене, пока Мия и Пит говорят)
       if (m.phase !== 'in' || m.act !== stage.act) return none(m)
-      if (stage.act !== 'boss') return circleEnd(m, now, ev) // круг с Мией (v3.3.297): коробка улетает, только если ВСЕ слова круга названы верно
+      if (stage.act !== 'boss') return m.solo ? none(m) : circleEnd(m, now, ev) // повторный вход (пауза и «Продолжить»), когда Пит уже остался в коробке: конец не играем заново — ждём снятия коробки (сторож заведёт useMiaBoxFree) // круг с Мией (v3.3.297): коробка улетает, только если ВСЕ слова круга названы верно
       return examEnd(m) // экзамен: три исхода по доле собранных трофеев; уход Мии — позже, событием bye, после РЕАЛЬНОГО конца её последней реплики (boss/bossMia.js)
     }
     if (m.phase === 'in' && m.keep && m.act === 'boss') return none(m) // Пит остался в коробке: она стоит под итогом до конца игры (раньше убиралась на экране итога — Пит на миг мигал без коробки)
@@ -94,7 +95,7 @@ function circleEnd(m, now, ev) {
   const all = circleAll(m), won = Object.keys(m.rwon ?? {}).length
   const log = `круг с Мией кончился: слов ${m.rtotal}, названо верно ${won} — ${all ? 'все верно: Мия уходит с коробкой' : 'Пит остаётся в коробке'}`
   if (all) return { ...leave(m, now, 'win', [line('mia_leave', 'mia'), line('pit_back_1', 'pit')]), log } // реплики идут очередью по концу звука (без сроков «от события»); «Едем дальше, теперь я говорю по-английски…» (pit_back_2) Пит говорит уже на развороте конвейера, вместе с анимацией (mia/miaCircleEnd.js), а после прохода B её нет вовсе
-  return { mia: { ...m, fast: false, solo: 'keep', soloAt: now + (ev.keepMs ?? 3500), seq: m.seq + 1 }, say: [line('boss_mia_keep', 'mia')], boost: 1, log }
+  return { mia: { ...m, solo: 'keep', soloAt: now + (ev.keepMs ?? 3500), seq: m.seq + 1 }, say: [line('boss_mia_keep', 'mia')], boost: 1, log } // fast (цвет дорожек Мии) остаётся, пока Мия на экране: его снимает её прыжок за экран (событие try); скорость конвейера возвращается сразу (boost 1) — круг кончился
 }
 
 /** Мия на экране (коробка, подсветка дорожки): пока она «в игре» или уходит */

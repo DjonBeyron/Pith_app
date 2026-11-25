@@ -66,6 +66,8 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
       raf = requestAnimationFrame(frame)
       const dt = Math.min(0.05, (now - last) / 1000); last = now
       const c = clock.current
+      if (c.paused && L && c.still) return // пауза игры: часы эпизода стоят, поза уже нарисована — кадр пустой (без чтения DOM и записи атрибутов)
+      c.still = c.paused
       const sp = soloRef.current
       if (sp.mode === 'keep' && c.mode === 'arr' && !c.paused && performance.now() >= sp.at) { c.mode = 'solo'; c.sl = 0; c.tried = false; c.tryEnd = 0 } // «Допрос» с ошибками: Мия договорила и выпрыгивает ОДНА, коробка остаётся на Пите
       if (!c.paused) { if (c.mode === 'lv') c.lv += dt; else { c.arr += dt; if (c.mode === 'solo') c.sl += dt; else if (c.mode === 'rave') c.rv += dt }; tt += dt }

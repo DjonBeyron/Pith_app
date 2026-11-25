@@ -59,7 +59,7 @@ export function useRaceActs(args) {
   const [mb] = useState(makeMiaBox); const [miaView, setMiaView] = useState({ mia: mb.m, cues: [], key: 0 }) // эпизод «Мия» (mia/raceMia.js): m — состояние машины, step — ступень, которой Мия ускорила дорожку, key — номер пачки реплик
   const { mspeech, miaTalk, miaDemo, miaCap, onLineEnd, captionOn } = useExamSpeech(lines, c => { const jm = syncJump(mb, c); if (jm) setMiaView(v => ({ ...v, mia: jm })) }) // речь эпизода «Мия»: очередь реплик и то, что экран рисует по реальному началу и концу её звука (boss/useExamSpeech.js)
   const running = on && stage === 'run' ? stageObj : null
-  const miaPlate = useMiaPlate({ talk: miaTalk, m: miaView.mia, stage: running }) // плашка Мии — только пока она говорит за кадром, до прыжка (mia/useMiaPlate.js)
+  const miaPlate = useMiaPlate({ talk: miaTalk, m: miaView.mia, stage: running }) // плашка Мии: «Допрос» — когда Мия уже на коробке, до конца церемонии; экзамен — пока она говорит за кадром, до прыжка (mia/useMiaPlate.js)
   useMiaEnter({ running, at, mb, mspeech, setMiaView, log: pLog }) // эпизод «Мия»: вход на стадию (очередь речи — раньше расчёта времени стадии, mia/useMiaEnter.js)
   const rh = useRehearsalActs(on && args.cat ? { ...args, sayLine: sayTr, cat: { ...args.cat, busyLeft: () => Math.max(args.cat.busyLeft(), speech.pendingMs(), running?.mia === 'ann' ? 0 : mspeech.leftMs()) }, countWait: () => (mspeech.pending() > 0 || revBack.busy ? 1 : 0) } : args) // расписание реплик этапа знает, что похвала ещё впереди
   const praiseRef = useRef(null) // похвала, которую reduceRace назначил на этот зачёт (apply → claim)

@@ -1,17 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import { createDodge, dodgeOf, jumpTo, laneX, leadOf, HEAD_TOP, LEAD_MIN, LEAD_MAX, DIVE_MS, JUMP_MS, CENTER, ASIDE } from './raceDodge.js'
-import { LANE_X, PILL_H, PILL_W } from '../player/modules/rotate-phone/wordLaneTimeline.js'
+import { createDodge, dodgeOf, jumpTo, laneX, leadOf, SKULL_TOP, LEAD_MIN, LEAD_S, DIVE_MS, JUMP_MS, CENTER, ASIDE } from './raceDodge.js'
+import { LANE_X, PILL_H, PILL_W, SPEED } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 
 // Модель «Пит ныряет и уворачивается»: цель — дорожка СЛЕДУЮЩЕЙ пилюли; зачёт → нырок, «не успел» → прыжок, та же дорожка → в сторону и обратно, последняя → центр; по x не скользит
 const pill = (o = {}) => ({ id: 'a', rep: 0, lane: 1, y: 20, speed: 1, state: 'fly', ...o })
-const dodgeY = (speed = 1) => HEAD_TOP - leadOf(speed) - PILL_H / 2 // центр пилюли, при котором её низ на пороге прыжка
+const dodgeY = (speed = 1) => SKULL_TOP - leadOf(speed) - PILL_H / 2 // центр пилюли, при котором её низ на пороге прыжка (порог — от верха ЧЕРЕПА, не ушей: v3.3.366, raceDodgeSkull.test.js)
 const CLEAR = PILL_W / 2 + 20
 
 describe('raceDodge — порог и место', () => {
-  it('порог по y зависит от скорости, но в пределах 8–14 %', () => {
-    expect(leadOf(1)).toBe(LEAD_MIN)
-    expect(leadOf(1.5)).toBeCloseTo(11.7, 1)
-    expect(leadOf(3)).toBe(LEAD_MAX)
+  it('порог по y — время прыжка с запасом (LEAD_S пути пилюли), не ближе LEAD_MIN; потолка нет (было: 0,3 с в пределах 8–14 % от верха ушей)', () => {
+    expect(leadOf(1)).toBeCloseTo(SPEED * LEAD_S, 5)
+    expect(leadOf(0.5)).toBe(LEAD_MIN)
+    expect(leadOf(3)).toBeCloseTo(SPEED * 3 * LEAD_S, 5)
   })
   it('голова под дорожкой: середина — центр, крайние — ближе к середине, чтобы голова была в кадре', () => {
     expect([laneX(0), laneX(1), laneX(2)]).toEqual([27, 50, 73])

@@ -22,3 +22,24 @@ export function createBoxFree({ hits = FREE_HITS, windowMs = FREE_WINDOW_MS } = 
     isDone: () => done,
   }
 }
+
+// Игрок бездействует (владелец 2026-11-25, журнал игры: «Помоги её приподнять — если бездействовать, реплика повторяется»; в его игре просьба прозвучала ОДИН раз, дальше 12 с тишины до паузы):
+// Пит повторяет «Не получается, коробка тяжёлая, помоги её приподнять», когда после конца ЕГО РЕЧИ и последнего касания прошло NUDGE_IDLE_MS тишины, но не больше NUDGE_MAX раз — потом коробку снимает сторож.
+// Счёт от событий (конец реплики, касание), а не от длины файла: 3,6 с реплика + 9 с тишины → повтор ≈ на 12,6 с, второй ≈ на 25,2 с, сторож на 30 с.
+export const NUDGE_IDLE_MS = 9000 // столько тишины без касаний — и Пит просит ещё раз
+export const NUDGE_MAX = 2        // повторов не больше
+
+/** Состояние повтора просьбы: idleFrom — с какого момента тишина, n — сколько раз уже повторили */
+export const nudgeInit = now => ({ idleFrom: now, n: 0 })
+/** Шаг опроса: busy — Пит (или Мия) сейчас говорит или реплика в очереди, touchedAt — момент последнего касания коробки (performance.now; нет — −∞). → { st, say } — say: пора повторить просьбу */
+export function nudgeStep(st, { now, busy = false, touchedAt = -Infinity, idleMs = NUDGE_IDLE_MS, max = NUDGE_MAX }) {
+  const idleFrom = busy ? now : Math.max(st.idleFrom, touchedAt)
+  if (busy || st.n >= max || now - idleFrom < idleMs) return { st: idleFrom === st.idleFrom ? st : { ...st, idleFrom }, say: false }
+  return { st: { idleFrom: now, n: st.n + 1 }, say: true }
+}
+
+/** Набор таймеров стадии: later(fn, ms) — отложить, clear() — снять ВСЕ (пауза, выход из стадии): снятый таймер не срабатывает никогда. size() — сколько ждут */
+export function createTimers(setTimer = setTimeout, clearTimer = clearTimeout) {
+  const set = new Set()
+  return { later(fn, ms) { const t = setTimer(() => { set.delete(t); fn() }, ms); set.add(t) }, clear() { set.forEach(clearTimer); set.clear() }, size: () => set.size }
+}
