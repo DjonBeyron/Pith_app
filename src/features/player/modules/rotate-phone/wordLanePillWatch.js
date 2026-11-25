@@ -1,0 +1,71 @@
+import { useEffect } from 'react'
+import { pLog } from '../../../../shared/lib/debug.js'
+
+// Диагностика «капсула моргнула: тело исчезло на миг, пока я говорил» (владелец 2026-11-25, iPhone). В Chromium покадровый замер (_stand/race/shoot-pillblink.mjs) пропаж тела не нашёл: узел, display, visibility,
+// opacity и рамка летящей пилюли не меняются ни на черновике, ни на промахе, ни на зачёте — остаётся слой композитора iOS. Чтобы в следующий раз знать, ЧТО менялось на пилюле в момент мигания, журнал пишет
+// «[pill] …»: какие признаки-слои включились / выключились на ЛЕТЯЩЕЙ пилюле (заливка пошла data-live + кольцо data-ring, промах data-wrong, щелчок data-lock, …), сколько узлов добавлено / убрано внутри неё
+// (вспышки, пузыри), и её видимость по стилям в этот момент и в следующем кадре («⚠ тело не видно» — если opacity < 1, visibility / display скрыты или узел вне документа).
+// Только чтение: наблюдатель один на поле (не по одному на пилюлю), стили читаются лишь у изменившейся пилюли, смены одной пилюли за FOLD_MS сливаются в одну строку. Работает только при отладочном интерфейсе (WordLaneGame → WordLanePills watch).
+export const WATCH_ATTRS = ['data-live', 'data-ring', 'data-wrong', 'data-lock', 'data-full', 'data-fail', 'data-rise', 'data-reveal', 'data-held']
+export const FOLD_MS = 250
+const QUIET = ['data-rise', 'data-fail', 'data-reveal', 'data-coast', 'data-faded', 'data-spent'] // пилюля уже уходит (взлёт, «не успел», догорает) — её прозрачность меняется по замыслу
+
+/** Пачка записей MutationObserver → Map(пилюля → { attrs: Map(имя → '+' | '−'), added, removed }). pillOf(node) — пилюля, которой принадлежит узел (или null) */
+export function foldPillRecords(records, pillOf) {
+  const out = new Map()
+  const slot = el => { if (!out.has(el)) out.set(el, { attrs: new Map(), added: 0, removed: 0 }); return out.get(el) }
+  for (const r of records) {
+    const el = pillOf(r.target)
+    if (!el) continue
+    if (r.type === 'attributes') { if (r.target === el) slot(el).attrs.set(r.attributeName, el.hasAttribute(r.attributeName) ? '+' : '−') }
+    else if (r.type === 'childList') { const s = slot(el); s.added += r.addedNodes?.length ?? 0; s.removed += r.removedNodes?.length ?? 0 }
+  }
+  return out
+}
+
+/** Видно ли тело пилюли по стилям: { ok, why } */
+export function pillSeen(el, style = globalThis.getComputedStyle) {
+  if (!el.isConnected) return { ok: false, why: 'узел вне документа' }
+  const cs = style(el)
+  if (cs.display === 'none') return { ok: false, why: 'display none' }
+  if (cs.visibility !== 'visible') return { ok: false, why: `visibility ${cs.visibility}` }
+  if (+cs.opacity < 1) return { ok: false, why: `opacity ${(+cs.opacity).toFixed(2)}` }
+  return { ok: true, why: 'видна' }
+}
+
+/** Строка журнала о смене на пилюле; null — писать нечего (пилюля не в руках движка и не возвращается в пул сейчас) */
+export function pillLine(el, change, seen) {
+  const attrs = [...change.attrs].filter(([a]) => a !== 'data-held').map(([a, s]) => `${s}${a.replace('data-', '')}`)
+  const nodes = change.added || change.removed ? `узлов +${change.added} −${change.removed}` : ''
+  if (!attrs.length && !nodes) return null
+  const quiet = QUIET.some(a => el.hasAttribute(a))
+  const warn = !seen.ok && !quiet ? ' ⚠ тело не видно' : ''
+  return `[pill] №${el.getAttribute('data-testid')?.split('-').pop() ?? '?'} «${el.getAttribute('data-cap') ?? ''}» дорожка ${el.getAttribute('data-lane') ?? '—'}: ${[attrs.join(' '), nodes].filter(Boolean).join('; ')}; ${seen.why}${warn}`
+}
+
+/** Наблюдать за пилюлями поля root → stop(). Летящая пилюля — data-held; смены у пилюль в пуле не пишем */
+export function watchPills(root, { log = pLog, Observer = globalThis.MutationObserver, raf = globalThis.requestAnimationFrame, now = () => performance.now(), seen = pillSeen } = {}) {
+  if (!root || !Observer) return () => {}
+  const pillOf = n => (n?.nodeType === 1 ? n : n?.parentElement)?.closest?.('.wlPill') ?? null
+  const last = new Map() // пилюля → { at, line }: строки одной пилюли за FOLD_MS сливаются (пишется последняя)
+  let alive = true
+  const flush = el => { const l = last.get(el); if (!l || !alive) return; last.delete(el); log(l.line) }
+  const obs = new Observer(records => {
+    for (const [el, change] of foldPillRecords(records, pillOf)) {
+      if (!el.hasAttribute('data-held')) continue
+      const line = pillLine(el, change, seen(el))
+      if (!line) continue
+      const had = last.get(el)
+      last.set(el, { at: had?.at ?? now(), line: had ? `${had.line} ‖ ${line.replace(/^\[pill\] №\S+ «[^»]*» дорожка \S+: /, '')}` : line })
+      if (!had) setTimeout(() => flush(el), FOLD_MS)
+      raf?.(() => { if (!alive || !el.hasAttribute('data-held') || QUIET.some(a => el.hasAttribute(a))) return; const s = seen(el); if (!s.ok) log(`[pill] ⚠ №${el.getAttribute('data-testid')?.split('-').pop() ?? '?'} «${el.getAttribute('data-cap') ?? ''}»: в кадре после смены тело не видно — ${s.why}`) })
+    }
+  })
+  obs.observe(root, { subtree: true, attributes: true, attributeFilter: WATCH_ATTRS, childList: true })
+  return () => { alive = false; obs.disconnect(); last.clear() }
+}
+
+/** Хук поля пилюль: наблюдатель только при отладочном интерфейсе (on = f.dbg.enabled — тот же признак, что у шестерёнки и журнала; у ученика не работает) */
+export function usePillWatch(rootRef, on = false) {
+  useEffect(() => (on ? watchPills(rootRef.current) : undefined), [rootRef, on])
+}

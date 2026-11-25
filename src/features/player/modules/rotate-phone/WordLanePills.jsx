@@ -7,6 +7,7 @@ import { isPillSafe } from './wordLanePillSafe.js'
 import { RUN_NONE } from './wordLaneRunLanes.js'
 import { useLaneConveyor } from './useLaneConveyor.js'
 import { reducedMotion } from './laneConveyorDrive.js'
+import { usePillWatch } from './wordLanePillWatch.js'
 
 // Дорожки и пилюли игры. Три колонки разделены линиями; пилюли — вертикальные пустые капсулы (без надписей) из пула POOL штук: движок (useWordLanePills) выдаёт их кускам и повторам
 // ступени, ставит дорожку (data-lane: x и цвет — ступени «Моей памяти»: зелёная с одной обводкой, синяя с двумя, фиолетовая с тремя), запускает полёт и пишет заливку.
@@ -20,13 +21,14 @@ import { reducedMotion } from './laneConveyorDrive.js'
 // «зажигается» волной, плавно разгоняется до скорости пилюль и тормозит, когда пилюль на дорожке не осталось (их считает по data-held / data-lane); paused — игра на паузе, привод стоит. Стили — word-lane-lane-run.css.
 // Мемоизирован (memo): пилюли (12 штук × 10 узлов) перерисовываются, только когда сменилась сцена / «слух» / видимость, а не на каждый шаг оверлея (подпись кота, подсказка, награда). Все пропсы стабильны
 // по ссылке: сцена, слух и колбэки — useMemo / useCallback в useWordLaneFlow. Сами пилюли живут вне React: движок (useWordLanePills) пишет им стили и анимации прямо в DOM.
-function WordLanePills({ scene, levels, fx, live, sceneApi, visible, onLane, armed = RUN_NONE, paused = false, speed = null, speedKey = null, trio = null, dodge = false }) {
+function WordLanePills({ scene, levels, fx, live, sceneApi, visible, onLane, armed = RUN_NONE, paused = false, speed = null, speedKey = null, trio = null, dodge = false, watch = false }) {
   const rootRef = useRef(null)
   const [lite] = useState(isWeakDevice) // слабое устройство (wl--lite): без частиц в заливке (word-lane-pill.css)
   const [safe] = useState(isPillSafe) // «безопасный» режим слоёв для iOS (wl--safe, localStorage pithy_wl_pill_safe_v1 = 1): без will-change и слоёв частиц, контур дважды (word-lane-pill-safe.css)
   useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, trio, dodge })
   const [still] = useState(() => lite || reducedMotion()) // слабое устройство и reduced-motion: пунктир без движения, только яркость
   useLaneConveyor(rootRef, { armed, paused, still, speed, speedKey, fx })
+  usePillWatch(rootRef, watch) // журнал «[pill] …»: что менялось на летящей пилюле (разбор «капсула моргнула», только отладочный интерфейс — wordLanePillWatch.js)
   return (
     <div ref={rootRef} className={`wlField${lite ? ' wl--lite' : ''}${safe ? ' wl--safe' : ''}`} data-testid="wl-field">
       <div className={`wlLanes${visible ? ' wlLanes--in' : ''}`} aria-hidden="true" data-testid="wl-lanes">

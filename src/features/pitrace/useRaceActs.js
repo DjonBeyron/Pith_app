@@ -27,7 +27,7 @@ import { PHRASE_EXIT_MS, PHRASE_ENTER_MS } from './raceStagesPhrases.js'; import
 import { plateText } from '../player/modules/rotate-phone/wordLanePlateText.js'
 import { useMiaBoxFree } from './mia/useMiaBoxFree.js'
 import { endHoldMs } from './boss/raceEndHold.js'
-import { reduceMia, makeMiaBox, applyMia, miaStays, MIA } from './mia/raceMia.js'
+import { reduceMia, makeMiaBox, applyMia, miaStays, clearEndTimer, MIA } from './mia/raceMia.js'
 import { miaOn } from './mia/miaConfig.js'
 import { BOSS_EXIT_MS, BOSS_SAY_TAIL_MS } from './boss/raceStagesBoss.js'
 import { useMiaEnter } from './mia/useMiaEnter.js'
@@ -93,8 +93,10 @@ export function useRaceActs(args) {
   }, [box])
 
   // Эпизод «Мия»: события раунда (вход в стадию, win / miss / fail) идут в машину; она сама решает, когда Мия приходит (первая ошибка второго круга прохода), ускоряет дорожку и уходит
+  const pausedRef = useRef(false) // игра на паузе: машина Мии событий не принимает, отложенный конец круга / экзамена снят — иначе её очереди на своих таймерах (сторож коробки, «договорила — ставлю реплики исхода») говорили и двигали сцену под открытым попапом комментария (журнал 2026-11-25)
+  useEffect(() => { pausedRef.current = stage === 'paused'; if (stage === 'paused') clearEndTimer(mb) }, [stage, mb])
   const miaEvent = useCallback(ev => {
-    if (!miaOn()) return
+    if (!miaOn() || pausedRef.current) return
     const r = reduceMia(mb.m, { ...ev, now: performance.now() })
     if (r.mia === mb.m && !r.say.length && r.boost == null) return
     if (r.mia.phase !== mb.m.phase) pLog(`[mia] ${r.mia.phase === 'in' ? `Мия пришла (${r.mia.act}, второй круг), дорожка быстрее на ${Math.round((r.boost - 1) * 100)} %` : r.mia.phase === 'out' ? `Мия уходит: ${r.mia.why === 'win' ? 'три верных подряд' : 'круг кончился'}` : 'Мии нет'}`)

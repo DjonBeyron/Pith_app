@@ -20,6 +20,9 @@ import { scanPerfSuspects } from './perfSuspects.js'
 // подписывается на сводку (usePerfProbe.js). У обычного ученика ничего из
 // этого не крутится — сам датчик не должен становиться тем, что он ищет.
 const SUSPECTS_EVERY = 10
+export const SCAN_BLOCK = '.lessonPlayer, .wl' // экраны, где периодический скан DOM запрещён: урок и игра
+/** Можно ли сейчас периодически сканировать DOM: страница видна и не открыт урок / игра */
+export const scanAllowed = (doc = document) => !doc.hidden && !doc.querySelector(SCAN_BLOCK)
 
 let running = false
 let summary = ''
@@ -88,7 +91,10 @@ export function startPerfProbe() {
     // Периодический скан — только вне урока: getComputedStyle на ~2000
     // элементов ленты чата — десятки миллисекунд главного потока раз в 10с,
     // сам датчик становился источником рывков заливки голосового
-    if (!document.hidden && !document.querySelector('.lessonPlayer') && ++seconds % SUSPECTS_EVERY === 0) suspects('tick')
+    // …и вне игры (.wl — оверлей «Повтори за диктором» / «Встряхни память»): журнал владельца 2026-11-25 (iPhone) — 80 из 80
+    // секунд сразу после скана шли с кадром ≈ 100 мс (под игрой в DOM вся лента, ~3500 элементов): ровный
+    // «микрофриз» дорожек раз в 10 с давал сам датчик. Скан на старте и при возврате из фона остаётся
+    if (scanAllowed() && ++seconds % SUSPECTS_EVERY === 0) suspects('tick')
   }, 1000)
 
   const onVis = () => {

@@ -32,7 +32,7 @@ describe('директор игры (useWordLaneFlow)', () => {
     expect(flow).toContain('const word = stages[sRef.current.idx]?.sayText; if (word) { handlers.sayText(word); return }')
   })
   it('плашки держатся, пока Пит говорит (holdMs); директор отдаёт rh и next для экранов зеркала и итога', () => {
-    expect(flow).toContain('ids.push(setTimeout(() => rh.afterCount(next), rh.holdMs(stageObj)))') // переход ждёт конца отсчёта нотами
+    expect(flow).toContain('ids.push(setTimeout(() => rh.afterCount(stageTurn(sRef, s.idx, s.at, next)), rh.holdMs(stageObj)))') // переход ждёт конца отсчёта нотами; со сверкой стадии — на паузе не срабатывает (wordLaneStageTurn.js)
     expect(flow).toContain('useBuiltLabels({ stages, stage:'); expect(flow).toContain('quiet: rh.quiet'); expect(flow).toContain("const plate = !rh.plateOk || stageObj?.charge ? ''") // пока Пит говорит, ни подписей, ни плашки
     expect(flow).toContain('return { ...s, hold, stages, dbg, rh, next, catLine: cat.text, phase,')
   })

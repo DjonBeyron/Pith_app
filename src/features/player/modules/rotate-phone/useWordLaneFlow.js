@@ -22,7 +22,7 @@ import { leaveGameMic } from '../../../../shared/lib/gameMicLeave.js'
 import { renewGameMic } from '../../../../shared/lib/gameMicRenew.js'
 import { gameMicHold } from '../../../../shared/lib/gameMicHold.js'
 import { guardStream } from '../../../../shared/lib/gameMicGesture.js'
-import { useWordLaneControls } from './useWordLaneControls.js'
+import { useWordLaneControls } from './useWordLaneControls.js'; import { stageTurn, PAUSED_NEXT_LOG } from './wordLaneStageTurn.js'
 import { useGameAudioModes, endGameAudio } from './useGameAudioModes.js'
 import { scheduleDictor } from './wordLaneDictorRun.js'
 import { useRaceActs as useRehearsalActs } from '../../../pitrace/useRaceActs.js' // директор актов: репетиция (useRehearsalActs) и «Гонка с Питом» (plan.game === 'race') — один хук
@@ -77,7 +77,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const later = useCallback((fn, ms) => { const id = setTimeout(() => { timersRef.current.delete(id); fn() }, Math.max(0, ms)); timersRef.current.add(id); return id }, [])
   const clearTimers = useCallback(() => { timersRef.current.forEach(clearTimeout); timersRef.current.clear() }, [])
   const go = useCallback((stage, idx = 0) => setS(p => ({ ...p, stage, idx, at: performance.now(), hint: [], leaving: -1 })), [])
-  const next = useCallback(() => { const i = nextIdx(sRef.current.idx + 1); if (i >= stages.length) go('reveal', i); else go('run', i) }, [go, stages.length, nextIdx])
+  const next = useCallback(() => { if (sRef.current.stage === 'paused') { pLog(PAUSED_NEXT_LOG); return } const i = nextIdx(sRef.current.idx + 1); if (i >= stages.length) go('reveal', i); else go('run', i) }, [go, stages.length, nextIdx])
 
   // Звук куска: слот библиотеки слов (подготовлен в тапе «Начать») → озвучка библиотеки обычным путём → без звука (голоса системы нет, строка в журнале)
   const sayChunk = useCallback(i => {
@@ -178,7 +178,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     let releaseHold = null
     const look = () => catApi?.current?.look // взгляд кота: ref читается в момент вызова (кот мог ещё не смонтироваться)
     if (stageObj.type === 'announce' || stageObj.type === 'turn') {
-      ids.push(setTimeout(() => rh.afterCount(next), rh.holdMs(stageObj))) // отсчёт тремя нотами не обрывается сменой стадии (rh.afterCount)
+      ids.push(setTimeout(() => rh.afterCount(stageTurn(sRef, s.idx, s.at, next)), rh.holdMs(stageObj))) // отсчёт тремя нотами не обрывается сменой стадии (rh.afterCount); переход — только пока идёт ЭТА стадия: на паузе и после «Продолжить» опоздавшая очередь (конец речи, коробка Мии, конец экзамена) игру не двигает (wordLaneStageTurn.js)
       if (stageObj.type === 'announce') ids.push(setTimeout(() => sayLine(`round_${stageObj.round.kind}`), LINE_AT_MS))
       else if (s.idx === stages.findIndex(x => x.type === 'turn')) ids.push(setTimeout(() => sayLine('your_turn'), LINE_AT_MS)) // «твоя очередь» — только в первый раз
     }
