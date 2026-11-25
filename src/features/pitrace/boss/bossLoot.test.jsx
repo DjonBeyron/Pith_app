@@ -4,35 +4,46 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { readFileSync } from 'node:fs'
 import RaceBossLoot from './RaceBossLoot.jsx'
 import RaceSummary from '../RaceSummary.jsx'
-import { lootFlight, LOOT_EDGE_PX, LOOT_FLY_MS } from './bossLoot.js'
+import { lootFlight, LOOT_OUT_PX, LOOT_FLY_MS, LOOT_BUMP_MS, LOOT_TOTAL_MS } from './bossLoot.js'
 import { marksStep, MARKS_MAX } from './bossScale.js'
 import { fixturePlan } from '../../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../../rehearsal/rehearsalPlan.js'
 
-// Экзамен: игрок видит, сколько трофеев собрал и сколько у Мии; потерянное улетает к ней; итог называет исход. И правило треугольников шкалы — прежнее.
+// Экзамен: игрок видит свой счётчик и счётчик Мии под ним; потерянное переходит к ней; итог называет исход. И правило треугольников шкалы — прежнее.
 const read = p => readFileSync(new URL(p, import.meta.url), 'utf8')
 const m = { phase: 'in', act: 'boss', total: 6, won: { 0: true, 1: true }, zones: { 1: 'mid' }, dug: { 2: true } }
 const html = (mia, on = true) => renderToStaticMarkup(createElement(RaceBossLoot, { m: mia, on }))
 
-describe('счётчик трофеев экзамена', () => {
-  it('показывает «Твои N» и «у Мии M» по счёту машины; виден только в экзамене, пока Мия на коробке', () => {
+describe('счётчики экзамена: игрок сверху, Мия под ним — оба слева сверху (владелец 2026-11-25)', () => {
+  it('счётчик Мии показывает, сколько трофеев она забрала; виден только в экзамене, пока Мия на коробке; прежнего «Твои N · у Мии M» на коробке нет', () => {
     const h = html(m)
-    expect(h).toContain('data-on="true"'); expect(h).toMatch(/data-testid="race-loot-me">30</); expect(h).toMatch(/data-testid="race-loot-mia">30</) // 20 + 10 собрано; 10 (жёлтая) + 20 (не названо) у Мии
+    expect(h).toContain('data-on="true"'); expect(h).toMatch(/data-who="mia">Мия <b data-testid="race-loot-mia">30</) // 10 (жёлтая зона) + 20 (не названо) у Мии
+    expect(h).not.toContain('race-loot-me'); expect(h).not.toContain('Твои')
     expect(html(m, false)).not.toContain('data-on'); expect(html({ ...m, phase: 'out' })).not.toContain('data-on'); expect(html({ ...m, act: 'catch' })).not.toContain('data-on')
   })
-  it('стоит внизу слева на коробке, с отступом safe-area; шкалу справа не закрывает; в покое — ни одной анимации', () => {
-    const css = read('../../../styles/player/modules/race-boss-loot.css')
-    expect(css).toMatch(/\.wlLootChip \{[^}]*left: calc\(env\(safe-area-inset-left, 0px\) \+ 10px\)[^}]*bottom: calc\(env\(safe-area-inset-bottom, 0px\) \+ 10px\)/); expect(css).toMatch(/max-width: calc\(100% - 64px\)/)
+  it('стоит слева сверху под счётчиком игрока, через safe-area, жёлтый; внизу на коробке ничего; в покое — ни одной анимации', () => {
+    const css = read('../../../styles/player/modules/race-boss-loot.css'), panel = read('../../../styles/player/modules/race-panel.css')
+    expect(css).toMatch(/\.wlLootChip \{[^}]*top: calc\(env\(safe-area-inset-top, 0px\) \+ 80px\)[^}]*left: calc\(env\(safe-area-inset-left, 0px\) \+ 14px\)/); expect(css).not.toMatch(/bottom:/)
+    expect(panel).toMatch(/\.wl\[data-race\] \.wlXp \{[^}]*top: calc\(env\(safe-area-inset-top, 0px\) \+ 54px\)[^}]*left: calc\(env\(safe-area-inset-left, 0px\) \+ 14px\)/) // игрок — выше, тот же левый край
+    expect(css).toMatch(/\.wlLootChip \{[^}]*color: #ffd678/); expect(css).toMatch(/max-width: calc\(100% - 64px\)/)
     expect(css).not.toMatch(/animation|infinite|@keyframes|will-change/); expect(css).toMatch(/\.wlStage > \.wlLoot \{[^}]*pointer-events: none/)
     expect(read('../../../styles/player/modules/race-sprint.css')).toContain("@import './race-boss-loot.css'")
     expect(read('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain("<RaceBossLoot m={f.rh.mia.mia} on={f.stage === 'run' && ['boss', 'boss-sw', 'boss2', 'boss-end'].includes(f.stageObj?.sid)} />")
   })
-  it('полёт потерянных трофеев: от шкалы (с высоты линии слова) к числу «у Мии»; анимации разовые; слабое устройство — без частиц', () => {
-    expect(lootFlight({ w: 375, h: 812, lineY: 400, tx: 150, ty: 790 })).toEqual({ from: [375 - LOOT_EDGE_PX, 400], tx: 150, ty: 790 })
-    expect(lootFlight({ w: 375, h: 812, lineY: null, tx: 1, ty: 2 }).from[1]).toBe(406); expect(lootFlight({ w: 375, h: 812, lineY: 9999, tx: 1, ty: 2 }).from[1]).toBe(812 - 24)
+  it('счётчик игрока при Мии не желтеет: у него свой цвет, а не переменная дорожек, которую подменяет «Допрос» и экзамен', () => {
+    const panel = read('../../../styles/player/modules/race-panel.css'), mia = read('../../../styles/player/modules/race-mia.css'), base = read('../../../styles/player/modules/word-lane.css')
+    expect(mia).toMatch(/\.wl\[data-mia='in'\] \{[^}]*--lvl1: #ffb23e/); expect(base).toMatch(/--wl-accent: var\(--lvl1/) // причина: акцент игры = --lvl1, при Мии он жёлтый
+    expect(panel).toMatch(/\.wl\[data-race\] \.wlXp \{[^}]*color: #b6fe3b;/); expect(panel.match(/\.wl\[data-race\] \.wlXp \{[^}]*\}/)[0]).not.toContain('var(--wl-accent)')
+  })
+  it('потеря: «+N» выплывает от счётчика игрока к числу Мии, число вздрагивает; всё ≤ 700 мс, разово; слабое устройство — без «+N»', () => {
+    expect(lootFlight({ xp: { right: 70, cy: 64 }, tx: 52, ty: 90 })).toEqual({ from: [70 + LOOT_OUT_PX, 64], to: [52, 90] })
+    expect(lootFlight({ xp: null, tx: 52, ty: 90 })).toEqual({ from: [52 + LOOT_OUT_PX * 2, 90], to: [52, 90] }) // счётчика игрока нет на экране — старт рядом со счётчиком Мии
+    expect(LOOT_TOTAL_MS).toBe(LOOT_FLY_MS + LOOT_BUMP_MS); expect(LOOT_TOTAL_MS).toBeLessThanOrEqual(700)
     const src = read('./RaceBossLoot.jsx')
-    expect(src).toContain('isWeakDevice()'); expect(src).toContain('fly.current.slice(0, lite ? 1 : 3)'); expect(src).not.toMatch(/iterations|Infinity|setInterval|requestAnimationFrame/); expect(LOOT_FLY_MS).toBeLessThanOrEqual(800)
-    expect(src).toContain('if (!show || was == null || lost <= was) return') // первый показ и сброс счёта — без полёта
+    expect(src).toContain('isWeakDevice()'); expect(src).toContain('if (lite || !el) return'); expect(src).toContain('{show && !lite && <i ref={fly} className="wlLootFly" />}')
+    expect(src).toContain("delay: lite ? 0 : LOOT_FLY_MS"); expect(src).not.toMatch(/iterations|Infinity|setInterval|requestAnimationFrame|fill:/) // конечные анимации без fill: после них getAnimations() пуст
+    expect(src).not.toContain('.wlBossLine') // прежнего полёта от шкалы к коробке нет
+    expect(src).toContain('if (!show || was == null || lost <= was) return') // первый показ и сброс счёта — без анимации
   })
 })
 

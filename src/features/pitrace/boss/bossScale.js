@@ -1,6 +1,8 @@
 // Шкала финала «Шкала памяти» (чистые функции без DOM). Шкала — вертикальная линейка справа от верха ленты (под кнопками) до низа с отступом под скругление экрана. Пилюля едет вниз и толкает линию:
 // линия появляется в миг, когда нижний край пилюли касается верха шкалы, и идёт за этим краем. Зона определяется положением линии на шкале: чем ниже, тем дольше вспоминалось слово и тем слабее оно держится.
 // Баланс зон (владелец 2026-11-15): зелёная 45 %, жёлтая 35 %, красная 20 % длины шкалы.
+import { wordAtMs } from './lineWordAt.js'
+
 export const ZONES = [{ id: 'fast', to: 0.45 }, { id: 'mid', to: 0.8 }, { id: 'slow', to: 1 }]
 
 /** Зона по положению линии, долей длины шкалы (0 — верх, 1 — низ) */
@@ -85,12 +87,7 @@ export const REVEAL_AT = 0.55 // запасная доля длины репли
 export const REVEAL_WORD = 'шкал' // слово реплики, на котором шкала появляется («…шкала покажет…»)
 /** Когда на реплике «…шкала покажет…» показать шкалу, мс от РЕАЛЬНОГО начала её звука. line — запись реплики { text, words: [{ w, t, e }] (секунды в файле), duration }, ms — длина звука (по буферу).
  *  Есть тайминги слов записи — момент слова «шкала» в файле; нет — доля по месту слова в тексте; слова в тексте нет — REVEAL_AT. Заменили озвучку — срок берётся из новой записи, числа под старый файл нет */
-export function revealAtMs(line, ms) {
-  const text = String(line?.text ?? '').toLowerCase(), w = (Array.isArray(line?.words) ? line.words : []).find(x => String(x?.w ?? '').toLowerCase().startsWith(REVEAL_WORD))
-  if (w && Number.isFinite(w.t) && line.duration > 0) return Math.round(ms * Math.min(1, Math.max(0, w.t / line.duration)))
-  const at = text.indexOf(REVEAL_WORD)
-  return Math.round(ms * (at >= 0 ? at / text.length : REVEAL_AT))
-}
+export const revealAtMs = (line, ms) => wordAtMs(line, ms, REVEAL_WORD, REVEAL_AT) // общая привязка «момент слова в реплике» — boss/lineWordAt.js
 export const REVEAL_LINES = ['boss_mia_look', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five']
 /** talk — реплика Мии { id, key, ms } (miaSpeech.onSpeak) → { zone, key, ms } или null */
 export const flashOf = talk => (talk && FLASH_LINES[talk.id] ? { zone: FLASH_LINES[talk.id], key: talk.key, ms: talk.ms } : null)

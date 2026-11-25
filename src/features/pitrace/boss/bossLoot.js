@@ -1,11 +1,12 @@
-// Полёт потерянных трофеев к Мии (RaceBossLoot.jsx): чистая геометрия без DOM. Трофеи слетают со шкалы — от её «ствола» справа, с высоты линии слова (там же стоит треугольник слова), — к числу «у Мии» на коробке.
-export const LOOT_FLY_MS = 650   // сколько летит один значок
-export const LOOT_STEP_MS = 90   // значки вылетают друг за другом
-export const LOOT_BUMP_MS = 280  // число «у Мии» вздрагивает
-export const LOOT_EDGE_PX = 34   // старт: столько от правого края сцены (у рисок шкалы, не на самом «стволе» — треугольник не закрываем)
+// Потерянные трофеи переходят к Мии (RaceBossLoot.jsx): чистая геометрия и сроки без DOM. «+N» выплывает от счётчика игрока (слева сверху, .wlXp) к счётчику Мии под ним,
+// число Мии вздрагивает. Вся анимация конечная и укладывается в LOOT_TOTAL_MS (владелец 2026-11-25: «простая анимация, если пользователь отвечает неверно или не отвечает»).
+export const LOOT_FLY_MS = 450   // «+N» плывёт к счётчику Мии
+export const LOOT_BUMP_MS = 250  // число Мии вздрагивает, когда «+N» доплыло
+export const LOOT_TOTAL_MS = LOOT_FLY_MS + LOOT_BUMP_MS // 700 мс — потолок всей анимации потери
+export const LOOT_OUT_PX = 30    // старт «+N»: столько правее счётчика игрока (значок не лежит на числе и не доходит до середины экрана)
 
-/** Откуда и куда летит значок: w, h — размер сцены, lineY — высота линии слова от верха сцены (null — линии нет: середина сцены), tx, ty — центр числа «у Мии». → { from: [x, y], tx, ty } */
-export function lootFlight({ w, h, lineY = null, tx, ty }) {
-  const y = lineY == null || !Number.isFinite(lineY) ? h / 2 : Math.min(h - 24, Math.max(24, lineY))
-  return { from: [Math.max(0, w - LOOT_EDGE_PX), y], tx, ty }
+/** Откуда и куда плывёт «+N» (координаты слоя): xp — счётчик игрока { right, cy } или null (его нет на экране — старт правее счётчика Мии), tx, ty — центр числа Мии. → { from: [x, y], to: [x, y] } */
+export function lootFlight({ xp = null, tx, ty }) {
+  const ok = xp && Number.isFinite(xp.right) && Number.isFinite(xp.cy)
+  return { from: ok ? [xp.right + LOOT_OUT_PX, xp.cy] : [tx + LOOT_OUT_PX * 2, ty], to: [tx, ty] }
 }

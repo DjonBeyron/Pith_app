@@ -82,9 +82,10 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
   const fresh = useLabelFrames(heads, lite) // рамка вокруг новой подписи (WordLaneHeads)
   const karaoke = f.rh.on && f.stage === 'run' && ['read', 'descent'].includes(f.stageObj?.act) && !intro // акт «Читка»: слова заливаются зелёным под голос Пита / игрока (rehearsal/read/)
   const debug = isWordLaneDebug()
-  const bossReveal = useBossReveal(f.rh.miaTalk) // шкала на церемонии появляется на словах «видите шкалу», а не с начала реплики
   const miaDropped = useMiaDrop(f.rh.mia?.mia) // финал: дорожки желтеют с момента, когда коробка падает на Пита
-  const bossLive = f.rh.on && f.stage === 'run' && ['boss-ann', 'boss', 'boss-sw', 'boss2'].includes(f.stageObj?.sid) // финал «Шкала памяти»: шкала живёт на церемонии Мии и в круге
+  const bossSid = f.rh.on && ['boss-ann', 'boss', 'boss-sw', 'boss2'].includes(f.stageObj?.sid) // стадии экзамена «Шкала памяти» (пауза стадию не меняет)
+  const bossLive = bossSid && f.stage === 'run' // шкала живёт на церемонии Мии и в круге
+  const bossReveal = useBossReveal(f.rh.miaTalk, bossSid) // шкала на церемонии появляется на слове «шкала» и больше не гаснет до конца экзамена (boss/useBossReveal.js)
   const race = cfg.plan?.game === 'race' // гонка: подсказки «Тап вместо речи» над дорожкой нет (тап выбирается плашкой «Говорю / Тапаю» до старта), фон с узором, верхняя панель вместо крестика
   const trio = useMemo(() => (race && trioFor({ tap: tapMode, stage: f.stageObj }) ? trioCtx(cfg.plan, f.stageObj) : null), [race, tapMode, f.stageObj, cfg.plan]) // «Тапаю»: «Разгон» и «Слушай и лови» — три пилюли на слово (raceTapTrio.js); решается на старте ступени
   const dodge = race && !tapMode && !f.stageObj?.step?.tapOnly && !['climb', 'descent'].includes(f.stageObj?.act) // «Говорю»: Пит под пилюлей и уворачивается (pitrace/raceDodge.js); тап, вершина и спуск — без уворота
