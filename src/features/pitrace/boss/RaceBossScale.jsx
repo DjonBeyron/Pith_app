@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { setBossZoneNow } from './bossZoneNow.js'
+import { setBossZoneNow, setBossWonZone, setBossZoneIdle } from './bossZoneNow.js'
 import { takeBossAnswerAt } from './bossAnswer.js'
 import { zoneAt, ZONES, EDGES, TICKS, spanOf, trackStep, lineOn, zoneRgb, marksStep, nextPill, fadeProgress, demoCaption, demoSync } from './bossScale.js'
 import { frameTick, frameCancel } from '../../player/modules/rotate-phone/gameFrame.js' // общий цикл кадров игры: один requestAnimationFrame на все циклы
@@ -55,7 +55,7 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
       if (tr && tr.done && was !== tr && !pills.find(p => p.el === tr.el)?.locked) lost = tr.id // «не успел» / ушло вниз: верного ответа не было
       const el = line.current
       if (!el) return
-      if (tr && tr.done && was !== tr && pills.find(p => p.el === tr.el)?.locked) clock.current.onZone?.(zoneAt(Math.min(1, Math.max(0, tr.y / H)))) // слово принято: его зона уходит в машину Мии (не принятые — красные по событиям движка)
+      if (tr && tr.done && was !== tr && pills.find(p => p.el === tr.el)?.locked) { const z = zoneAt(Math.min(1, Math.max(0, tr.y / H))); setBossWonZone(z); clock.current.onZone?.(z) } // слово принято: его зона уходит в машину Мии (не принятые — красные по событиям движка)
       for (const p of pills) { // пилюля красится в цвет зоны вместе с линией (data-bz → race-boss.css): зелёная с самого выезда из-за верхнего края, дальше по зоне линии; принятая / не успевшая остаётся в цвете своей зоны
         const mine = tr && !tr.done && p.el === tr.el
         const want = mine ? zoneAt(Math.min(1, Math.max(0, tr.y / H))) : p.locked || p.failed ? null : 'fast'
@@ -69,7 +69,7 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
       const accepted = !!tr && tr.done && pills.find(p => p.el === tr.el)?.locked
       if (accepted && exitId !== tr.id) { exitId = tr.id; el.dataset.exit = '' } else if (tr && !tr.done && el.dataset.exit !== undefined) delete el.dataset.exit // верный ответ: пилюля улетает вверх, а линия уходит слева направо с той же скоростью (CSS wlBossLineOut = RISE_DELAY_MS + RISE_MS, тот же easing)
       if (tr && !tr.done) setBossZoneNow(zoneAt(Math.min(1, Math.max(0, tr.y / H)))) // зона слова в работе: игра читает её при ответе (трофеи слова — по зоне, bossTrophies.js)
-      else if (pills.some(p => !p.locked && !p.failed && p.bottom <= 0)) setBossZoneNow('fast') // следующая пилюля ещё не коснулась шкалы: ответ сейчас — зелёная зона (раньше здесь оставалась зона ПРОШЛОГО слова)
+      else if (pills.some(p => !p.locked && !p.failed && p.bottom <= 0)) setBossZoneIdle() // следующая пилюля ещё не коснулась шкалы: ответ сейчас — зелёная зона (раньше здесь оставалась зона ПРОШЛОГО слова)
       const on = lineOn(tr, now) && tr.id !== fadedId && !(tr && !tr.done && tr.y >= H)
       el.style.opacity = on ? (tr.done ? '1' : Math.min(1, 0.15 + tr.y / (H * 0.2)).toFixed(2)) : '0' // появляется плавно, чуть проявляясь на зелёной (прозрачность растёт на первых 20 % шкалы)
       if (tr) {
