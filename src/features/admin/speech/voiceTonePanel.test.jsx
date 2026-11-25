@@ -24,7 +24,7 @@ describe('панель интонации', () => {
     const t = tOf({ lines: { [a.id]: rec(a), [b.id]: rec(b, { saidTts: 'Допустим…' }), [c.id]: rec(c, { saidTts: c.tts }), [d.id]: { text: d.text, url: null } } })
     const h = renderToStaticMarkup(<VoiceTonePanel t={t} off={false} />)
     expect(h).toContain('🎭 Интонация: 1 нужно переозвучить (текст для диктора изменён), 1 можно переозвучить с интонацией (озвучены без знаков препинания)')
-    expect(h).toContain('🎭 Переозвучить с интонацией (2)'); expect(h).toMatch(/data-testid="rv-tone-context"[^>]*checked|checked[^>]*data-testid="rv-tone-context"/)
+    expect(h).toContain('🎭 Переозвучить с интонацией (2) + недостающие ('); expect(h).toMatch(/data-testid="rv-tone-context"[^>]*checked|checked[^>]*data-testid="rv-tone-context"/)
     expect(toneRows([...t.groups.lines, ...t.groups.pitMia, ...t.groups.mia]).map(r => r.id).sort()).toEqual([a.id, b.id].sort())
     const row = renderToStaticMarkup(<RaceVoiceRow row={t.groups.lines.find(r => r.id === a.id)} onSave={() => {}} onVoice={() => {}} />)
     expect(row).toContain('data-tone="can"'); expect(row).toContain('🎭 можно переозвучить с интонацией: диктору уйдёт «Отлично!»'); expect(row).toContain('rvStatus-ok')
