@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { setBossZoneNow } from './bossZoneNow.js'
 import { takeBossAnswerAt } from './bossAnswer.js'
 import { zoneAt, ZONES, EDGES, TICKS, spanOf, trackStep, lineOn, zoneRgb, marksStep, nextPill, fadeProgress, demoCaption, demoSync } from './bossScale.js'
+import { frameTick, frameCancel } from '../../player/modules/rotate-phone/gameFrame.js' // общий цикл кадров игры: один requestAnimationFrame на все циклы
 
 // Шкала финала «Шкала памяти» поверх сцены игры (.wlStage; владелец 2026-11-15): справа вертикальная линейка с рисками цвета зоны и тусклым полупрозрачным фоном зон (зелёная 45 %, жёлтая 35 %, красная 20 % длины), без цифр.
 // Линейка идёт от верха ленты (под кнопками паузы и админа) до низа с отступом под скругление экрана. Через все дорожки идёт тонкая горизонтальная линия — от «ствола» линейки поверх рисок, к левому краю утончается от края
@@ -26,7 +27,7 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
     let lost = -1 // слово, кончившееся без верного ответа: его треугольник гаснет у низа шкалы
     let slots = [] // маркеры слов (bossScale.marksStep): у каждого слова свой, живых не больше двух
     const frame = now => {
-      raf = requestAnimationFrame(frame)
+      raf = frameTick(frame)
       const dt = last ? Math.min(100, now - last) : 0
       last = now
       if (clock.current.paused) return
@@ -84,8 +85,8 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
       }
       marks.current.forEach((e, k) => { if (!e) return; const m = slots.find(x => x.k === k); e.style.opacity = m && !m.dying ? '1' : '0'; if (m) e.style.setProperty('--g', (m.id === fd.id ? fd.p : m.id < fd.id ? 1 : 0).toFixed(3)); if (m) e.style.translate = `0 ${(m.y * H).toFixed(1)}px`; e.toggleAttribute('data-set', !!m && fd.id != null && m.id <= fd.id) }) // слово закончено (ответ верный / неверный / «не успел») — маркер на месте, плавно крупнее на 20 % (CSS); место — свойством translate, а не transform: у зафиксированного маркера CSS-свойство scale 1,2 умножало сдвиг из transform, и треугольник вставал на 20 % НИЖЕ линии слова (на y × 1,2) — тот самый «скачок вниз» из замечаний владельца
     }
-    raf = requestAnimationFrame(frame)
-    return () => cancelAnimationFrame(raf)
+    raf = frameTick(frame)
+    return () => frameCancel(raf)
   }, [live])
 
   const fl = flash ? { top: EDGES[ZONES.findIndex(z => z.id === flash.zone)] * 100, h: spanOf(flash.zone) * 100 } : null

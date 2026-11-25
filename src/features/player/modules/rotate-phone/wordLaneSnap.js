@@ -57,8 +57,8 @@ function flash(host, css, frames, ms) {
  */
 export function snapPill(pill, k, { full = true } = {}) {
   if (!pill) return 0
+  const out = burstBubbles(pill) // пузыри — ДО хлопка: они читают свои стили (откуда вылетать), и после записи хлопка браузеру пришлось бы пересчитать стили пилюли посреди кадра ответа; на экране то же — всё в одном кадре
   pill.animate(pill.hasAttribute?.('data-edge') ? POP_EDGE_FRAMES : POP_FRAMES, { duration: POP_MS, easing: 'cubic-bezier(0.33, 0, 0.2, 1)' })
-  const out = burstBubbles(pill)
   if (!full) return out
   const clip = pill.querySelector('.wlPillClip')
   const c = levelHex(k + 1)

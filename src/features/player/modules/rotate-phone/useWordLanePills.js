@@ -17,6 +17,7 @@ import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { runPhraseScene } from '../../../pitrace/racePhraseScene.js'
 import { logTrioTap } from '../../../pitrace/raceTapTrioLog.js'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { frameTick, frameCancel } from './gameFrame.js' // общий цикл кадров игры: движок пилюль — «логика кадра» (после замеров размеров, до чистых записей)
 
 // Движок пилюль игры «Повтори за диктором». ДВИЖЕНИЕ пилюль ведёт композитор (wordLaneMotion.js: одна линейная WAAPI-анимация на пилюлю — скорость конвейера постоянна), поэтому лаги основного
 // потока на смартфонах (Vosk, React, щелчок с искрами) на ход не влияют. JS каждый кадр считает только логику и заливку. Пилюли — из пула (wordLanePool.js): живой повтор один (до трёх кусков) плюс догоняющие вниз пилюли предыдущих повторов.
@@ -97,16 +98,16 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
           }
         }
         fxRef.current?.mouth?.(plan.mouth(t), plan.mouthCode(t)) // рот: громкость решает, звучит ли слово, буквы — какой формы рот (на «о» круглый)
-        raf = requestAnimationFrame(tick)
+        raf = frameTick(tick)
       }
-      raf = requestAnimationFrame(tick)
-      return () => { cancelAnimationFrame(raf); pool.giveAll() }
+      raf = frameTick(tick)
+      return () => { frameCancel(raf); pool.giveAll() }
     }
 
     // ---------- «Встряхни память», этап «Фразы»: широкие пилюли на одной ленте (своя сцена, pitrace/racePhraseScene.js) ----------
     if (kind === 'student' && scene.step?.phrases) {
       setDots(0)
-      const run = runPhraseScene({ pool, root, scene, fxRef })
+      const run = runPhraseScene({ pool, root, scene, fxRef, raf: frameTick, caf: frameCancel })
       setApi(sceneApi, run.api)
       return () => { run.stop(); setApi(sceneApi, null); pool.giveAll() }
     }
@@ -169,7 +170,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
           light(claimedReps++)
           fxRef.current?.claim?.(e) // слово принято (раньше щелчка заливки): «Гонка» говорит мини-реплику успеха, пока следующая пилюля ждёт
         } else if (e.type === 'snap') { const k = held.get(e.pill.id); if (k != null) { pool.paintFill(k, 1); snapPill(pool.el(k), e.pill.lane, { full: e.full }) } } // отклик — в кадре, где заливка принятого куска дошла до 100 % (LOCK_MS после принятия); вспышка и искры — один раз на повтор (у последнего защёлкнутого куска), остальные куски только хлопают
-        else if (e.type === 'win') { gate.mute(performance.now()); const k = held.get(e.pill.id); pool.flashLane(e.pill.lane); const xpOk = fxRef.current?.win?.(e.order, k != null ? pool.el(k).getBoundingClientRect() : null, { last: e.last, count: e.rep.pills.length, idx: e.rep.idx }); if (k != null && pool.rise(k, { xp: xpOk === true })) held.delete(e.pill.id) } // нота-награда: микрофон слышит динамик — голосом это не считаем. last / count: XP одна цифра на повтор (когда принят последний кусок). Залитая пилюля улетает вверх (pool.rise, wordLaneRise.js) и возвращается в пул сама, по окончании взлёта: из рук движка её отпускаем (иначе уход «за нижний край» вернул бы её в пул посреди взлёта); конвейер о ней не знает — ни fly, ни lock, спавн следующего повтора она не держит
+        else if (e.type === 'win') { gate.mute(performance.now()); const k = held.get(e.pill.id); pool.flashLane(e.pill.lane); const xpOk = fxRef.current?.win?.(e.order, e.rect ?? (k != null ? pool.el(k).getBoundingClientRect() : null), { last: e.last, count: e.rep.pills.length, idx: e.rep.idx }); if (k != null && pool.rise(k, { xp: xpOk === true })) held.delete(e.pill.id) } // нота-награда: микрофон слышит динамик — голосом это не считаем. last / count: XP одна цифра на повтор (когда принят последний кусок). Залитая пилюля улетает вверх (pool.rise, wordLaneRise.js) и возвращается в пул сама, по окончании взлёта: из рук движка её отпускаем (иначе уход «за нижний край» вернул бы её в пул посреди взлёта); конвейер о ней не знает — ни fly, ни lock, спавн следующего повтора она не держит
         else if (e.type === 'fail') { if (!step.quiet) e.pills.forEach(p => { const k = held.get(p.id); if (k != null) { pool.attr(k, 'data-fail'); pool.hint(k, '0', null); if (e.rep.reveal) { pool.cap(k, e.rep.reveal); pool.attr(k, 'data-reveal'); pool.linger(k); held.delete(p.id) } } }); fxRef.current?.fail?.(e) } // reveal: «Гонка с Питом» — на упущенной пилюле проявляется английское слово
         else if (e.type === 'miss') {
           const k = e.rep ? held.get(e.rep.pills.find(p => p.state === 'fly')?.id) : null // красная вспышка — на первом куске, который ещё не принят (принятые остаются зелёными)
@@ -190,6 +191,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
         level = gate.step(raw, now, now - lastNow).level; lastNow = now
         const heardT = sig.heardAt ? t - (Date.now() - sig.heardAt) : -Infinity // когда распознаватель что-то услышал — на шкале ступени («аванс» заливки по первому черновику)
         const evs = stepStudent(g, t, { level, seq, misses: liveRef.current.misses, confirmed, tail: sig.tail ?? null, hold, pitMs, heardT })
+        for (const e of evs) if (e.type === 'win') { const k = held.get(e.pill.id); if (k != null) e.rect = pool.el(k).getBoundingClientRect() } // рамка принятой пилюли (откуда летит XP) — ДО записей этого кадра: после щелчка и вспышек чтение рамки заставляло браузер пересчитывать стили и раскладку посреди кадра ответа
         for (const e of evs) handle(e)
         if (level > 0) lastVoiceAt = now
         for (const q of g.pills) if (q.state === 'fly' && q.p >= 0.15 && level === 0 && !confirmed && now - lastVoiceAt > 2000 && !unexplained.has(q.id)) { unexplained.add(q.id); pLog(`[fill] ⚠ пилюля ${q.id} налита на ${Math.round(q.p * 100)} % без голоса и без подтверждения распознавателя: raw ${raw.toFixed(3)}, ворота пол ${gate.floor().toFixed(3)}, y ${Math.round(q.y)} %, Пит ${Math.round(pitMs)} мс`) } // журнал для разбора «заливается сама в тишине»: что именно сдвинуло заливку
@@ -205,11 +207,11 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
         }
         for (let j = decoys.length - 1; j >= 0; j--) if (now2 > decoys[j].end) { pool.give(decoys[j].k); decoys.splice(j, 1) } // чужая пилюля ушла за нижний край — в пул
         fxRef.current?.hear?.(level) // уровень микрофона (голос игрока): только выглядывание головы, рот Пита от него не двигается (wordLaneCatVoice.hear)
-        raf = requestAnimationFrame(tick)
+        raf = frameTick(tick)
       }
-      raf = requestAnimationFrame(tick)
+      raf = frameTick(tick)
       return () => { // «Гонка»: ступень кончилась (done) — едущие пилюли (чужие пилюли последнего слова и т. п.) доезжают до края, а не исчезают (wordLaneCoast.js); пауза и перезапуск — убираются сразу
-        cancelAnimationFrame(raf); off?.(); dodger?.stop()
+        frameCancel(raf); off?.(); dodger?.stop()
         if (g.finished && root.closest?.('[data-race]')) { const n = pool.coast(k => pLog(`[conveyor] доехала «${pool.el(k)?.getAttribute('data-cap') ?? '?'}»`)).length; if (n) pLog(`[conveyor] ступень кончилась: доезжают ${n} пилюль`) }
         pool.giveAll(); setApi(sceneApi, null)
       }

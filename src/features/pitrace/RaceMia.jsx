@@ -12,6 +12,7 @@ import { createBox, ART } from './mia/boxArt.js'
 import { arrivalAt, leaveAt, flightPath, talkLevel, soloLeave, panicAt, PANIC_LEN, SOLO, ARR } from './mia/miaMotion.js'
 import { GAZE, readPills, pickPill, stepGaze } from './mia/miaGaze.js'
 import { layoutOf, artMatrix, toScene, poseApply, poseSvg, poseOfMotion, miaCss, MIA_W, MIA_H } from './mia/miaLayout.js'
+import { frameTick, frameCancel } from '../player/modules/rotate-phone/gameFrame.js'
 
 // Эпизод «Мия» поверх сцены игры (.wlStage, прототип 2026-11-14): картонная коробка падает на голову Пита (его голова скрыта, в прорези коробки — глаза Пита, совмещённые
 // с настоящими), Мия запрыгивает на крышку из-за экрана, коробка прогибается; пока Пит говорит (рот его головы живёт по озвучке), из краёв прорези идут звуковые линии —
@@ -55,7 +56,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
     const box = createBox(); artG.current.appendChild(box.el)
     let tailInit = false
     const later = (fn, ms) => { const id = setTimeout(fn, ms); return () => clearTimeout(id) }
-    let raf = 0, last = performance.now(), L = null, M = null, talk = 0, n = 0, tt = 0, gz = { look: 0, w: 0 }, gzPill = null, talkUntil = 0 // gz — взгляд на пилюлю (mia/miaGaze.js)
+    let raf = 0, last = performance.now(), L = null, M = null, talk = 0, n = 0, tt = 0, gz = { look: 0, w: 0 }, gzPill = null, talkUntil = 0, shown = { pose: null, vis: null }, pupils = null // gz — взгляд на пилюлю (mia/miaGaze.js)
     const measure = () => {
       const s = stage.getBoundingClientRect(), c = cat.getBoundingClientRect()
       L = layoutOf({ stageW: s.width, stageH: s.height, catX: c.x - s.x, catY: c.y - s.y, catW: c.width, catH: c.height }, ART.PER_EYE)
@@ -63,9 +64,10 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
       artG.current.setAttribute('transform', `matrix(${M.join(' ')})`)
     }
     const frame = now => {
-      raf = requestAnimationFrame(frame)
+      raf = frameTick(frame) // общий цикл кадров игры (gameFrame.js)
       const dt = Math.min(0.05, (now - last) / 1000); last = now
       const c = clock.current
+      if (!poseG.current || !artG.current) return // уход доигран, React уже убрал разметку, а эффект ещё не снят: рисовать некуда (раньше здесь падало «Cannot read properties of null (reading 'setAttribute')»)
       if (c.paused && L && c.still) return // пауза игры: часы эпизода стоят, поза уже нарисована — кадр пустой (без чтения DOM и записи атрибутов)
       c.still = c.paused
       const sp = soloRef.current
@@ -88,8 +90,9 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
       if (c.mode === 'stuck') { const k = Math.max(0, 1 - (now - hitAt.current) / 280); pose.dx += 3.4 * k * Math.sin(2 * Math.PI * 21 * tt) * L.f; pose.rot += 0.9 * k * Math.sin(2 * Math.PI * 17 * tt + 1) } // стоит ровно по центру; на касание коробка вздрагивает
       pose.dx += 0.35 * Math.sin(2 * Math.PI * 22 * tt) * tk * L.f; pose.rot += 0.08 * Math.sin(2 * Math.PI * 17 * tt + 1) * tk // Пит говорит из коробки: дрожь минимальная (владелец 2026-11-14)
       const piv = toScene(M, ART.BOTTOM)
-      poseG.current.setAttribute('transform', poseSvg(pose, piv))
-      poseG.current.setAttribute('visibility', m.shown ? 'visible' : 'hidden') // до падения коробки (и после ухода) её не видно: без этого она мигала на месте за кадр до падения
+      const ps = poseSvg(pose, piv), vis = m.shown ? 'visible' : 'hidden' // запись — только когда значение сменилось: коробка стоит большую часть «Допроса», а запись того же атрибута SVG каждый кадр заставляла браузер перерисовывать её заново
+      if (ps !== shown.pose) { shown.pose = ps; poseG.current.setAttribute('transform', ps) }
+      if (vis !== shown.vis) { shown.vis = vis; poseG.current.setAttribute('visibility', vis) } // до падения коробки (и после ухода) её не видно: без этого она мигала на месте за кадр до падения
       cat.style.visibility = m.hideCat ? 'hidden' : ''
       const mi = miaEl.current
       if (mi) {                                                  // Мия: прыжок из-за экрана → сидит на крышке (едет с коробкой) → уезжает с ней в лапах за экран
@@ -105,7 +108,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
         let pk = 0 // пик речи: широкий рот → зрачок плавно шире (mia/miaSlit.js)
         if (tk0 && now < tk0.until) { const h = [...mi.querySelectorAll('[data-part="head"]')].find(x => x.style.display !== 'none'); pk = peakTarget(talkLevel(h?.getAttribute('data-vis'), h?.getAttribute('data-mouth'))) }
         peak.current.v = smoothPeak(peak.current.v, pk); const pq = Math.round(peak.current.v * 10) / 10
-        if (pq !== peak.current.q) { peak.current.q = pq; mi.style.setProperty('--peak', String(pq)) }
+        if (pq !== peak.current.q) { peak.current.q = pq; pupils ??= [...mi.querySelectorAll('.pu')]; for (const pu of pupils) pu.style.setProperty('--peak', String(pq)) } // переменную читают только зрачки (race-mia.css): пишем её им, а не корню Мии — с корня она наследовалась бы всем ≈ 190 узлам, и каждый шаг пика пересчитывал бы стили всей Мии
         if (mr.mode !== 'off') mi.style.transform = miaCss(a[0], a[1], L.f, mr.rot, mr.sx, mr.sy)
       }
       if (c.mode === 'rave' && c.rv >= PANIC_LEN + SOLO.SETTLE && c.arr >= (c.tryEnd ?? 0)) { c.mode = 'stuck'; cbRef.current.onStuck?.() } // Пит остановился по центру И договорил «Эй, ты куда?…» — только теперь просит снять коробку
@@ -113,8 +116,8 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
       if (he && poseG.current && host.current && n % 3 === 0) { const r = box.el.getBoundingClientRect(), h = host.current.getBoundingClientRect(), x0 = Math.max(r.left, h.left), y0 = Math.max(r.top, h.top), x1 = Math.min(r.right, h.right), y1 = Math.min(r.bottom, h.bottom); Object.assign(he.style, { left: `${x0 - h.left}px`, top: `${y0 - h.top}px`, width: `${Math.max(0, x1 - x0)}px`, height: `${Math.max(0, y1 - y0)}px` }) } // только видимая часть коробки (низ коробки может уходить за экран)
       if (leaving && !m.shown) { c.mode = 'off'; setGone(g => (g === atRef.current ? g : atRef.current)) } // уход доигран: убираем (setState — в кадре rAF, не в эффекте)
     }
-    raf = requestAnimationFrame(frame)
-    return () => { cancelAnimationFrame(raf); tailCtl.current.cancel?.(); tailCtl.current = { want: false, cancel: null }; tailW.current = { want: false, seen: new Map() }; box.el.remove(); cat.style.visibility = ''; slit.current = false }
+    raf = frameTick(frame)
+    return () => { frameCancel(raf); tailCtl.current.cancel?.(); tailCtl.current = { want: false, cancel: null }; tailW.current = { want: false, seen: new Map() }; box.el.remove(); cat.style.visibility = ''; slit.current = false }
   }, [live])
 
   return (

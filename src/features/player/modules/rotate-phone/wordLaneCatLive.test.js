@@ -36,7 +36,7 @@ describe('кот игры — «живой Пит v2» подключён', () =
     expect(css).not.toContain('--wh-amp')
     expect(css).not.toContain('is-tail')
     const look = read('./wordLaneCatLook.js')
-    expect(look).toContain('whiskers = createWhiskerDrive({ getRoot })')
+    expect(look).toContain('whiskers = createWhiskerDrive({ getRoot, raf: frameDraw, caf: frameCancel })') // привод усов по умолчанию — на общем цикле кадров игры (gameFrame.js)
     expect(read('./WordLaneCat.jsx')).toContain('lite ? NO_LOOK : createCatLook(')
   })
 
@@ -66,7 +66,8 @@ describe('кот игры — «живой Пит v2» подключён', () =
     expect(voice).toContain('look.talking(level >= VOICE_AT)')
     expect(voice).toContain('look.lineStart(); look.talking(true)')
     expect(voice).toContain('look.lineEnd(); look.talking(false)')
-    expect(voice.match(/requestAnimationFrame/g)).toHaveLength(1) // rAF только в значении по умолчанию: один цикл на реплику, новых циклов нет
+    expect(voice).not.toContain('requestAnimationFrame') // своего цикла кадров у рта нет: кадр реплики — в общем цикле игры (gameFrame.js)
+    expect(voice).toContain('raf = frameDraw, caf = frameCancel') // только в значении по умолчанию: один колбэк на кадр реплики, новых циклов нет
     expect(cat).toContain('createCatVoice(')
     expect(cat).toContain('look.idle(true)')
     expect(cat).toContain('look.idle(false)')

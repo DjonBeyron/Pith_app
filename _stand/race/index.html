@@ -36,6 +36,7 @@ import { createPhraseListener as stubPhraseListener, stubSay, stubDraft, stubLev
 //  • Vosk — заглушка: речь подаёт драйвер очередью window.__sayQueue (строки «слова через пробел»): следующий кусок звука микрофона закрывает заход с этим текстом — как итог Vosk; window.__partialQueue — только черновик (partial) без итога; тап вместо речи (localStorage pithy_wl_tap_v1=1) работает как обычно.
 //  • Vosk — заглушка: речь подаёт драйвер очередью window.__sayQueue (строки «слова через пробел»): следующий кусок звука микрофона закрывает заход с этим текстом — как итог Vosk («~слова» — только черновик partial, заход не закрывается); тап вместо речи (localStorage pithy_wl_tap_v1=1) работает как обычно.
 const params = new URLSearchParams(location.search)
+if (params.get('perf') === '1') (await import('./perfStand.js')).setupPerf(params) // замеры производительности: зеркало журнала в window.__log, ?probe=1 — датчик [perf], ?under=1 — подобие приложения под игрой (perfStand.js, perf-run.mjs)
 const fixture = params.get('fixture') || 'three'
 if (params.get('pauses')) { const r = setPauseOverrides(parsePausesParam(params.get('pauses')), { source: 'stand' }); window.__pauses = r; if (r.dropped.length) console.warn('[pauses] стенд: отброшено', JSON.stringify(r.dropped)) } // ?pauses=mia.intro=800,race.announce=3000 или JSON — паузы-настройки сценария для этого прогона (shared/lib/scenePauses.js)
 const voice = params.get('voice') !== '0'
@@ -101,5 +102,5 @@ window.__done = null
 const np = withPhrases(normalizePlan(plan), plan) // для драйвера скриншотов (shoot.mjs): слова раундов по тому же плану и семени
 window.__race = { sprint: sprintWords(np), catches: catchWords(np), climb: climbWords(np), chunks: np.chunks, phrases: phrasesOf(np) } // turns1 (ходы круга «Пойми») убраны: круг вырезан
 if (params.get('only') === 'summary') createRoot(document.getElementById('root')).render(summaryStand()) // ?only=summary — сразу экран итога (summaryStand.js)
-else createRoot(document.getElementById('root')).render(React.createElement(RotatePhoneModule, { node, file: null, forceDebug: true, askAuto: ['voice', 'tap'].includes(askParam) ? askParam : null, onDone: v => { window.__done = v } }))
+else createRoot(document.getElementById('root')).render(React.createElement(RotatePhoneModule, { node, file: null, forceDebug: params.get('debug') !== '0' /* ?debug=0 — без отладочного интерфейса, как у ученика (замеры) */, askAuto: ['voice', 'tap'].includes(askParam) ? askParam : null, onDone: v => { window.__done = v } }))
 </script></body></html>

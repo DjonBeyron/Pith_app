@@ -43,6 +43,7 @@ import { useConveyorArm } from './useConveyorArm.js'
 import { conveyorSpeedHint } from './wordLaneConveyorSpeed.js'
 import { laneTape, laneUp } from './wordLaneTape.js'
 import { useLabelFrames } from './useLaneLabels.js'
+import { useGameOpenFlag } from './gameOpenFlag.js'
 
 // Вертикальная игра «Повтори за диктором» (полный экран, портрет). Фраза из кусков (до трёх) стоит над дорожками: кусок над своей дорожкой, дорожки слева направо читаются как предложение.
 // Раунды: наращивание (диктор — ученик по ступеням «кусок ×3 → следующий ×3 → вместе ×3 …»), «Порядок» (тап по дорожкам), «Вслепую» (ни текста, ни перевода) → перевод. Одно слово (фраза из одного куска)
@@ -59,6 +60,7 @@ const FAIL_TEXT = {
 
 export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, forceDebug = false, startHold = false, onRestart = null, onAgain = null, onSummary = null, onFinished }) { // startHold — «Гонка»: сцена открыта сразу после ответа на попап, звук ещё готовится (RotatePhoneModule): часы игры стоят, Пит уже наверху
   const rootRef = useRef(null)
+  useGameOpenFlag() // пока игра на экране, всё под её оверлеем замирает (html.gameOpen, styles/lesson-open.css)
   const [tapMode, setTapMode] = useState(readTapMode) // «тап вместо речи» (HUD, админ): тап по дорожке в очереди ученика засчитывает следующую цель — проверка механики и анимаций без голоса
   const [lite] = useState(() => readWeakStored() ?? isWeakDevice()) // слабое устройство: читка репетиции без курсора (ReadKaraoke)
   const [safe0] = useState(readPillSafe) // «безопасные слои пилюль» (HUD): класс только на старте, дальше его меняет сам HUD через classList — className не меняется, React его не трогает

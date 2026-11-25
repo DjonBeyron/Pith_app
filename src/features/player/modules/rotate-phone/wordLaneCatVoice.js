@@ -2,6 +2,7 @@ import { codeAt, chatterTrack } from './wordLaneVisemes.js'
 import { mouthShape, HALF_AT } from './wordLaneMouth.js'
 import { VOICE_AT } from './wordLaneCatPeek.js'
 import { catDebug } from './wordLaneCatDebug.js'
+import { frameDraw, frameCancel } from './gameFrame.js'
 
 // Кто ведёт рот кота — микрофон/диктор (mouth) или его реплика (speak). Чистая логика без DOM и React: рот, взгляд и выскакивание приходят аргументами (hold, look, peek), время и таймеры — тоже, поэтому проверяется тестами.
 //  • mouth(level, code?) — громкость ГОЛОСА ПИТА 0…1 (+ форма по букве; диктор ступени — уровень по его клипу) → рот. Пока идёт реплика, он ничего не делает: ни рот, ни усы, ни выскакивание; такие попытки
@@ -15,7 +16,7 @@ import { catDebug } from './wordLaneCatDebug.js'
 const END_SLACK_MS = 80 // таймер конца реплики срабатывает на столько позже расчётного конца: кадр успевает сам закрыть реплику
 
 export function createCatVoice({
-  hold, look, peek, queue = null, drawn = () => 0, now = () => performance.now(), raf = f => requestAnimationFrame(f), caf = id => cancelAnimationFrame(id),
+  hold, look, peek, queue = null, drawn = () => 0, now = () => performance.now(), raf = frameDraw, caf = frameCancel, // общий цикл кадров игры (gameFrame.js): рот только пишет — в конце кадра
   setTimer = setTimeout, clearTimer = clearTimeout, log = catDebug,
 }) {
   let line = null // { id, t0, ms, track, d0, micBlocked }

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { createConveyorDrive } from './laneConveyorDrive.js'
 import { raceChron } from '../../../pitrace/raceStartChron.js'
+import { frameDraw, frameCancel } from './gameFrame.js'
 
 // React-обёртка привода конвейера (laneConveyorDrive.js): привод живёт на корне поля пилюль, команда armed ('101') и пауза приходят пропсами; на кадрах React не участвует.
 export function useLaneConveyor(rootRef, { armed, paused = false, still = false, speed = null, speedKey = null, fx = null }) {
@@ -10,7 +11,7 @@ export function useLaneConveyor(rootRef, { armed, paused = false, still = false,
   useEffect(() => {
     const root = rootRef.current
     if (!root) return undefined
-    const d = createConveyorDrive({ root, still, talk: () => fxRef.current?.pitLeft?.() ?? 0 })
+    const d = createConveyorDrive({ root, still, talk: () => fxRef.current?.pitLeft?.() ?? 0, raf: frameDraw, caf: frameCancel }) // общий цикл кадров игры (gameFrame.js): привод только пишет — в конце кадра, после всех замеров
     drive.current = d
     return () => { d.dispose(); if (drive.current === d) drive.current = null }
   }, [rootRef, still])

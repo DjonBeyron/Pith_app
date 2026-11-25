@@ -14,6 +14,16 @@ html.lessonOpen .shellV2Nav *::before,
 html.lessonOpen .shellV2Nav *::after,
 html.lessonOpen .shellV2Content *:not(.playerStage, .playerStage *, .reviewScreen, .reviewScreen *),
 html.lessonOpen .shellV2Content *:not(.playerStage, .playerStage *, .reviewScreen, .reviewScreen *)::before,
-html.lessonOpen .shellV2Content *:not(.playerStage, .playerStage *, .reviewScreen, .reviewScreen *)::after {
+html.lessonOpen .shellV2Content *:not(.playerStage, .playerStage *, .reviewScreen, .reviewScreen *)::after,
+/* Игра открыта (html.gameOpen — rotate-phone/gameOpenFlag.js; оверлей .wl закрывает весь экран): то же правило. Игра,
+   запущенная не из урока (админка: «Встряхни память», тест-запуск, шлифовка), флага lessonOpen не поднимает, и под ней
+   весь сеанс игры крутились бесконечные анимации нижней панели (журнал владельца 2026-11-25: navDueGlow, navDuePulse)
+   и активной вкладки. Вида не меняет: всё это под непрозрачным оверлеем; после игры анимации идут с того же места. */
+html.gameOpen .shellV2Nav *,
+html.gameOpen .shellV2Nav *::before,
+html.gameOpen .shellV2Nav *::after,
+html.gameOpen .shellV2Content *:not(.playerStage, .playerStage *, .reviewScreen, .reviewScreen *),
+html.gameOpen .shellV2Content *:not(.playerStage, .playerStage *, .reviewScreen, .reviewScreen *)::before,
+html.gameOpen .shellV2Content *:not(.playerStage, .playerStage *, .reviewScreen, .reviewScreen *)::after {
   animation-play-state: paused !important;
 }

@@ -81,20 +81,28 @@ export function createBox(uid = 'wlMia') {
   eyeL.innerHTML = eyeMarkup(four(eyesRaw.slice(0, cut)), -8.2); eyeR.innerHTML = eyeMarkup(four(eyesRaw.slice(cut)), 10)
   fl.nearL = mk('path', {}, g); fl.nearR = mk('path', {}, g)                 // ближние клапаны поверх граней: задранные закрывают низ
   const pupils = [...eyeL.querySelectorAll('.bxPupil'), ...eyeR.querySelectorAll('.bxPupil')], gazeGs = [...eyeL.querySelectorAll('.bxGaze'), ...eyeR.querySelectorAll('.bxGaze')]
-  let lastStep = -1, lastPupil = 1, lastGaze = 0
-  const eye = (el, cx, csrc, s) => el.setAttribute('transform', `translate(${f2(cx + (s.look || 0))} ${f2(CY0)}) scale(${(SX * (s.scale || 1)).toFixed(4)} ${(SY * Math.max(0.02, s.open) * (s.scale || 1)).toFixed(4)}) translate(-${csrc} -305.6)`)
+  let lastStep = -1, lastPupil = 1, lastGaze = 0, lastFlaps = ''
+  // Атрибут пишется, только когда значение сменилось: коробка большую часть эпизода стоит, а update зовётся каждый кадр — запись того же d / fill / transform в SVG всё равно заставляла браузер
+  // пересобрать контур и перерисовать коробку (замер 2026-11-25: 8 записей клапанов и 3 — глаз на каждый кадр «Допроса»). Картинка та же: пишутся те же значения, просто один раз
+  const was = new Map()
+  const put = (el, name, value) => { let m = was.get(el); if (!m) was.set(el, m = {}); const v = String(value); if (m[name] === v) return; m[name] = v; el.setAttribute(name, v) }
+  const eye = (el, cx, csrc, s) => put(el, 'transform', `translate(${f2(cx + (s.look || 0))} ${f2(CY0)}) scale(${(SX * (s.scale || 1)).toFixed(4)} ${(SY * Math.max(0.02, s.open) * (s.scale || 1)).toFixed(4)}) translate(-${csrc} -305.6)`)
   function update(s) {
-    const f = flaps(s.thNear, s.thFar), tn = s.thNear * D, tf = s.thFar * D
-    fl.farL.setAttribute('d', d(f.farL)); fl.farL.setAttribute('fill', shade('#A5763F', dark(tf)))
-    fl.farR.setAttribute('d', d(f.farR)); fl.farR.setAttribute('fill', shade('#8F6535', dark(tf)))
-    fl.nearL.setAttribute('d', d(f.nearL)); fl.nearL.setAttribute('fill', shade(PAL.nl, dark(tn)))
-    fl.nearR.setAttribute('d', d(f.nearR)); fl.nearR.setAttribute('fill', shade(PAL.nr, dark(tn)))
+    const fk = `${s.thNear}|${s.thFar}`
+    if (fk !== lastFlaps) { // клапаны не шевельнулись — ни считать, ни писать нечего
+      lastFlaps = fk
+      const f = flaps(s.thNear, s.thFar), tn = s.thNear * D, tf = s.thFar * D
+      put(fl.farL, 'd', d(f.farL)); put(fl.farL, 'fill', shade('#A5763F', dark(tf)))
+      put(fl.farR, 'd', d(f.farR)); put(fl.farR, 'fill', shade('#8F6535', dark(tf)))
+      put(fl.nearL, 'd', d(f.nearL)); put(fl.nearL, 'fill', shade(PAL.nl, dark(tn)))
+      put(fl.nearR, 'd', d(f.nearR)); put(fl.nearR, 'fill', shade(PAL.nr, dark(tn)))
+    }
     const on = s.open > 0.01
-    eyes.setAttribute('display', on ? 'inline' : 'none')
+    put(eyes, 'display', on ? 'inline' : 'none')
     if (on) { eye(eyeL, CX - HALF, 200.9, s); eye(eyeR, CX + HALF, 383.2, s) }
     const gz = Math.round((s.gaze ?? 0) * 100) / 100
     if (gz !== lastGaze) { lastGaze = gz; gazeGs.forEach(x => x.setAttribute('transform', `translate(${(+x.dataset.dx + gz * PUPIL_RANGE).toFixed(2)} 0)`)) } // взгляд: зрачок и блик едут внутри радужки (gaze −1…1, минус — влево)
-    const pu = s.pupil ?? 1
+    const pu = Math.round((s.pupil ?? 1) * 100) / 100 // шаг 1 % (≈ 0,05 px на зрачке в 5 px — глазом не видно): «дыхание» зрачка пишется ~15 раз в секунду, а не каждый кадр
     if (pu !== lastPupil) { lastPupil = pu; pupils.forEach(x => { x.style.transform = pu === 1 ? '' : `scale(${pu.toFixed(3)})` }) } // зрачки: 1 — обычные, меньше — сжаты (слово в красной зоне, Пит испугался)
     const talk = s.talk || 0, step = Math.floor((s.t || 0) * 12)               // звуковые линии (замена рта Пита): комикс-штрихи в плоскости грани, 12 кадров/с
     if (talk <= 0.04) { if (lastStep !== -2) { lines.forEach(l => l.forEach(x => x.setAttribute('opacity', 0))); lastStep = -2 }; return }

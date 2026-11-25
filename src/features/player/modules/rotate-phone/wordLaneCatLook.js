@@ -2,6 +2,7 @@ import { createPupilLook } from '../../../scene/v2/pupilLook.js'
 import { setMouth } from '../../../scene/v2/mouthDriver.js'
 import { applyMascotMouthCode } from '../../../scene/v2/sprites/mascot/mascotMouth.js'
 import { createWhiskerDrive } from '../../../scene/v2/whiskerDrive.js'
+import { frameDraw, frameCancel } from './gameFrame.js'
 
 // «Живой Пит v2» для кота игры «Повтори за диктором» (WordLaneCat.jsx) — чистая обёртка без React: зрачки (взгляд, саккады по словам, дрейф в тишине, расширение в начале речи) и
 // класс is-talking и усы (whiskerDrive.js: JS-амплитуда плавно 0 → 1 при речи и 1 → 0 после, без CSS-переходов и @property — в Safari они давали рывок на старте и в конце). В сценах это делает режиссёр (scenePlayLine.js) и флаг animV2; в игре включено всегда, кроме слабого устройства (там только рот — NO_LOOK).
@@ -25,7 +26,7 @@ export function drawCatMouth(head, key) {
 export const NO_LOOK = Object.freeze({ lineStart() {}, word() {}, lineEnd() {}, idle() {}, talking() {}, release() {}, stop() {} })
 
 /** getRoot() → <g class="scn-cat"> | null; skin — пакет маскота (масштаб посадки зрачков); whiskers — привод усов (в тестах подменяется) */
-export function createCatLook({ getRoot, skin = 'kit', timers = globalThis, rand = Math.random, whiskers = createWhiskerDrive({ getRoot }) }) {
+export function createCatLook({ getRoot, skin = 'kit', timers = globalThis, rand = Math.random, whiskers = createWhiskerDrive({ getRoot, raf: frameDraw, caf: frameCancel }) }) { // усы игры — на общем цикле кадров (gameFrame.js)
   const pupils = createPupilLook({ whos: ['a'], getEl: getRoot, skinOf: () => skin, timers, rand }) // один персонаж: взгляд прямо, без «собеседника»
   let on = false
   let offTimer = null
