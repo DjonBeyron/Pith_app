@@ -3892,3 +3892,4 @@ A2 из `PLAN_NEW_USER.md`. Чистая модель без React и сети: 
 | `src/features/player/modules/rotate-phone/wordLaneStageTurn.js` (+ `.test.js`) | Отложенный переход стадии срабатывает, только пока идёт та же стадия: на паузе и после «Продолжить» опоздавшие очереди игру не двигают (v3.3.366) |
 | `src/features/player/modules/rotate-phone/wordLanePillWatch.js` (+ `.test.js`) | Диагностика «капсула моргнула»: строки `[pill]` в журнал о сменах на летящей пилюле; только при отладочном интерфейсе |
 | `_stand/race/shoot-pillblink.mjs` | Playwright: покадровый замер видимости пилюль при речи, CPU 4× |
+| `src/features/pitrace/boss/lineWordAt.js` (+ `examMoments.test.js`) | «Момент слова в реплике» (`wordAtMs`), плашка экзамена на `boss_mia_look` (`examPlateOn`), слово ухода Мии «пока» (`byeAtMs`); тесты: плашка, шкала показывается один раз, уход на «пока» (v3.3.367) |
