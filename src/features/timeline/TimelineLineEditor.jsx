@@ -1,12 +1,14 @@
 import { useRef, useState } from 'react'
 import { lineVoiceState, isSpeaker, mouthState } from './timelineLineEdit.js'
 import TimelineCheckNote from './check/TimelineCheckNote.jsx'
+import TimelineTtsField from './TimelineTtsField.jsx'
 
 // Правка реплики в карточке блока (TimelineCard): «📋 Копировать текст» и «📋 id»; для реплик Пита и Мии — статус озвучки (тот же, что в таблице «Озвучка Пита»), поле с текстом ИЗ НАСТРОЕК НА СЕЙЧАС
 // (если в этой игре звучал другой — показаны оба), строка «👄 …» — размечен ли рот по словам (свой файл размечается в браузере при загрузке; «🔁 Разметить рот заново» — для файла без разметки), «Сохранить» с подтверждением («текст изменится везде…», где реплика звучит), «🎙 Озвучить заново», «📁 Выбрать файл…», «↶ Вернуть прежний текст».
 // Сразу после сохранения (текст, озвучка, свой файл) под сообщением «готово» — итог проверки ЭТОЙ реплики (check/TimelineCheckNote.jsx: «✅ подходит» либо что не так; «↶ Вернуть прежнюю озвучку»), рядом — «↶ Вернуть прежний текст».
+// Под текстом — «Текст для диктора (со знаками)» (TimelineTtsField.jsx): что уходит в ElevenLabs вместо чистого текста, со своей кнопкой сохранения; «🎙 Озвучить заново» ждёт, пока он сохранён.
 // Слова диктора — только копирование: это слова урока из библиотеки слов, они правятся не здесь. edit — useLineEdit (null — правки на экране нет: остаётся копирование).
-const WHAT = { text: 'сохраняю текст…', voice: 'озвучиваю… (ElevenLabs → файл → настройки)', file: 'загружаю файл…', restore: 'возвращаю прежний текст…', mouth: 'размечаю рот…' }
+const WHAT = { text: 'сохраняю текст…', tts: 'сохраняю текст диктора…', voice: 'озвучиваю… (ElevenLabs → файл → настройки)', file: 'загружаю файл…', restore: 'возвращаю прежний текст…', mouth: 'размечаю рот…' }
 const fallbackCopy = async t => { try { await navigator.clipboard.writeText(t); return true } catch { return false } }
 
 export default function TimelineLineEditor({ line, edit = null }) {
@@ -39,6 +41,7 @@ export default function TimelineLineEditor({ line, edit = null }) {
         <textarea className="tlLeText" rows={3} value={text} disabled={off} onChange={e => { setDraft(e.target.value); setAsk(false) }} data-testid="tl-le-text" />
       </label>
       {copyRow}
+      <TimelineTtsField key={`${id}|${edit.lines?.[id]?.tts ?? ''}`} id={id} st={st} rec={edit.lines?.[id]} edit={edit} off={off} textDirty={dirty} />
       {dirty && !ask && (
         <div className="tlLeRow">
           <button type="button" className="tlBtn tlLeGo" disabled={off || !text.trim()} onClick={() => setAsk(true)} data-testid="tl-le-save">Сохранить</button>

@@ -6,6 +6,7 @@ import { realignLine, watchMouth } from '../admin/speech/raceLineActions.js'
 // Правка реплики Пита / Мии прямо из карточки «Таймлайна игры» (CONCEPT_TIMELINE.md, «Правка реплики из карточки»): текст, переозвучка, свой файл, «вернуть прежний текст».
 // Сам хук ничего не знает о настройках: всё делает api (боевой — timelineLineApi.js, ТЕ ЖЕ функции, что у таблицы «Озвучка Пита»; стенд и тесты подставляют свой):
 //   load() → сырые настройки реплик; normalize(raw) → реплики { [id]: { text, url, duration, said, custom } }; audit(raw) → { [id]: { status, reason, was, now, when } };
+//   saveTts(id, tts) — «текст для диктора» (со знаками; необязательная возможность api) ·
 //   saveText(id, text) · voice(id) → { done, failed } · setFile(id, file) · restore(id, prev) — каждое пишет в настройки и бросает ошибку при отказе; copy(text) → true / false.
 // Разметка рта своего файла (admin/speech/raceLineActions.js): ход («загружаю файл… → слушаю запись (Vosk)…») и итог приходят подпиской watchMouth — в busy.what и в сообщение «готово»;
 //   «разметить рот заново» — api.realign(id), а у боевого api (LINE_API) — raceLineActions.realignLine; у подставного api без realign кнопки нет.
@@ -35,6 +36,8 @@ export function createLineEdit(api, set) { // логика без React (тес�
       if (!t) { set({ error: { id, text: 'Пустой текст не сохраняется.' } }); return Promise.resolve(false) }
       return act(id, 'text', async () => { await api.saveText(id, t); return { undo: prev ? { id, prev } : null } }, 'Текст сохранён — он изменился везде. Старая озвучка говорит прежний текст: озвучь заново или выбери файл.')
     },
+    /** «Текст для диктора (со знаками)» реплики: пустая строка — убрать свою правку; не тот текст — ошибка с объяснением (raceLineText.saveLineTts). null — у этого api такой возможности нет (поля нет) */
+    saveTts: api.saveTts ? (id, tts) => act(id, 'tts', async () => { await api.saveTts(id, String(tts ?? '')) }, 'Текст для диктора сохранён. Файл озвучки прежний — нажми «🎙 Озвучить заново», чтобы услышать новую интонацию.') : null,
     voice: id => act(id, 'voice', async () => { const r = await api.voice(id); if (r?.failed?.[id]) throw new Error(r.failed[id]); if (r && !r.done) throw new Error('реплика не озвучена (нет текста или в нём подставляется слово)') }, 'Озвучено — можно слушать.'),
     setFile: (id, file) => { const m = mouthWatch(id); return act(id, 'file', () => m.run(() => api.setFile(id, file)), () => `Файл загружен — можно слушать. ${mouthDone(m.res())}`.trim()) },
     /** «Разметить рот заново» по уже загруженному файлу; null — у этого api такой возможности нет (кнопки нет) */

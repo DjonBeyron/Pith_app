@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { setPending, getPending, flushOne, usePendingKey } from '../../../shared/lib/pendingSettings.js'
 import { generateSpeech } from '../../../shared/lib/ttsApi.js'
+import { dictorText } from '../../rehearsal/tts/ttsText.js'
 import { voiceOf } from '../../pitrace/mia/miaVoice.js'
 import { uploadToR2, deleteFromR2 } from '../../../shared/lib/r2.js'
 import { probeAudioDuration } from '../../../shared/lib/audioUtils.js'
@@ -54,10 +55,11 @@ export default function CatLinesPanel() {
     if (!line.text.trim() || state.busy) return
     flag(id)
     try {
-      const { file, wordTimings } = await generateSpeech(line.text, voiceOf(id)) // mia_* — голос Мии (второй аккаунт), остальные — голос по умолчанию
+      const say = dictorText(id, line) // диктору — текст со знаками препинания (rehearsal/tts/ttsText.js), подпись остаётся чистой
+      const { file, wordTimings } = await generateSpeech(say, voiceOf(id)) // mia_* — голос Мии (второй аккаунт), остальные — голос по умолчанию
       const blob = URL.createObjectURL(file)
       const [url, duration] = await Promise.all([uploadToR2(file), probeAudioDuration(blob)]).finally(() => URL.revokeObjectURL(blob))
-      commit({ ...lines, [id]: { ...line, url, duration, words: wordTimings?.length ? wordTimings : null } }, line.url)
+      commit({ ...lines, [id]: { ...line, url, duration, words: wordTimings?.length ? wordTimings : null, saidTts: say } }, line.url)
       flag('', 'Озвучено — нажмите «Сохранить»')
     } catch (e) { flag('', `Не озвучилось: ${e.message}`) }
   }

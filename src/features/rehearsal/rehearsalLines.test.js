@@ -130,6 +130,7 @@ describe('варианты реплик Пита', () => {
     expect(baseLineId('rh_blind_hint_pre')).toBe('rh_blind_hint_pre'); expect(baseLineId('rh_start_b')).toBe('rh_start')
     expect(LINE_IDS).toEqual(expect.arrayContaining(['rh_done_b', 'rh_start_b', 'rh_blind_hint_pre'])) // варианты — обычные ключи каталога: озвучка, редактор ноды, слоты
   })
+  // Правило — для text (подпись, аудит, рот). Знаки препинания для интонации живут в «тексте для диктора» — поле tts каталога / настроек (tts/ttsText.js, сторож tts/ttsText.test.js): в ElevenLabs уходит он
   it('тексты для озвучки ElevenLabs: нет . … ! — –, нет «фраза твоя», длина до MAX_LINE_CHARS, тексты разные', () => {
     const t = Object.fromEntries(REHEARSAL_LINES.map(l => [l.id, l.text]))
     expect(new Set(Object.values(t)).size).toBe(REHEARSAL_LINES.length)

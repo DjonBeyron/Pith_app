@@ -19,14 +19,18 @@ const QUOTA_URL = `${SUPABASE_URL}/functions/v1/elevenlabs-quota`
  * voice.account: 'mia' — второй аккаунт ElevenLabs (голос Мии, секреты ELEVENLABS_API_KEY_MIA / ELEVENLABS_VOICE_ID_MIA).
  *
  * @param {{ voiceId?: string, modelId?: string, voiceSettings?: object, account?: 'mia' }} [voice]
+ * @param {{ previousText?: string, nextText?: string }} [context] — что звучит до и после этой реплики (ElevenLabs previous_text / next_text: интонация «в разговоре»);
+ *   функция сама не шлёт их модели eleven_v3 и повторяет запрос без них, если ElevenLabs их отверг. Старая (не обновлённая) функция лишние поля просто не читает.
  * @returns {Promise<{ file: File, wordTimings: Array<{ w: string, t: number, e?: number }>, voiceId?: string }>}
  */
-export async function generateSpeech(text, voice = null) {
+export async function generateSpeech(text, voice = null, context = null) {
   const body = { text }
   if (voice?.voiceId) body.voiceId = voice.voiceId
   if (voice?.modelId) body.modelId = voice.modelId
   if (voice?.voiceSettings) body.voiceSettings = voice.voiceSettings
   if (voice?.account === 'mia') body.account = 'mia'
+  if (typeof context?.previousText === 'string' && context.previousText.trim()) body.previousText = context.previousText.trim()
+  if (typeof context?.nextText === 'string' && context.nextText.trim()) body.nextText = context.nextText.trim()
 
   const res = await fetch(TTS_URL, {
     method:  'POST',

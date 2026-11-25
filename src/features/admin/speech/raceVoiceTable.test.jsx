@@ -58,13 +58,14 @@ describe('статусы и правка текста', () => {
     const after = await saveLineText(C.id, 'другая реплика', { load: async () => raw, save })
     expect(after[C.id]).toMatchObject({ text: 'другая реплика', custom: true }); expect(save.mock.calls[0][0].lines[C.id].custom).toBe(true)
     await expect(saveLineText(C.id, '  ', { load: async () => raw, save })).rejects.toThrow()
-    const speak = vi.fn(async text => { if (text === A.text) throw new Error('квота'); return { file: new Blob(['x']), wordTimings: [] } })
+    const speak = vi.fn(async text => { if (text === A.tts) throw new Error('квота'); // диктору уходит текст со знаками: tts каталога
+      return { file: new Blob(['x']), wordTimings: [] } })
     globalThis.URL.createObjectURL ??= () => 'blob:x'; globalThis.URL.revokeObjectURL ??= () => {}
     const saved = vi.fn(async v => v)
     const res = await voicePitLines({ ids: [A.id, B.id], speak, upload: async () => 'u/new.mp3', probe: async () => 1.5, load: async () => raw, save: saved })
     expect(res.done).toBe(1); expect(res.failed[A.id]).toBe('квота')
-    expect(speak).toHaveBeenCalledWith('новый текст')
-    expect(saved.mock.calls[0][0].lines[B.id]).toMatchObject({ url: 'u/new.mp3', said: 'новый текст', duration: 1.5 })
+    expect(speak).toHaveBeenCalledWith('новый текст.') // текст поправлен в админке, слова не те, что у tts каталога: диктору — текст с конечной точкой
+    expect(saved.mock.calls[0][0].lines[B.id]).toMatchObject({ url: 'u/new.mp3', said: 'новый текст', saidTts: 'новый текст.', duration: 1.5 })
     expect(lineStatus(normalizeLines(saved.mock.calls[0][0])[B.id])).toBe('ok')
   })
   it('смыслы фраз и переводы слов — отдельными группами, переводы без повторов смыслов и только чтение', () => {

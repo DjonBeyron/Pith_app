@@ -6,8 +6,12 @@ import { normalizeLines, linesToSave } from '../player/modules/rotate-phone/word
 import { REHEARSAL_LINES, lineVoiced } from './rehearsalLines.js'
 import { voiceOf, loadMiaVoice } from '../pitrace/mia/miaVoice.js'
 import { isMiaLine } from '../pitrace/mia/miaLines.js'
+import { dictorText } from './tts/ttsText.js'
+import { contextOf } from './tts/ttsContext.js'
 
 // Озвучка реплик Пита-тренера из «Теста игры» и «Шлифовки репетиции» (Админ → «Голос»): те же настройки, что у CatLinesPanel в редакторе ноды (app_settings → rotate_cat_lines): ElevenLabs → R2 → запись в реплики.
+// В ElevenLabs уходит НЕ чистый текст реплики, а «текст для диктора» со знаками препинания (tts/ttsText.js dictorText: своя правка → каталог → текст + точка) и, если включено, тексты соседних реплик по сценарию
+// (tts/ttsContext.js: previous_text / next_text). В запись ложатся said — чистый текст (по нему сверяется «текст изменён») и saidTts — что реально ушло диктору (по нему — «текст диктора изменён, переозвучить»).
 // Озвучиваются только реплики репетиции без озвучки (или с устаревшей: текст в коде поменялся, rehearsalLines.js isStaleLine) и без {word} в тексте (такую озвучить нельзя: Пит произносит само слово из библиотеки слов). Слова и куски — отдельно (voiceMissingTexts → generateWordAudio).
 
 /** Реплики репетиции (или другой набор list — «Гонка с Питом»: RACE_LINES), которым не хватает озвучки: [{ id, text }] */
@@ -23,7 +27,7 @@ export function pitVoiceCount(lines, list = REHEARSAL_LINES) {
  * Озвучить недостающие реплики и записать в настройки приложения; onStep(id) — какая озвучивается. → число озвученных. Зависимости подставляются в тестах.
  * Реплика не получилась (ElevenLabs, R2, нет прав админа) — то, что успело озвучиться до неё, всё равно записывается, а ошибка уходит наверх.
  */
-export async function voiceMissingPitLines({ list = REHEARSAL_LINES, onStep = () => {}, speak = generateSpeech, upload = uploadToR2, probe = probeAudioDuration, load = () => getCatLines({ fresh: true }), save = saveCatLines, loadVoice = loadMiaVoice } = {}) {
+export async function voiceMissingPitLines({ list = REHEARSAL_LINES, onStep = () => {}, speak = generateSpeech, upload = uploadToR2, probe = probeAudioDuration, load = () => getCatLines({ fresh: true }), save = saveCatLines, loadVoice = loadMiaVoice, context } = {}) {
   const lines = normalizeLines(await load())
   const todo = missingPitLines(lines, list)
   if (todo.some(d => isMiaLine(d.id))) await loadVoice() // голос Мии, выбранный в админке
@@ -31,7 +35,7 @@ export async function voiceMissingPitLines({ list = REHEARSAL_LINES, onStep = ()
   try {
     for (const { id, text } of todo) {
       onStep(id)
-      lines[id] = await voiceOne(lines[id], text, { speak, upload, probe }, id)
+      lines[id] = await voiceOne(lines[id], text, { speak, upload, probe }, id, contextOf(id, lines, context))
       done++
     }
   } finally {
@@ -40,20 +44,20 @@ export async function voiceMissingPitLines({ list = REHEARSAL_LINES, onStep = ()
   return done
 }
 
-/** Одна реплика: ElevenLabs → R2 → длительность; said — какой текст говорит файл */
-async function voiceOne(line, text, { speak, upload, probe }, id) { // голос Мии (mia_*) — второй аккаунт ElevenLabs (pitrace/mia/miaVoice.js); у остальных — голос по умолчанию
-  const voice = voiceOf(id)
-  const { file, wordTimings } = await (voice ? speak(text, voice) : speak(text))
+/** Одна реплика: ElevenLabs → R2 → длительность; said — какой (чистый) текст говорит файл, saidTts — что ушло диктору (со знаками); ctx — соседние реплики { previousText, nextText } или null */
+async function voiceOne(line, text, { speak, upload, probe }, id, ctx = null) { // голос Мии (mia_*) — второй аккаунт ElevenLabs (pitrace/mia/miaVoice.js); у остальных — голос по умолчанию
+  const voice = voiceOf(id), say = dictorText(id, line, text)
+  const { file, wordTimings } = await (ctx ? speak(say, voice, ctx) : voice ? speak(say, voice) : speak(say))
   const blob = URL.createObjectURL(file)
   const [url, duration] = await Promise.all([upload(file), probe(blob)]).finally(() => URL.revokeObjectURL(blob))
-  return { ...line, url, duration, words: wordTimings?.length ? wordTimings : null, said: text }
+  return { ...line, url, duration, words: wordTimings?.length ? wordTimings : null, said: text, saidTts: say }
 }
 
 /**
  * Переозвучить выбранные реплики (ids) их текущим текстом, даже если они уже озвучены (таблица «Озвучка Пита», admin/speech/useRaceVoiceTable.js). Реплики с {word} и неизвестные id пропускаются.
  * Ошибка одной реплики не останавливает остальные: → { done, failed: { id: текст ошибки } }; удавшиеся записываются в настройки одним сохранением.
  */
-export async function voicePitLines({ ids = [], onStep = () => {}, speak = generateSpeech, upload = uploadToR2, probe = probeAudioDuration, load = () => getCatLines({ fresh: true }), save = saveCatLines, loadVoice = loadMiaVoice } = {}) { // fresh: перед озвучкой читаем настройки с сервера (кэш сессии мог устареть)
+export async function voicePitLines({ ids = [], onStep = () => {}, speak = generateSpeech, upload = uploadToR2, probe = probeAudioDuration, load = () => getCatLines({ fresh: true }), save = saveCatLines, loadVoice = loadMiaVoice, context } = {}) { // context: true / false — контекст соседних реплик (по умолчанию — выключатель админки, ttsContext.contextOn); fresh: перед озвучкой читаем настройки с сервера (кэш сессии мог устареть)
   const lines = normalizeLines(await load())
   if (ids.some(isMiaLine)) await loadVoice() // голос Мии, выбранный в админке
   const failed = {}
@@ -62,7 +66,7 @@ export async function voicePitLines({ ids = [], onStep = () => {}, speak = gener
     const text = lines[id]?.text
     if (!text || text.includes('{')) continue
     onStep(id)
-    try { lines[id] = await voiceOne(lines[id], text, { speak, upload, probe }, id); done++ } catch (e) { failed[id] = e?.message || String(e) }
+    try { lines[id] = await voiceOne(lines[id], text, { speak, upload, probe }, id, contextOf(id, lines, context)); done++ } catch (e) { failed[id] = e?.message || String(e) }
   }
   if (done) await save(linesToSave(lines))
   return { done, failed }

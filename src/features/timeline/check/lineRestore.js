@@ -9,7 +9,8 @@ export async function restoreVoice(id, prev, { load = () => getCatLines({ fresh:
   if (!prev?.url) throw new Error('прежней озвучки нет')
   const lines = normalizeLines(await load())
   if (!lines[id]) throw new Error(`нет реплики ${id}`)
-  lines[id] = { ...lines[id], url: prev.url, duration: prev.duration ?? null, words: prev.words ?? null, said: prev.said ?? prev.text }
+  const { saidTts: _now, ...rest } = lines[id] // что ушло диктору — тоже от прежнего файла
+  lines[id] = { ...rest, url: prev.url, duration: prev.duration ?? null, words: prev.words ?? null, said: prev.said ?? prev.text, ...(prev.saidTts != null ? { saidTts: prev.saidTts } : {}) }
   await save(linesToSave(lines))
   return lines
 }

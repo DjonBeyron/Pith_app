@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { auditLine, auditVoice, auditSummary, AUDIT_MISSING } from './voiceAudit.js'
+import { auditLine, auditVoice, auditSummary, toneSummary, AUDIT_MISSING } from './voiceAudit.js'
 import { CAT_LINES, normalizeLines } from '../../player/modules/rotate-phone/wordLaneCatLines.js'
 import { MIA_LINES } from '../../pitrace/mia/miaLines.js'
 import { RACE_LINES } from '../../pitrace/raceLines.js'
 import { lineVoiced, CODE_TEXT_OF } from '../../rehearsal/rehearsalLines.js'
 import { missingPitLines } from '../../rehearsal/rehearsalVoice.js'
-import { lineRows } from './raceVoiceTable.js'
+import { lineRows, toneRows } from './raceVoiceTable.js'
 
 // Аудит озвучки (v3.3.300): подозрение владельца — «Озвучить недостающие» не всегда видит изменённые и новые реплики Пита и Мии. Причина: реплики эпизода «Мия» не входили в список «текст в коде изменился → озвучка устарела».
 const MIA = MIA_LINES.find(l => l.id === 'boss_mia_keep'), PIT = MIA_LINES.find(l => l.id === 'boss_pit_stuck')
@@ -73,5 +73,28 @@ describe('аудит делится на «Встряхни память» и д
   it('запись реплики другой игры не считается «лишней» в аудите гонки', () => {
     const a = auditVoice({ lines: { well_done: { url: 'u', text: 'x', duration: 1 } } }, raceCatalog0(), CAT_LINES)
     expect(a.orphans).toEqual([])
+  })
+})
+
+describe('интонация: текст для диктора рядом со статусом озвучки', () => {
+  it('старая запись (saidTts нет) — мягко «можно переозвучить с интонацией», статус остаётся ok и в «нужно озвучить» не попадает', () => {
+    const a = auditLine(MIA, voiced(MIA))
+    expect(a).toMatchObject({ status: 'ok', tone: 'can', dictor: MIA.tts }); expect(a.toneNote).toBe(`🎭 можно переозвучить с интонацией: диктору уйдёт «${MIA.tts}»`)
+    const all = auditVoice({ lines: { [MIA.id]: voiced(MIA) } }, [MIA])
+    expect(all.missing).toEqual([]); expect(all.tone.can.map(e => e.id)).toEqual([MIA.id]); expect(all.tone.redo).toEqual([]); expect(auditSummary(all)).toBeNull()
+    expect(toneSummary(all)).toBe('🎭 Интонация: 1 можно переозвучить с интонацией (озвучены без знаков препинания)')
+  })
+  it('озвучено нынешним текстом диктора — чисто; текст диктора поправили после озвучки — «нужно переозвучить» (было → стало)', () => {
+    expect(auditLine(MIA, voiced(MIA, { saidTts: MIA.tts })).tone).toBeUndefined()
+    const own = auditLine(MIA, voiced(MIA, { saidTts: MIA.tts, tts: MIA.tts.replace(/!$/, '…') }))
+    expect(own).toMatchObject({ status: 'ok', tone: 'redo' }); expect(own.toneNote).toContain('🎭 нужно переозвучить: текст для диктора изменён: было «'); expect(own.toneNote).toContain(`стало «${MIA.tts.replace(/!$/, '…')}»`)
+    const all = auditVoice({ lines: { [MIA.id]: voiced(MIA, { saidTts: 'по-старому.' }), [PIT.id]: voiced(PIT, { saidTts: PIT.tts }) } }, [MIA, PIT])
+    expect(all.tone.redo.map(e => e.id)).toEqual([MIA.id]); expect(toneSummary(all)).toBe('🎭 Интонация: 1 нужно переозвучить (текст для диктора изменён)'); expect(toneSummary(auditVoice({ lines: {} }, [MIA]))).toBeNull()
+  })
+  it('неозвученные и устаревшие реплики про интонацию не говорят; строка таблицы несёт отметку; «фраза продолжается» без знаков — чисто', () => {
+    expect(auditLine(MIA, undefined).tone).toBeUndefined(); expect(auditLine(MIA, voiced(MIA, { said: 'старое', text: 'старое' })).tone).toBeUndefined()
+    const pre = RACE_LINES.find(l => l.id === 'race_trap_pre'); expect(auditLine(pre, voiced(pre)).tone).toBeUndefined() // диктору уйдёт то же «это»
+    const raw = { lines: { [PIT.id]: voiced(PIT) } }, row = lineRows([PIT], normalizeLines(raw), auditVoice(raw, [PIT]).byId)[0]
+    expect(row).toMatchObject({ status: 'ok', tone: 'can' }); expect(toneRows([row, { id: 'x', text: 'y', status: 'ok' }])).toEqual([row])
   })
 })

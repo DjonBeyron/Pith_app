@@ -2,6 +2,7 @@ import PolishSettings from './PolishSettings.jsx'
 import RaceMiaVoice from './RaceMiaVoice.jsx'
 import RaceVoiceRow from './RaceVoiceRow.jsx'
 import VoiceAuditPanel from './VoiceAuditPanel.jsx'
+import VoiceTonePanel from './VoiceTonePanel.jsx'
 import useRaceVoiceTable from './useRaceVoiceTable.js'
 import { voiceCount, missingRows, voiceable, unvoicedFirst, missingNote } from './raceVoiceTable.js'
 
@@ -28,6 +29,7 @@ export default function RaceVoiceTable({ plan, locked = false, open, onToggle, m
         <button type="button" className="aspChip" disabled={off || !count.total} onClick={voiceAll} data-testid="rv-voice-all">Переозвучить все</button>
       </div>
       <VoiceAuditPanel t={t} off={off} />
+      <VoiceTonePanel t={t} off={off} confirm={confirm} />
       {t.busy && <p className="rhpHint" role="status" data-testid="rv-step">{t.step ? `озвучиваю ${t.step}…` : 'работаю…'}</p>}
       {t.errors._all && <p className="aspErr" role="alert">Не озвучилось: {t.errors._all}</p>}
       {Object.keys(t.errors).length > 0 && <p className="rhpHint">Ошибки — в строках. Нужны права админа и доступ к ElevenLabs.</p>}

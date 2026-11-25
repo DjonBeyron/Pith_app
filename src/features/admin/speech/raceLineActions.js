@@ -3,6 +3,7 @@ import { normalizeLines, linesToSave } from '../../player/modules/rotate-phone/w
 import { uploadToR2 } from '../../../shared/lib/r2.js'
 import { probeAudioDuration } from '../../../shared/lib/audioUtils.js'
 import { editedLine } from './raceLineText.js'
+import { dictorText } from '../../rehearsal/tts/ttsText.js'
 
 // Действия над одной репликой Пита / Мии сверх правки текста (raceLineText.saveLineText) и озвучки (rehearsalVoice.voicePitLines) — для карточки реплики на «Таймлайне игры» (features/timeline/timelineLineApi.js).
 // Пишут в те же настройки app_settings.rotate_cat_lines тем же способом, что таблица «Озвучка Пита»: прочитать свежие → normalizeLines → поменять одну запись → linesToSave → saveCatLines. Формат настроек не меняется.
@@ -38,7 +39,7 @@ export async function setLineFile(id, file, { load = fresh, save = saveCatLines,
   try { [url, duration, mouth] = await Promise.all([upload(file), probe(blob), markMouth(file, lines[id].text, { align, onStep })]) } finally { URL.revokeObjectURL(blob) }
   if (!(Number(duration) > 0)) throw new Error('не удалось узнать длительность файла — это точно звук?')
   onAlign(mouth)
-  lines[id] = { ...lines[id], url, duration, words: mouth.words?.length ? mouth.words : null, said: lines[id].text }
+  lines[id] = { ...lines[id], url, duration, words: mouth.words?.length ? mouth.words : null, said: lines[id].text, saidTts: dictorText(id, lines[id]) } // saidTts: свой файл записан по нынешнему тексту диктора — «можно переозвучить с интонацией» у него не горит
   onStep('сохраняю…')
   await save(linesToSave(lines))
   return lines

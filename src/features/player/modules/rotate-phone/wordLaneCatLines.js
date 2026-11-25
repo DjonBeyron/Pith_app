@@ -42,6 +42,8 @@ export function normalizeLines(raw) {
       words: Array.isArray(v.words) && v.words.length ? v.words : null,
       ...(custom ? { custom: true } : {}),
       ...(typeof v.said === 'string' ? { said: v.said } : {}),
+      ...(typeof v.tts === 'string' && v.tts.trim() ? { tts: v.tts.trim() } : {}), // свой «текст для диктора» (со знаками) и то, что ушло диктору при озвучке: rehearsal/tts/ttsText.js
+      ...(typeof v.saidTts === 'string' ? { saidTts: v.saidTts } : {}),
     }
   }
   return out
@@ -57,7 +59,7 @@ export function linesToSave(lines) {
   const out = {}
   for (const d of CAT_LINES) {
     const l = lines[d.id]
-    if (l && (l.text !== d.text || l.url || l.custom)) out[d.id] = { text: l.text, url: l.url, duration: l.duration, words: l.words, ...(l.custom ? { custom: true } : {}), ...(l.said != null ? { said: l.said } : {}) }
+    if (l && (l.text !== d.text || l.url || l.custom || l.tts)) out[d.id] = { text: l.text, url: l.url, duration: l.duration, words: l.words, ...(l.custom ? { custom: true } : {}), ...(l.said != null ? { said: l.said } : {}), ...(l.tts ? { tts: l.tts } : {}), ...(l.saidTts != null ? { saidTts: l.saidTts } : {}) }
   }
   return { lines: out }
 }

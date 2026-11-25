@@ -53,9 +53,9 @@ describe('устаревшие реплики репетиции', () => {
     const spoken = []; const out = []
     await voiceMissingPitLines({ load: async () => saved, speak: async t => { spoken.push(t); return { file: { text: t }, wordTimings: [] } }, upload: async f => `new/${f.text.length}`, probe: async () => 1, save: async v => out.push(v) })
     vi.restoreAllMocks()
-    expect(spoken).toContain(fresh('rh_warmup')); expect(spoken).not.toContain('старый текст разминки'); expect(spoken).not.toContain(fresh('rh_read_why'))
+    expect(spoken).toContain(`${fresh('rh_warmup')}.`); expect(spoken).not.toContain('старый текст разминки'); expect(spoken).not.toContain(`${fresh('rh_read_why')}.`) // диктору — текст с конечной точкой (tts/ttsText.js), в настройки — чистый
     const s = out[0].lines
-    expect(s.rh_warmup).toMatchObject({ text: fresh('rh_warmup'), url: `new/${fresh('rh_warmup').length}` })
+    expect(s.rh_warmup).toMatchObject({ text: fresh('rh_warmup'), url: `new/${fresh('rh_warmup').length + 1}`, said: fresh('rh_warmup'), saidTts: `${fresh('rh_warmup')}.` })
     expect(s.rh_read_why.url).toBe('https://r2/read.mp3'); expect(s.your_turn.text).toBe('Свой текст из редактора ноды')
     expect(pitVoiceCount(normalizeLines(out[0])).done).toBe(pitVoiceCount(normalizeLines(out[0])).total)
   })

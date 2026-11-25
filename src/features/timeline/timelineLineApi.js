@@ -5,7 +5,7 @@
 import { getCatLines } from '../../shared/api/catLinesApi.js'
 import { normalizeLines } from '../player/modules/rotate-phone/wordLaneCatLines.js'
 import { voicePitLines } from '../rehearsal/rehearsalVoice.js'
-import { saveLineText } from '../admin/speech/raceLineText.js'
+import { saveLineText, saveLineTts } from '../admin/speech/raceLineText.js'
 import { setLineFile, restoreLine } from '../admin/speech/raceLineActions.js'
 import { auditVoice } from '../admin/speech/voiceAudit.js'
 import { copyText } from '../admin/speech/copyText.js'
@@ -16,6 +16,7 @@ export const LINE_API = {
   normalize: normalizeLines,
   audit: raw => auditVoice(raw).byId,
   saveText: (id, text) => saveLineText(id, text),
+  saveTts: (id, tts) => saveLineTts(id, tts), // «текст для диктора» (со знаками) — что уходит в ElevenLabs
   voice: id => voicePitLines({ ids: [id] }),
   setFile: (id, file) => setLineFile(id, file),
   restore: (id, prev) => restoreLine(id, prev),

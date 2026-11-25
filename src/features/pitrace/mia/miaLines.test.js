@@ -7,6 +7,7 @@ describe('реплики Мии и Пита в эпизоде', () => {
     expect(new Set(MIA_LINE_IDS).size).toBe(MIA_LINES.length)
     for (const l of MIA_LINES) { expect(['mia', 'pit']).toContain(l.who); expect(l.text.length).toBeGreaterThan(3); expect(l.when.length).toBeGreaterThan(10) }
   })
+  // Правило — для text; знаки для интонации — в поле tts («текст для диктора», rehearsal/tts/ttsText.test.js)
   it('тексты готовы к озвучке: нет точек, многоточий, восклицательных знаков и тире', () => {
     for (const l of MIA_LINES) expect(l.text, l.id).not.toMatch(/[.…!—–]/)
   })

@@ -26,17 +26,18 @@ describe('группа «Эпизод Мия» в таблице озвучки'
   })
   it('озвучка реплик Мии идёт голосом Мии (generateSpeech получает account mia), реплик Пита — без голоса', async () => {
     const src = readFileSync(new URL('../../rehearsal/rehearsalVoice.js', import.meta.url), 'utf8')
-    expect(src).toContain('voiceOf(id)'); expect(src).toContain('speak(text, voice)'); expect(src).toContain('{ speak, upload, probe }, id)')
+    expect(src).toContain('voiceOf(id)'); expect(src).toContain('speak(say, voice)'); expect(src).toContain('{ speak, upload, probe }, id, contextOf(id, lines, context))')
     const { voicePitLines } = await import('../../rehearsal/rehearsalVoice.js')
     const speak = vi.fn(async () => ({ file: new File(['x'], 'a.mp3'), wordTimings: [] }))
     globalThis.URL.createObjectURL = () => 'blob:x'; globalThis.URL.revokeObjectURL = () => {}
     const saved = []
     const load = async () => ({ lines: {} }), save = async v => { saved.push(v) }
-    const r = await voicePitLines({ ids: ['mia_push', 'pit_back_1'], speak, upload: async () => 'https://r2.dev/x.mp3', probe: async () => 1.5, load, save, loadVoice: async () => null })
+    const r = await voicePitLines({ ids: ['mia_push', 'pit_back_1'], speak, upload: async () => 'https://r2.dev/x.mp3', probe: async () => 1.5, load, save, loadVoice: async () => null, context: false })
     expect(r.done).toBe(2)
-    expect(speak.mock.calls[0]).toEqual(['Посиди в коробке, пушистик, дальше командую я', expect.objectContaining({ account: 'mia' })])
-    expect(speak.mock.calls[1]).toEqual(['Спасибо за помощь, вот это у неё характер']) // Пит — голос по умолчанию, второго аргумента нет
+    expect(speak.mock.calls[0]).toEqual(['Посиди в коробке, пушистик. Дальше командую я.', expect.objectContaining({ account: 'mia' })]) // диктору — текст со знаками (tts каталога), в настройки — чистый
+    expect(speak.mock.calls[1]).toEqual(['Спасибо за помощь! Вот это у неё характер…']) // Пит — голос по умолчанию, второго аргумента нет
     expect(Object.keys(saved[0].lines ?? saved[0])).toEqual(expect.arrayContaining(['mia_push', 'pit_back_1']))
+    expect((saved[0].lines ?? saved[0]).mia_push).toMatchObject({ said: 'Посиди в коробке, пушистик, дальше командую я', saidTts: 'Посиди в коробке, пушистик. Дальше командую я.' })
   })
   it('блок свёрнут по умолчанию и отдельный от блока Пита: строк Мии нет, строки Пита не содержат реплик эпизода', () => {
     const closed = html({ miaOpen: false }); expect(closed).toContain('Озвучка Мии'); expect(closed).not.toContain('data-testid="rv-mia"')

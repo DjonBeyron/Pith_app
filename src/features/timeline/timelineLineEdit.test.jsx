@@ -73,7 +73,7 @@ describe('статус «нужно озвучить»', () => {
   it('свой файл: url и длительность из файла, said = текущий текст — статус зелёный; файл без длительности не принимается', async () => {
     const s = server(), { st, core } = await edit(s)
     await core.saveText(ID, 'Новый старт'); expect(await core.setFile(ID, new Blob(['x']))).toBe(true)
-    expect(s.raw.lines[ID]).toEqual({ text: 'Новый старт', url: 'https://r2/own.mp3', duration: 1.5, words: null, custom: true, said: 'Новый старт' })
+    expect(s.raw.lines[ID]).toEqual({ text: 'Новый старт', url: 'https://r2/own.mp3', duration: 1.5, words: null, custom: true, said: 'Новый старт', saidTts: 'Новый старт.' }) // saidTts — нынешний текст диктора: у своего файла «можно переозвучить с интонацией» не горит
     expect(lineVoiceState(line('pit', ID), st.audit).status).toBe('ok')
     await expect(setLineFile(ID, new Blob(['x']), { ...s.deps, upload: async () => 'u', probe: async () => 0 })).rejects.toThrow('длительность')
     await expect(setLineFile('нет', new Blob(['x']), s.deps)).rejects.toThrow('нет реплики')

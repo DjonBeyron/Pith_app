@@ -21,7 +21,7 @@ export function lineVoiceState(line, audit) {
   const a = isSpeaker(line) ? audit?.[line.id] : null
   if (!a) return { known: false, status: null, mark: null, label: '', now: '', was: null, when: '', differs: false }
   const now = a.now ?? '', said = String(line.text ?? '').trim()
-  return { known: true, status: a.status, mark: MARK[a.status] ?? null, label: LABEL[a.status] ?? a.status, now, was: a.was ?? null, when: a.when ?? '', differs: !!said && !!now && said !== now }
+  return { known: true, status: a.status, mark: MARK[a.status] ?? null, label: LABEL[a.status] ?? a.status, now, was: a.was ?? null, when: a.when ?? '', differs: !!said && !!now && said !== now, dictor: a.dictor ?? '', tone: a.tone ?? null, toneNote: a.toneNote ?? '' } // dictor / tone — интонация (voiceAudit: что уйдёт диктору; 'redo' — нужно переозвучить, 'can' — можно)
 }
 
 /** Метки для клипов: { [id реплики]: 'red' | 'white' } — только то, что нужно озвучить (зелёные клипы не помечаются) */

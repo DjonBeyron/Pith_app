@@ -103,6 +103,19 @@ function voiceParams(body: Record<string, unknown>, defaultVoice = ELEVENLABS_VO
   return { voiceId, modelId, settings: Object.keys(settings).length ? settings : null };
 }
 
+// Контекст соседних реплик (необязательно): previousText / nextText от клиента → previous_text / next_text ElevenLabs — модель слышит, что было до и что будет после,
+// и ведёт интонацию конца фразы «в разговоре». Каждое — до 500 символов. Для eleven_v3 не шлём (поля рассчитаны на модели v2 / turbo / flash; по официальной
+// документации не сверено — на случай отказа ниже есть повтор запроса без контекста).
+const NO_CONTEXT_MODELS = ["eleven_v3"];
+function contextParams(body: Record<string, unknown>, modelId: string) {
+  const out: Record<string, string> = {};
+  if (NO_CONTEXT_MODELS.includes(modelId)) return out;
+  const cut = (v: unknown) => (typeof v === "string" ? v.trim().slice(0, 500) : "");
+  if (cut(body.previousText)) out.previous_text = cut(body.previousText);
+  if (cut(body.nextText)) out.next_text = cut(body.nextText);
+  return out;
+}
+
 // Параметры звукового эффекта от клиента: описание (≤ 450 символов), длительность 0.5…5 с, «послушность» описанию 0…1.
 // Всё, что не прошло проверку, заменяется значениями по умолчанию (мяу: 0.6 с, 0.5) или отклоняется (пустое описание).
 function sfxParams(body: Record<string, unknown>) {
@@ -187,10 +200,12 @@ Deno.serve(async (req) => {
 
   let text: string;
   let voice: ReturnType<typeof voiceParams>;
+  let context: Record<string, string> = {};
   try {
     const body = await req.json();
     text = (body.text ?? "").trim();
     voice = voiceParams(body, defaultVoice);
+    context = contextParams(body, voice.modelId);
   } catch (e) {
     return json({ error: (e as Error).message }, 400);
   }
@@ -199,15 +214,24 @@ Deno.serve(async (req) => {
 
   try {
     console.log("[tts-elevenlabs] calling ElevenLabs...", { chars: text.length, voiceId: voice.voiceId, modelId: voice.modelId });
-    const elRes = await fetch(ELEVENLABS_URL(voice.voiceId), {
+    const call = (extra: Record<string, string>) => fetch(ELEVENLABS_URL(voice.voiceId), {
       method:  "POST",
       headers: { "xi-api-key": apiKey, "Content-Type": "application/json" },
       body:    JSON.stringify({
         text,
         model_id: voice.modelId,
         ...(voice.settings ? { voice_settings: voice.settings } : {}),
+        ...extra,
       }),
     });
+    let elRes = await call(context);
+    let contextUsed = Object.keys(context).length > 0;
+    // Модель / тариф не принял previous_text / next_text (ошибка запроса 400 / 422) — повторяем без них: озвучка важнее контекста
+    if (!elRes.ok && contextUsed && (elRes.status === 400 || elRes.status === 422)) {
+      console.warn("[tts-elevenlabs] context rejected, retry without:", elRes.status, await elRes.text());
+      elRes = await call({});
+      contextUsed = false;
+    }
 
     if (!elRes.ok) {
       const errText = await elRes.text();
@@ -219,7 +243,7 @@ Deno.serve(async (req) => {
     const wordTimings = wordTimingsFromAlignment(result.alignment);
     console.log("[tts-elevenlabs] OK, words:", wordTimings.length);
 
-    return json({ audioBase64: result.audio_base64, contentType: "audio/mpeg", wordTimings, voiceId: voice.voiceId, modelId: voice.modelId });
+    return json({ audioBase64: result.audio_base64, contentType: "audio/mpeg", wordTimings, voiceId: voice.voiceId, modelId: voice.modelId, contextUsed });
   } catch (e) {
     console.error("[tts-elevenlabs] unexpected error:", (e as Error).message);
     return json({ error: (e as Error).message }, 500);

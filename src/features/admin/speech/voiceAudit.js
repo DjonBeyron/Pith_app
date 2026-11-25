@@ -2,6 +2,7 @@ import { CAT_LINES } from '../../player/modules/rotate-phone/wordLaneCatLines.js
 import { isMiaLine, MIA_LINES } from '../../pitrace/mia/miaLines.js'
 import { RACE_LINES } from '../../pitrace/raceLines.js'
 import { CODE_TEXT_OF } from '../../rehearsal/rehearsalLines.js'
+import { dictorText } from '../../rehearsal/tts/ttsText.js'
 
 // Аудит озвучки реплик Пита и Мии: сверка КАТАЛОГА КОДА (CAT_LINES) с тем, что реально сохранено в настройках (app_settings.rotate_cat_lines, сырое значение — до normalizeLines, который прячет разницу).
 // Зачем отдельно от таблицы: таблица показывает уже нормализованные реплики, а аудит отвечает на вопрос «что изменилось и почему кнопка «Озвучить недостающие» должна это видеть» — по каждой реплике причина и «было → стало».
@@ -13,6 +14,10 @@ export const AUDIT_LABEL = { ok: 'озвучено', new: 'новая репли
 export const RACE_LINE_SET = new Set([...RACE_LINES, ...MIA_LINES].map(l => l.id))
 export const raceCatalog = (catalog = CAT_LINES) => catalog.filter(d => RACE_LINE_SET.has(d.id))
 export const otherCatalog = (catalog = CAT_LINES) => catalog.filter(d => !RACE_LINE_SET.has(d.id))
+// Интонация: у озвученной реплики (status ok) рядом сверяется «текст для диктора» — то, что уходит в ElevenLabs со знаками препинания (rehearsal/tts/ttsText.js). Статус при этом остаётся ok
+// (игра файл играет: слова те же), а в записи аудита появляется tone: 'redo' — файл озвучен ДРУГИМ текстом диктора (saidTts ≠ нынешнему: знаки поправили) — нужно переозвучить;
+// 'can' — файл озвучен до появления текста диктора (saidTts нет) и диктору теперь ушло бы другое — «🎭 можно переозвучить с интонацией» (мягко, не «нужно»). dictor — что уйдёт диктору сейчас.
+export const TONE_LABEL = { redo: '🎭 нужно переозвучить: текст для диктора изменён', can: '🎭 можно переозвучить с интонацией' }
 export const AUDIT_MISSING = ['new', 'none', 'stale', 'nodur'] // что должна подхватывать кнопка «Озвучить недостающие»
 
 const clean = s => String(s ?? '').trim()
@@ -30,7 +35,9 @@ export function auditLine(def, rec, codeText = CODE_TEXT_OF[def.id] ?? def.text)
   const voiced = clean(typeof rec.said === 'string' ? rec.said : rec.text) // что говорит файл: said — записывается при каждой озвучке; у старых записей — сохранённый текст
   if (voiced !== now) return { status: 'stale', reason: `${AUDIT_LABEL.stale}: было «${voiced}», стало «${now}»`, was: voiced, now }
   if (!(Number(rec.duration) > 0)) return { status: 'nodur', reason: AUDIT_LABEL.nodur, was: null, now }
-  return { status: 'ok', reason: AUDIT_LABEL.ok, was: null, now }
+  const dictor = dictorText(def.id, { text: now, tts: rec.tts })
+  const tone = typeof rec.saidTts === 'string' ? (clean(rec.saidTts) !== dictor ? 'redo' : null) : dictor !== voiced ? 'can' : null
+  return { status: 'ok', reason: AUDIT_LABEL.ok, was: null, now, dictor, ...(tone ? { tone, toneNote: tone === 'redo' ? `${TONE_LABEL.redo}: было «${clean(rec.saidTts)}», стало «${dictor}»` : `${TONE_LABEL.can}: диктору уйдёт «${dictor}»` } : {}) }
 }
 
 /** Полный аудит: raw — сырое значение настроек (с { lines } или без) → { entries: [{ id, who, status, reason, was, now, when }], byId, counts, missing, orphans, mia: { missing } } */
@@ -42,7 +49,8 @@ export function auditVoice(raw, catalog = CAT_LINES, all = catalog) { // all —
   const known = new Set(all.map(d => d.id))
   const orphans = Object.keys(src ?? {}).filter(k => !known.has(k) && src[k] && typeof src[k] === 'object' && src[k].url)
   const missing = entries.filter(e => AUDIT_MISSING.includes(e.status))
-  return { entries, byId: Object.fromEntries(entries.map(e => [e.id, e])), counts, missing, orphans, mia: { missing: missing.filter(e => e.who === 'mia') } }
+  const tone = { redo: entries.filter(e => e.tone === 'redo'), can: entries.filter(e => e.tone === 'can') }
+  return { entries, byId: Object.fromEntries(entries.map(e => [e.id, e])), counts, missing, orphans, mia: { missing: missing.filter(e => e.who === 'mia') }, tone }
 }
 
 /** Одна строка-итог: «Не озвучено 5: 2 новых, 1 текст изменён …» (null — всё озвучено) */
@@ -50,4 +58,10 @@ export function auditSummary(a) {
   if (!a.missing.length) return null
   const parts = [['new', 'новых'], ['stale', 'с изменённым текстом'], ['none', 'без озвучки'], ['nodur', 'без длительности']].filter(([k]) => a.counts[k]).map(([k, w]) => `${a.counts[k]} ${w}`)
   return `Нужно озвучить ${a.missing.length}: ${parts.join(', ')}`
+}
+
+/** Строка про интонацию: «🎭 Интонация: 2 нужно переозвучить (текст для диктора изменён), 40 можно переозвучить с интонацией» (null — нечего) */
+export function toneSummary(a) {
+  const r = a.tone?.redo.length ?? 0, c = a.tone?.can.length ?? 0
+  return r || c ? `🎭 Интонация: ${[r ? `${r} нужно переозвучить (текст для диктора изменён)` : '', c ? `${c} можно переозвучить с интонацией (озвучены без знаков препинания)` : ''].filter(Boolean).join(', ')}` : null
 }

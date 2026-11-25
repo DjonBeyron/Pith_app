@@ -19,7 +19,7 @@ export function lineStatus(line) {
 export const lineRows = (list, lines, audit = null) => (list ?? []).map(d => {
   const l = lines?.[d.id], a = audit?.[d.id]
   const status = a && ['new', 'stale', 'nodur'].includes(a.status) ? a.status : lineStatus(l)
-  return { id: d.id, group: 'line', text: l?.text ?? d.text, when: d.when, status, duration: l?.duration ?? null, editable: true, ...(l?.url ? { url: l.url } : {}), ...(status !== 'ok' && a?.reason ? { note: a.reason } : {}) } // url — для кнопки ▶ «Прослушать»
+  return { id: d.id, group: 'line', text: l?.text ?? d.text, when: d.when, status, duration: l?.duration ?? null, editable: true, ...(l?.url ? { url: l.url } : {}), ...(status !== 'ok' && a?.reason ? { note: a.reason } : {}), ...(status === 'ok' && a?.tone ? { tone: a.tone, toneNote: a.toneNote } : {}) } // url — для кнопки ▶ «Прослушать»
 })
 
 const libStatus = (text, lib) => {
@@ -61,6 +61,9 @@ export const missingRows = rows => rows.filter(r => voiceable(r) && r.status !==
 
 /** Неозвученные — наверх списка (владелец, v3.3.277: «искать в списке, что не озвучено, сложно»); порядок внутри каждой половины прежний */
 export const unvoicedFirst = rows => [...rows.filter(r => voiceable(r) && r.status !== 'ok'), ...rows.filter(r => !(voiceable(r) && r.status !== 'ok'))]
+
+/** Озвученные строки, которые стоит переозвучить ради интонации (voiceAudit: tone 'redo' — текст диктора изменён, 'can' — озвучены без знаков) */
+export const toneRows = rows => rows.filter(r => voiceable(r) && r.tone)
 
 /** Плашка «не озвучено»: строка с числом и первыми id (null — всё озвучено) */
 export function missingNote(rows, max = 6) {

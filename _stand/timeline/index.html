@@ -30,7 +30,7 @@ import { validatePauses } from '/src/shared/lib/scenePauses.js'
 import { packRun } from '/src/features/timeline/timelineStore.js'
 import { normalizeLines, CAT_LINES } from '/src/features/player/modules/rotate-phone/wordLaneCatLines.js'
 import { auditVoice } from '/src/features/admin/speech/voiceAudit.js'
-import { saveLineText } from '/src/features/admin/speech/raceLineText.js'
+import { saveLineText, saveLineTts } from '/src/features/admin/speech/raceLineText.js'
 import { setLineFile, restoreLine } from '/src/features/admin/speech/raceLineActions.js'
 import { voicePitLines } from '/src/features/rehearsal/rehearsalVoice.js'
 import { checkFixtureRaw, evenWords } from '/src/features/timeline/check/checkFixture.js'
@@ -59,8 +59,8 @@ if (rawLines.lines.race_good_1) rawLines.lines.race_good_1 = { ...rawLines.lines
 if (lmode === 'check' || lmode === 'clean') rawLines = checkFixtureRaw(beep(), { clean: lmode === 'clean' }) // «Проверка сценария»: весь каталог озвучен; check — с набором проблем (check/checkFixture.js PROBLEMS)
 const ldeps = { load: async () => { await wait(150); return rawLines }, save: async v => { await wait(250); if (lmode === 'deny') throw new Error('Сохранение не применилось: сервер не подтвердил запись'); rawLines = v; window.__lines = v; return v } }
 let ttsDur = 1.2 // «озвучка» стенда длится как настоящая речь: 14,5 знака в секунду, с таймингами слов
-const fakeTts = { speak: async text => { await wait(1500); ttsDur = Math.max(0.7, Math.round(text.length / 14.5 * 100) / 100); return { file: new File([text], 'tts.mp3', { type: 'audio/mpeg' }), wordTimings: evenWords(text, 0.05, ttsDur - 0.1) } }, upload: async () => `${beep()}#${Date.now()}`, probe: async () => ttsDur, loadVoice: async () => {} }
-const lineApi = lmode ? { load: ldeps.load, normalize: normalizeLines, audit: raw => auditVoice(raw).byId, saveText: (id, text) => saveLineText(id, text, ldeps), voice: id => voicePitLines({ ids: [id], ...ldeps, ...fakeTts }),
+const fakeTts = { speak: async (text, voice, ctx) => { window.__tts = [...(window.__tts ?? []), { text, ctx: ctx ?? null }]; await wait(1500); ttsDur = Math.max(0.7, Math.round(text.length / 14.5 * 100) / 100); return { file: new File([text], 'tts.mp3', { type: 'audio/mpeg' }), wordTimings: evenWords(text, 0.05, ttsDur - 0.1) } }, upload: async () => `${beep()}#${Date.now()}`, probe: async () => ttsDur, loadVoice: async () => {} }
+const lineApi = lmode ? { load: ldeps.load, normalize: normalizeLines, audit: raw => auditVoice(raw).byId, saveText: (id, text) => saveLineText(id, text, ldeps), saveTts: (id, tts) => saveLineTts(id, tts, ldeps), voice: id => voicePitLines({ ids: [id], ...ldeps, ...fakeTts }),
   setFile: (id, file) => setLineFile(id, file, { ...ldeps, upload: fakeTts.upload, probe: async () => Number(q.get('filedur')) || 1.2 }), restore: (id, prev) => restoreLine(id, prev, ldeps), orphans: raw => auditVoice(raw).orphans, restoreVoice: (id, prev) => restoreVoice(id, prev, ldeps), copy: async t => { window.__copied = t; return true } } : null
 // подставной «сервер пауз» и память устройства
 const pmode = q.get('pauses')
