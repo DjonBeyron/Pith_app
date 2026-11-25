@@ -57,7 +57,9 @@ export function strictHits(words, heard, base = 0, open = false) { // open — �
   let e = Math.min(base, n), j = 0
   while (e < n && j < m) {
     const s = spans[e]
-    const len = s > 1 && j + s <= m && wordHits([words[e]], toks.slice(j, j + s).join(' '))[0] ? s : wordHits([words[e]], toks[j])[0] ? 1 : 0
+    // 2026-11-26 (журнал владельца 2026-11-26 09:26:43, «I'm trying to learn»: черновик «am trying to learn» — засчитано только «I'm», «trying» красным, фраза встала до повтора слова): слово-сокращение, сказанное одной опорной
+    // частью («am» за «I'm»), занимает ОДИН токен. Раньше сначала примерялись оба токена сокращения: «am trying» подходило «I'm» по той же опорной части и съедало «trying» — ожидаемое «trying» в услышанном уже не находилось.
+    const len = wordHits([words[e]], toks[j])[0] ? 1 : s > 1 && j + s <= m && wordHits([words[e]], toks.slice(j, j + s).join(' '))[0] ? s : 0
     if (!len) { j++; continue }
     // v3.3.314 (журнал владельца: быстрое «to to to to» Vosk отдал как «to the to to» — линия перескочила сразу два слова): слово, сразу за которым в услышанном идёт ПОВТОР уже сказанного слова фразы
     // («the», а за ним снова «to»), не засчитывается, и дальше в этом услышанном ничего не ищем — ученик топчется на прошлом слове, а это слово Vosk додумал. Слово «вперёд» или чужое после него («where are from», «where are is») — как раньше.

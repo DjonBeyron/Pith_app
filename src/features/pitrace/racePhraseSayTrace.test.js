@@ -67,4 +67,14 @@ describe('отладочная полоска под пилюлей «Скажи
     vi.stubGlobal('localStorage', { getItem: () => null })
     try { expect(debugBarOn()).toBe(false) } finally { vi.unstubAllGlobals() }
   })
+  it('в игре полоски нет даже при отладочном интерфейсе (владелец 2026-11-26): без явного bar трасса узел не создаёт, журнал [fill] пишется как раньше', () => {
+    vi.stubGlobal('localStorage', { getItem: k => (k === 'pithy_wl_debug_v1' ? '1' : null) })
+    try {
+      expect(debugBarOn()).toBe(true) // отладочный интерфейс включён
+      const doc = fakeDoc(), kids = [], lines = [], t = createSayTrace({ log: x => lines.push(x) })
+      t.spawn(0, { ownerDocument: doc, appendChild: n => kids.push(n) }); t.ear({ kind: 'partial', text: 'nice' }); t.word({ index: 0, text: 'nice', draft: true }, 240); t.frame(240, 0.25, 0.1)
+      expect(doc.made).toHaveLength(0); expect(kids).toHaveLength(0); expect(t.shown()).toBe(false)
+      expect(lines.at(-1)).toMatch(/^\[fill\] \+240 мс: слово 1 «nice» черновик → цель 0,25/)
+    } finally { vi.unstubAllGlobals() }
+  })
 })
