@@ -33,4 +33,11 @@ describe('рот Мии', () => {
   it('нулевая длительность — ничего не делает', () => {
     const r = rig(); r.m.speak('привет', 0); expect(r.m.busy()).toBe(false); expect(r.shapes).toEqual([])
   })
+  it('с таймингами слов озвучки рот Мии молчит в паузе между предложениями (v3.3.372); без них — идёт по тексту равномерно и в паузе открыт', () => {
+    const words = [{ w: 'Мимо.', t: 0, e: 0.4 }, { w: 'Трофеи', t: 1.2, e: 1.7 }, { w: 'мои.', t: 1.75, e: 2 }] // озвучка «Мимо. Трофеи мои.»: 0,8 с тишины после точки
+    const at = (ws, ms) => { const r = rig(); r.m.speak('Мимо трофеи мои', 2000, 'boss_mia_miss_1', ws); for (let t = 0; t < ms; t += 50) r.frame(50); return r.shapes.at(-1)?.[1] }
+    const shut = k => k === 'X' || k === 'closed'
+    expect(shut(at(words, 800))).toBe(true); expect(shut(at(words, 1450))).toBe(false)
+    expect(shut(at(null, 800))).toBe(false)
+  })
 })

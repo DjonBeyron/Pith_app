@@ -46,7 +46,7 @@ export function useMiaLife(root, enabled, talk = null) {
     return () => { timers.forEach(clearTimeout); timers.clear(); mouth.stop(); mouthRef.current = null; look.stop() }
   }, [root, enabled])
   const key = talk?.key ?? null
-  useEffect(() => { if (talk && key != null) mouthRef.current?.speak(talk.text, talk.ms, talk.id) }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (talk && key != null) mouthRef.current?.speak(talk.text, talk.ms, talk.id, talk.words) }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 const faceCount = byFace => MIA_FACES.filter(f => byFace[f]).length

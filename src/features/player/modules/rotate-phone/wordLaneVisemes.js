@@ -4,6 +4,7 @@
 // если есть тайминги слов (ElevenLabs отдаёт их вместе с озвучкой) — каждое слово в своём отрезке, иначе текст растянут на всю длительность. Формы короче выдержки рта (70 мс) отдают время соседу.
 // Чистые функции без DOM — проверяются тестами; реплики кота (wordLaneCatLines.js) и диктор ступеней (wordLaneDictor.js) берут рот отсюда.
 import { LETTER, wordWeight, wordSegments } from '../../../../shared/lib/visemeLetters.js'
+import { tidyWords } from '../../../../shared/lib/mouthWords.js'
 import { holdWord } from '../../../scene/v2/mouthVisemes.js'
 import { MOUTH_MIN_HOLD_MS } from './wordLaneMouthHold.js'
 
@@ -30,7 +31,8 @@ export function mouthTrack(text, ms, words = null, total = null) {
     const base = byFile ? 0 : ws[0].t
     const span = byFile ? total : Math.max(1e-6, end(ws.at(-1)) - base)
     const k = (byFile ? 1 : 0.97) * ms / span
-    return list.flatMap((w, i) => segs(w, (ws[i].t - base) * k, Math.min(ms, (end(ws[i]) - base) * k)))
+    const tw = tidyWords(ws) // пауза после знака («тяжёлая.») из слова вырезана: рот в паузе закрыт (shared/lib/mouthWords.js); масштаб по файлу считается по исходной разметке
+    return list.flatMap((w, i) => segs(w, (ws[i].t - base) * k, Math.min(ms, (end(tw[i]) - base) * k)))
   }
   const per = list.map(w => wordWeight(w) + GAP_W)
   const sum = per.reduce((a, b) => a + b, 0)

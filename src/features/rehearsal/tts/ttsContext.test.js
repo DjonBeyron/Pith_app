@@ -10,7 +10,7 @@ import { TTS_OF } from './ttsText.js'
 // Контекст соседних реплик (ElevenLabs previous_text / next_text) и то, что реально уходит в запрос озвучки. Настоящий ElevenLabs не зовётся: speak и fetch подставные.
 const fake = () => { const calls = []; return { calls, speak: async (...a) => { calls.push(a); return { file: new Blob(['x']), wordTimings: a[0].split(/\s+/).map((w, i) => ({ w, t: i * 0.3, e: i * 0.3 + 0.2 })) } }, upload: async () => 'https://r2/new.mp3', probe: async () => 2, loadVoice: async () => null } }
 beforeEach(() => { globalThis.URL.createObjectURL = () => 'blob:x'; globalThis.URL.revokeObjectURL = () => {} })
-afterEach(() => { setContextOn(true) })
+afterEach(() => { setContextOn(false) })
 
 describe('цепочки соседей совпадают со сценарием игры', () => {
   it('каждая цепочка — подряд идущие реплики одной последовательной части сценария; реплика стоит не больше чем в одной цепочке', () => {
@@ -28,7 +28,8 @@ describe('контекст для запроса', () => {
     expect(contextOf('boss_mia_go', lines, true)).toEqual({ previousText: TTS_OF.boss_pit_no })
     expect(contextOf('pit_forgot', lines, true)).toEqual({ nextText: TTS_OF.mia_push })
     expect(contextOf('race_good_1', lines, true)).toBeNull(); expect(contextOf('mia_push', lines, false)).toBeNull()
-    expect(contextOn()).toBe(true); setContextOn(false); expect(contextOn()).toBe(false); expect(contextOf('mia_push', lines)).toBeNull(); setContextOn(true); expect(contextOf('mia_push', lines)).not.toBeNull()
+    expect(contextOn()).toBe(false); expect(contextOf('mia_push', lines)).toBeNull() // по умолчанию выключен (v3.3.372: с контекстом в клипы попадал звук соседних реплик)
+    setContextOn(true); expect(contextOn()).toBe(true); expect(contextOf('mia_push', lines)).not.toBeNull(); setContextOn(false); expect(contextOn()).toBe(false); expect(contextOf('mia_push', lines)).toBeNull()
   })
 })
 

@@ -60,24 +60,32 @@ type Alignment = {
 // Округляем до сотых: до десятых давало дрожание ±50мс на каждом слове —
 // на глаз печать то опережала звук, то отставала. e — конец слова (для сцен
 // «два кота»: wordTimings { word, start, end } и длительность реплики).
+// Время слова — от первой до последней БУКВЫ / ЦИФРЫ куска (v3.3.372): знак по краям («получается…», «тяжёлая.»)
+// времени слову не даёт — пауза после знака числится в разметке за самим знаком, и раньше она попадала в слово
+// (рот кота растягивал слово на паузу). Кусок из одних знаков («—») словом не считается. w — кусок как есть,
+// со знаками. Эталон и сторож — src/shared/lib/mouthWords.js (wordsFromAlignment) и mouthWords.test.js.
 function wordTimingsFromAlignment(alignment: Alignment) {
   const { characters, character_start_times_seconds: starts, character_end_times_seconds: ends } = alignment;
   const r = (v: number) => Math.round(v * 100) / 100;
+  const core = /[\p{L}\p{N}]/u;
   const out: { w: string; t: number; e: number }[] = [];
   let word = "";
-  let wordStart = 0;
+  let wordStart: number | null = null;
   let wordEnd = 0;
+  const push = () => {
+    if (word && wordStart != null) out.push({ w: word, t: r(wordStart), e: r(wordEnd) });
+    word = "";
+    wordStart = null;
+  };
   for (let i = 0; i < characters.length; i++) {
     const ch = characters[i];
-    if (/\s/.test(ch)) {
-      if (word) { out.push({ w: word, t: r(wordStart), e: r(wordEnd) }); word = ""; }
-      continue;
-    }
-    if (!word) wordStart = starts[i];
-    wordEnd = ends?.[i] ?? starts[i];
+    if (/\s/.test(ch)) { push(); continue; }
     word += ch;
+    if (!core.test(ch)) continue;
+    if (wordStart == null) wordStart = starts[i];
+    wordEnd = ends?.[i] ?? starts[i];
   }
-  if (word) out.push({ w: word, t: r(wordStart), e: r(wordEnd) });
+  push();
   return out;
 }
 
