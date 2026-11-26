@@ -41,10 +41,10 @@ describe('разметка и CSS конвейера', () => {
       expect(h).toContain('<i></i><i></i><i></i>')
     }
   })
-  it('WordLanePills запускает привод (useLaneConveyor) с armed и paused, слабое устройство / reduced-motion — still', () => {
+  it('WordLanePills запускает привод (useLaneConveyor) с armed и paused, reduced-motion — still, слабое устройство — cheap (едет дёшево)', () => {
     const src = read('./WordLanePills.jsx')
-    expect(src).toContain('useLaneConveyor(rootRef, { armed, paused, still, speed, speedKey, fx })')
-    expect(src).toContain('lite || reducedMotion()')
+    expect(src).toContain('useLaneConveyor(rootRef, { armed, paused, still, cheap: lite, speed, speedKey, fx })')
+    expect(src).toContain('useState(reducedMotion)')
     expect(read('./useLaneConveyor.js')).toContain('createConveyorDrive')
   })
   const css = read('../../../../styles/player/modules/word-lane-lane-run.css')

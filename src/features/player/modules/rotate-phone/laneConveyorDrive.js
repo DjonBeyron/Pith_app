@@ -2,8 +2,9 @@ import { convSpeed } from '../../../pitrace/raceReverseTimes.js'
 import { createLane, stepLane, laneLook, settled, retimeSpeed, slowRampMs, RUN_SPEED, SPEED_RAMP_MS, SLOW_RAMP_MIN_MS, SLOW_RAMP_MAX_MS, SLOW_CUT_MS } from './wordLaneConveyor.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { periodPx, shiftPx, pxText, viewOf, RACE_SPLIT } from './laneConveyorPx.js'
-import { pseudoMover } from './laneConveyorMover.js'
+import { pseudoMover, loopMover } from './laneConveyorMover.js'
 
+// Слабое устройство (v3.3.380, cheap): узор едет сам — стоящая бесконечная анимация слоя (laneConveyorMover.loopMover), привод только меняет её скорость; reduced-motion (still) — узор стоит.
 // Привод конвейера: один rAF на все три дорожки (по образцу scene/v2/whiskerDrive.js). Каждый кадр — шаг модели (wordLaneConveyor.js) для каждой дорожки и запись двух CSS-переменных в её колонку
 // .wlLanes i: --run-y (сдвиг узора, px до пикселя устройства — едет transform ::before), --run-a (яркость — opacity слоя ::before, композитор без перерисовки; на «зажигании» её ведёт мигание, v3.3.101).
 // v3.3.133: период узора --run-px (px, кратен пикселям устройства) пишет тоже привод — из той же высоты экрана, что и сдвиг (laneConveyorPx.js): шов на оборачивании не прыгает; высота кэшируется, resize — пересчёт.
@@ -21,10 +22,10 @@ export const MAX_DT = 64        // шаг модели за кадр не бол
 export const reducedMotion = () => { try { return !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches } catch { return false } }
 
 export function createConveyorDrive({
-  root, still = false, now = () => globalThis.performance.now(), log = pLog, talk = () => 0, // talk — сколько мс Пит ещё говорит (директор гонки: pitLeft)
+  root, still = false, cheap = false, now = () => globalThis.performance.now(), log = pLog, talk = () => 0, // talk — сколько мс Пит ещё говорит (директор гонки: pitLeft)
   raf = f => globalThis.requestAnimationFrame(f), caf = i => globalThis.cancelAnimationFrame(i),
   observe = (el, fn) => { const o = new globalThis.MutationObserver(fn); o.observe(el, { subtree: true, attributes: true, attributeFilter: ['data-held', 'data-lane', 'data-still', 'data-speed'] }); return () => o.disconnect() },
-  mover = pseudoMover, watchUp = (el, fn) => { const o = new globalThis.MutationObserver(fn); o.observe(el, { attributes: true, attributeFilter: ['data-up'] }); return () => o.disconnect() }, // разворот конвейера (data-up) при стоящих дорожках: «двигатель» перерисовывает сдвиг сам
+  mover = pseudoMover, loop = loopMover, watchUp = (el, fn) => { const o = new globalThis.MutationObserver(fn); o.observe(el, { attributes: true, attributeFilter: ['data-up'] }); return () => o.disconnect() }, // разворот конвейера (data-up) при стоящих дорожках: «двигатель» перерисовывает сдвиг сам
   view = viewOf, onResize = fn => { const g = globalThis, vv = g.visualViewport; g.addEventListener?.('resize', fn); vv?.addEventListener?.('resize', fn); return () => { g.removeEventListener?.('resize', fn); vv?.removeEventListener?.('resize', fn) } },
 }) {
   const cols = [...root.querySelectorAll('.wlLanes i')]
@@ -64,7 +65,9 @@ export function createConveyorDrive({
     cols[i].style.setProperty(name, value)
   }
   // Сдвиг узора: «двигатель» слоя (laneConveyorMover.js — стоящая анимация псевдоэлемента, стили колонки не пересчитываются); нет его (слабое устройство — узор стоит; старый браузер; тесты) — переменная --run-y, как раньше
-  const movers = cols.map(c => (still ? null : mover(c)))
+  const calm = still || cheap // модель идёт без бега и мигания (y не считается): на слабом узор едет сам (loops), при reduced-motion стоит
+  const movers = cols.map(c => (calm ? null : mover(c)))
+  const loops = cols.map(c => (cheap && !still ? loop(c) : null)) // слабое устройство: стоящий на композиторе бесконечный сдвиг слоя, привод меняет только скорость (laneConveyorMover.loopMover)
   const game = root.closest?.('.wl') ?? null
   const up = () => game?.hasAttribute?.('data-up') === true // обратный конвейер: в CSS сдвиг «период − y» (word-lane-lane-run.css), у «двигателя» его считает привод
   const shift = (i, y) => {
@@ -72,15 +75,22 @@ export function createConveyorDrive({
     const v = up() ? P - y : y
     if (shown[i].move !== v) { shown[i].move = v; movers[i].set(v) }
   }
+  const loop_ = i => { // слабое устройство: период и направление — только когда сменились; скорость (px/с = dvh/с × доля дорожки × высота / 100) — мувер сам отсекает шаги меньше 4 %
+    const m = loops[i], S = shown[i]
+    if (S.loopP !== P) { S.loopP = P; m.setPeriod(P) }
+    const u = up(); if (S.loopUp !== u) { S.loopUp = u; m.setUp(u) }
+    m.setRate(lanes[i].s * lanes[i].k * vp.h / 100)
+  }
   const draw = (i, look) => {
     put(i, '--run-px', pxText(P))
-    shift(i, shiftPx(look.y, lanes[i].per, P, vp.dpr)) // целые пиксели устройства: без пересэмплирования слоя; кадр без сдвига на пиксель — без записи
+    if (loops[i]) loop_(i)
+    else shift(i, shiftPx(look.y, lanes[i].per, P, vp.dpr)) // целые пиксели устройства: без пересэмплирования слоя; кадр без сдвига на пиксель — без записи
     put(i, '--run-a', look.a.toFixed(2)) // opacity слоя (word-lane-lane-run.css): шаг 0,01 — меньше записей на переходах, на глаз не виден
-    if (!still && !race) put(i, '--run-dash', `${(2.2 * look.sy).toFixed(2)}dvh`) // импульс скорости: штрихи длиннее (до ×1,4); на слабом устройстве и при reduced-motion только яркость
+    if (!calm && !race) put(i, '--run-dash', `${(2.2 * look.sy).toFixed(2)}dvh`) // импульс скорости: штрихи длиннее (до ×1,4); на слабом устройстве и при reduced-motion только яркость
   }
   const wave = () => { // по дорожкам пробегает «волна скорости» сверху вниз (CSS-анимация; имя меняется a ↔ b, чтобы она перезапускалась на каждом импульсе)
     const n = lanes.reduce((m, L) => Math.max(m, L.pn), 0)
-    if (still || n === waves) return
+    if (calm || n === waves) return
     waves = n; waveEl ??= root.querySelector('.wlLanes')
     if (waveEl) waveEl.dataset.wave = n % 2 ? 'a' : 'b'
   }
@@ -99,7 +109,7 @@ export function createConveyorDrive({
       aim = v; convSpeed.v = v // множитель скорости конвейера для разворота в реверс (pitrace/raceReverseTimes.js)
     } else if (slow) follow(ts)
     aimKey = hintKey
-    lanes.forEach((L, i) => { draw(i, laneLook(stepLane(L, dt, stop ? { still, speed: v, ramp } : { armed: armed[i], keep: keep[i], pills: pills[i], still, speed: v, hold, ramp }))) })
+    lanes.forEach((L, i) => { draw(i, laneLook(stepLane(L, dt, stop ? { still: calm, speed: v, ramp } : { armed: armed[i], keep: keep[i], pills: pills[i], still: calm, speed: v, hold, ramp }))) })
     wave()
     if (!settled(lanes) && (!paused || race)) id = raf(frame)
   }
@@ -117,7 +127,7 @@ export function createConveyorDrive({
   root.addEventListener?.('wl-conveyor-turn', onTurn)
   const redraw = () => { measure(); lanes.forEach((L, i) => draw(i, laneLook(L))) }
   const stopResize = onResize(redraw)
-  const stopUp = game && movers.some(Boolean) ? watchUp(game, redraw) : () => {}
+  const stopUp = game && (movers.some(Boolean) || loops.some(Boolean)) ? watchUp(game, redraw) : () => {}
   redraw() // период и покой в px сразу, до первого кадра
 
   return {
@@ -130,9 +140,9 @@ export function createConveyorDrive({
     setPaused(on) {
       const was = paused; paused = !!on
       if (paused && !was && race) lanes.forEach(L => { if (L.phase !== 'idle') L.warm = true }) // ехали до паузы — после неё без «зажигания»
-      if (paused && !race) { if (id !== null) { caf(id); id = null } } else wake()
+      if (paused && !race) { if (id !== null) { caf(id); id = null } loops.forEach(m => m?.setRate(0)) } else wake() // на слабом узор едет сам — на паузе (не гонка) его останавливаем
     },
-    dispose() { if (id !== null) caf(id); id = null; stopObserving(); stopResize(); stopUp(); movers.forEach(m => m?.stop()); root.removeEventListener?.('wl-conveyor-turn', onTurn) },
+    dispose() { if (id !== null) caf(id); id = null; stopObserving(); stopResize(); stopUp(); movers.forEach(m => m?.stop()); loops.forEach(m => m?.stop()); root.removeEventListener?.('wl-conveyor-turn', onTurn) },
     /** Для тестов и отладки */
     state: () => ({ phases: lanes.map(L => L.phase), running: id !== null, speed: wanted(), slow: slow ? { ...slow } : null, v: lanes.map(L => L.v), pills: [...pills], armed: [...armed], keep: [...keep], hold, warm: lanes.map(L => L.warm), tape: tape() }),
     frame,

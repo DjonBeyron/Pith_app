@@ -46,6 +46,7 @@ import { laneTape, laneUp } from './wordLaneTape.js'
 import { useLabelFrames } from './useLaneLabels.js'
 import { useGameOpenFlag } from './gameOpenFlag.js'
 import { useLagTrace, useLagMarkOn } from './useLagTrace.js'
+import { useCatVisLog } from './useCatVisLog.js'
 
 // Вертикальная игра «Повтори за диктором» (полный экран, портрет). Фраза из кусков (до трёх) стоит над дорожками: кусок над своей дорожкой, дорожки слева направо читаются как предложение.
 // Раунды: наращивание (диктор — ученик по ступеням «кусок ×3 → следующий ×3 → вместе ×3 …»), «Порядок» (тап по дорожкам), «Вслепую» (ни текста, ни перевода) → перевод. Одно слово (фраза из одного куска)
@@ -89,6 +90,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
   const miaDropped = useMiaDrop(f.rh.mia?.mia) // финал: дорожки желтеют с момента, когда коробка падает на Пита
   const miaTint = useMiaTint(miaColorOn(f.rh.mia?.mia, f.stageObj, miaDropped, f.rh.miaPlate?.started)) // выключение цвета — с выдержкой 0,2 с: на стыке стадий он не мигает (mia/miaTint.js)
   useLagTrace(f.dbg.enabled, f.paused, f.stageObj?.type === 'summary'); useLagMarkOn(miaTint, 'цвет дорожек → Мия', 'цвет дорожек → обычный', lite ? 0 : 900) // трассер лагов «[lag] …» (только отладочный интерфейс) и метка перекраски поля (race-mia.css)
+  useCatVisLog(rootRef, f.dbg.enabled, f.stageObj?.sid) // «[cat-vis]»: один раз на смену стадии — где Пит, opacity / visibility / transform (диагностика «Пит пропадает»)
   const bossSid = f.rh.on && ['boss-ann', 'boss', 'boss-sw', 'boss2', 'boss-fast-ann', 'boss-fast'].includes(f.stageObj?.sid) // стадии экзамена «Шкала памяти» (пауза стадию не меняет)
   const bossLive = bossSid && f.stage === 'run' // шкала живёт на церемонии Мии и в круге
   const bossReveal = useBossReveal(f.rh.miaTalk, bossSid) // шкала на церемонии появляется на слове «шкала» и больше не гаснет до конца экзамена (boss/useBossReveal.js)

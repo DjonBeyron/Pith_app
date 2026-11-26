@@ -27,8 +27,8 @@ function WordLanePills({ scene, levels, fx, live, sceneApi, visible, onLane, arm
   const [lite] = useState(isWeakDevice) // слабое устройство (wl--lite): без частиц в заливке (word-lane-pill.css)
   const [safe] = useState(isPillSafe) // «безопасный» режим слоёв для iOS (wl--safe, localStorage pithy_wl_pill_safe_v1 = 1): без will-change и слоёв частиц, контур дважды (word-lane-pill-safe.css)
   useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, trio, dodge })
-  const [still] = useState(() => lite || reducedMotion()) // слабое устройство и reduced-motion: пунктир без движения, только яркость
-  useLaneConveyor(rootRef, { armed, paused, still, speed, speedKey, fx })
+  const [still] = useState(reducedMotion) // reduced-motion: пунктир без движения, только яркость (слабое устройство — едет дёшево: laneConveyorMover.loopMover)
+  useLaneConveyor(rootRef, { armed, paused, still, cheap: lite, speed, speedKey, fx })
   usePillWatch(rootRef, watch) // журнал «[pill] …»: что менялось на летящей пилюле (разбор «капсула моргнула», только отладочный интерфейс — wordLanePillWatch.js)
   useEffect(() => { if (watch) pLog(`[pill] слои пилюль: ${safe ? 'безопасные (wl--safe: без will-change)' : 'обычные (will-change; клип заливки и свет линии — постоянные слои)'}${lite ? ', слабое устройство (без пузырей)' : ''}`) }, [watch, safe, lite]) // журнал: в каком режиме слоёв шла игра (разбор «часть пилюли исчезла» — раньше по журналу этого было не узнать)
   return (

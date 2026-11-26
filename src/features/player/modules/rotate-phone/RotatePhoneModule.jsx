@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from 'react'
 import { flushSync } from 'react-dom'
 import { Check, Mic } from 'lucide-react'
+import { useRuModelBackground } from '../../../../shared/lib/vosk/useRuModelBackground.js'
 import { useAudioSource } from '../audio/useAudioSource.js'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import VoskReadyNotice from '../../../../shared/ui/VoskReadyNotice.jsx'
@@ -103,6 +104,7 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus, 
   const race = cfg.plan?.game === 'race'
   const voskRu = useVoskReady({ lang: 'ru', hold: false, on: race }) // «Встряхни память», проход B: русская модель скачана? (в память не грузим — это делает переключатель слуха игры); нет её — проход B на тапе
   useEffect(() => { setRuReady(race && voskRu.status === 'ready') }, [race, voskRu.status])
+  useRuModelBackground(race && voskRu.status !== 'ready' && (phase === 'wait' || phase === 'ask')) // русскую модель тихо докачиваем в кэш, пока карточка открыта (раньше — только вручную из Админки): на слабом Android проход B шёл тапом
   useEffect(() => { if (race) loadScenePauses() }, [race]) // паузы-настройки сценария (app_settings.race_scene_pauses): один запрос на сеанс, старт игры его не ждёт — не пришло, игра идёт на значениях по умолчанию
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState('')

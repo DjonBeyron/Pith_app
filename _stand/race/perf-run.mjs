@@ -16,7 +16,7 @@ mkdirSync(OUT, { recursive: true })
 const args = ['--no-sandbox', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required', '--enable-precise-memory-info']
 const browser = await chromium.launch({ executablePath: E.PW_CHROMIUM_PATH, args })
 const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true, permissions: ['microphone'] })
-await ctx.addInitScript(([weak, start, lagOff]) => {
+await ctx.addInitScript(([weak, start, lagOff, catVis]) => {
   if (lagOff) localStorage.setItem('pithy_lag_trace', '0') // LAG=0 — трассер лагов выключен (цена самого трассера: пара прогонов LAG=1 / LAG=0)
   if (start) localStorage.setItem('pithy_race_start_stage_v1', start) // START=boss-intro-ann — «начать с этапа» (как у админа): сразу экзамен
   localStorage.setItem('pithy_weak_device_v6', weak ? '1' : '0'); localStorage.setItem('pithy_debug', '1'); localStorage.setItem('pithy_debug_console', '0')
@@ -27,6 +27,13 @@ await ctx.addInitScript(([weak, start, lagOff]) => {
   const P = window.__perf = { f: [], lt: [], sec: [], skip: [] }
   const tick = t => { P.f.push(Math.round(t * 10) / 10); nraf(tick) }
   nraf(tick)
+  if (catVis) { // CATVIS=1 — покадровая видимость Пита (узел, rect, opacity / visibility / transform / translate головы), раз в 3 кадра; пишет только изменения; в P.cat
+    P.cat = []; let n = 0, prev = ''
+    const cv = () => { if (++n % 3 === 0) { const c = document.querySelector('.wlCat'), s = c?.querySelector('.wlCatSvg'), wl = document.querySelector('.wl'); let o = 'нет узла'
+      if (c) { const r = (s ?? c).getBoundingClientRect(), cs = getComputedStyle(c), ss = s ? getComputedStyle(s) : null; o = [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height), cs.opacity, cs.visibility, ss?.opacity, ss?.visibility, ss?.transform, ss?.translate, c.className.replace(/\s+/g, '.'), c.dataset.dodge ?? ''].join('|') }
+      const k = (wl?.dataset.sid ?? '') + '|' + (wl?.dataset.phase ?? '') + '|' + o; if (k !== prev) { prev = k; P.cat.push([Math.round(performance.now()), k]) } } nraf(cv) }
+    nraf(cv)
+  }
   try { new PerformanceObserver(l => { for (const e of l.getEntries()) P.lt.push([Math.round(e.startTime), Math.round(e.duration)]) }).observe({ entryTypes: ['longtask'] }) } catch { /* нет longtask */ }
   setInterval(() => {
     const t0 = performance.now(), wl = document.querySelector('.wl'), an = document.getAnimations(), names = {}
@@ -36,7 +43,7 @@ await ctx.addInitScript(([weak, start, lagOff]) => {
     P.sec.push({ t: Math.round(t0), sid: wl?.dataset.sid ?? null, raf: calls, an: an.length, run, inf, names, wl: inWl, out: all - inWl, heap: performance.memory?.usedJSHeapSize ?? 0, logN: window.__logN ?? 0 })
     P.skip.push([Math.round(t0), Math.round(performance.now()) + 1])
   }, 2000)
-}, [WEAK, E.START ?? '', E.LAG === '0'])
+}, [WEAK, E.START ?? '', E.LAG === '0', E.CATVIS === '1'])
 const page = await ctx.newPage()
 const cdp = await ctx.newCDPSession(page)
 await cdp.send('Performance.enable')
