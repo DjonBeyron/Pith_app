@@ -3,15 +3,19 @@
 // Пороги (подобраны по настоящей игре владельца — timelineFixtureReal.js: реплики от 20 знаков звучат со скоростью 12,6–16,6 знака в секунду, короткие «Мимо», «Отлично» — 0,7–1,1 с):
 //   • SPEED: реплика от MIN_CHARS знаков вне 9–21 знака/с ⇒ «длина подозрительна» (вероятно, не тот файл или обрезан); короче MIN_CHARS — скорость не считается, только потолок SHORT_MAX_S;
 //   • HEAD_S / TAIL_S: первое слово начинается позже 0,4 с либо последнее кончается раньше длительности − 0,6 с ⇒ «в файле тишина — в игре будет пауза» (только если есть тайминги слов; звук не декодируется).
+//     Что именно там — тишина или обрывок соседней реплики (озвучка с «контекстом соседних реплик») — по таймингам не видно: отметка зовёт послушать. Первое слово на 0,15–0,4 с — мягкая отметка.
+//   • Разметка рта плохая (mouthWords.wordsHealth): слов не столько, сколько в тексте, времена не по порядку, разметка длиннее файла ⇒ «👄 … разметить рот заново».
 // → { id, status, text, dur (с), flags: [{ k, icon, level, text }], level } ; level: 'todo' (нужно озвучить) > 'warn' (проверить) > 'note' (мелочь) > 'ok'; 'skip' — не озвучивается.
 // Чистые функции без React.
 import { alignInfo } from '../../../shared/lib/vosk/voskAlignFill.js'
+import { tidyWords, wordsHealth } from '../../../shared/lib/mouthWords.js'
 
 export const SPEED = { min: 9, max: 21 } // знаков текста в секунду
 export const MIN_CHARS = 15
 export const SHORT_MAX_S = 2.5
 export const HEAD_S = 0.4
 export const TAIL_S = 0.6
+export const HEAD_NOTE_S = 0.15 // первое слово позже этого, но не позже HEAD_S — мягкая отметка: до слова в файле что-то есть (тишина или лишний звук), на слух проверить начало
 export const ICON = { nosound: '🔇', stale: '✏️', length: '⏱', silence: '⏱', mouth: '👄', risk: '⚠' }
 const LEVELS = ['ok', 'note', 'warn', 'todo']
 export const worst = list => list.reduce((a, b) => (LEVELS.indexOf(b) > LEVELS.indexOf(a) ? b : a), 'ok')
@@ -31,9 +35,9 @@ export function lengthNote(text, dur) {
 /** Тишина по краям файла по таймингам слов → { head, tail } в секундах (0 — нет); таймингов нет — null */
 export function edgeSilence(words, dur) {
   if (!Array.isArray(words) || !words.length || !(dur > 0)) return null
-  const t = Number(words[0]?.t), e = Number(words.at(-1)?.e)
+  const t = Number(words[0]?.t), e = Number(tidyWords(words).at(-1)?.e) // конец последнего слова — без паузы после знака («…слова.»): прежняя разметка ElevenLabs записывала её в слово, и хвост файла не был виден (shared/lib/mouthWords.js)
   if (!Number.isFinite(t) || !Number.isFinite(e)) return null
-  return { head: t > HEAD_S ? t : 0, tail: dur - e > TAIL_S ? dur - e : 0 }
+  return { head: t > HEAD_S ? t : 0, tail: dur - e > TAIL_S ? dur - e : 0, lead: t > HEAD_NOTE_S && t <= HEAD_S ? t : 0 }
 }
 
 /** a — запись аудита { status, now, was }; rec — реплика из настроек (normalizeLines): { url, duration, words } */
@@ -50,7 +54,9 @@ export function checkLine(id, a, rec) {
     if (len) add('length', 'warn', len)
     const s = edgeSilence(rec.words, dur)
     if (s?.head) add('silence', 'warn', `в начале файла тишина ${sec(s.head)} — в игре будет пауза перед репликой`)
-    if (s?.tail) add('silence', 'warn', `в конце файла тишина ${sec(s.tail)} — в игре будет пауза после реплики`)
+    if (s?.lead) add('silence', 'note', `до первого слова в файле ${sec(s.lead)} — тишина или лишний звук: послушай начало`)
+    if (s?.tail) add('silence', 'warn', `после последнего слова в файле ещё ${sec(s.tail)} — тишина или лишний звук: в игре будет пауза после реплики`)
+    for (const h of wordsHealth(a.now, rec.words, dur)) add('mouth', 'warn', `${h.text} — «🔁 Разметить рот заново» в карточке реплики`)
     if (!alignInfo(rec.words).has) add('mouth', 'note', 'рот не размечен по словам — будет открываться по тексту')
   }
   return { id, status: a.status, text: a.now, dur, flags, level: worst(flags.map(f => f.level)) }

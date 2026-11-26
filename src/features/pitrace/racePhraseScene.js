@@ -43,7 +43,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
   const fx = () => fxRef?.current ?? {}
   const cap = caption(root) // подпись смысла / реплики над лентой
   const view = createFillView(approachFillFast) // заливка «Скажи» на экране: адаптивный догон (быстрая речь — одним движением)
-  const trace = createSayTrace({ log, ...(debugBar !== undefined ? { bar: debugBar } : {}) }) // журнал «[fill]» и полоска отладки «Скажи»
+  const trace = createSayTrace({ log, ...(debugBar !== undefined ? { bar: debugBar } : {}) }) // журнал «[fill]»; полоски отладки под пилюлей в игре нет (2026-11-26) — только если debugBar передан явно
   let ti = (scene.from ?? 0) - 1, phase = 'next', at = now(), pills = [], res = null, said = createSaid(), frame = 0, stopped = false, timers = []
   let rolling = [], lastSpawn = -Infinity, shown = 0, lastT = now(), fin = null // rolling — отыгранные пилюли прошлых ходов (едут вниз); said — услышанные слова хода (racePhraseSaid.js); fin — итог, заливка доезжает
   let demo = null, demoKit = null, demoTried = false, counted = false, stopCount = null, sv = null, grace = null, slips = (cfg.slips ??= createSlips()) // демо-ход и его голос; sv — вид хода «Скажи» (racePhraseSayView.js); grace — продление хода у края

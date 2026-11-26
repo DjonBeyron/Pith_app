@@ -63,7 +63,7 @@ export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout,
       log(`[mia] реплика ${c.id} (Пит)`)
       return
     }
-    onSpeak({ key: ++seq, id: c.id, text, ms })   // рот и усы Мии — по этой реплике (useMiaLife → miaMouth.js)
+    onSpeak({ key: ++seq, id: c.id, text, ms, ...(voiced && line.words?.length ? { words: line.words } : {}) })   // рот и усы Мии — по этой реплике (useMiaLife → miaMouth.js); words — тайминги слов озвучки: рот идёт по ним и молчит в паузах между предложениями (v3.3.372)
     cat?.holdBusy?.(ms + miaGap())               // Мия говорит: Пит «занят» (следующая пилюля ждёт, как за обычной репликой)
     src.listener?.current?.mute?.(ms + MIC_MUTE_PAD_MS)
     if (!voiced) caption({ key: `${++seq}:${c.id}`, who, text }, ms, line?.url ? 'озвучка есть, но звук не загружен (нет слота)' : 'реплики нет в настройках озвучки (нет url)')

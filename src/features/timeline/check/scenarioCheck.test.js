@@ -30,7 +30,13 @@ describe('проверка одной реплики', () => {
     expect('Мимо'.length).toBeLessThan(MIN_CHARS); expect(lengthNote('Мимо', 0.6)).toBeNull(); expect(lengthNote('Мимо', 3)).toMatch(/не тот файл/)
   })
   it('тишина по краям — по таймингам слов; без таймингов не оценивается', () => {
-    expect(edgeSilence(evenWords('раз два три', 0.05, 2), 2.1)).toEqual({ head: 0, tail: 0 })
+    expect(edgeSilence(evenWords('раз два три', 0.05, 2), 2.1)).toEqual({ head: 0, tail: 0, lead: 0 })
+    expect(edgeSilence(evenWords('раз два три', 0.25, 2), 2.3)).toMatchObject({ head: 0, lead: 0.25 }) // первое слово на 0,15–0,4 с — мягкая отметка «послушай начало»
+    const dotted = [{ w: 'Слово', t: 0, e: 0.4 }, { w: 'ушло.', t: 0.45, e: 1.9 }] // прежняя разметка ElevenLabs: пауза после точки записана в слово — хвост файла не был виден
+    expect(edgeSilence(dotted, 1.9).tail).toBeGreaterThan(0.9)
+    const fl = checkLine('x', { status: 'ok', now: 'слово ушло' }, { url: 'u', duration: 1.9, words: dotted }).flags
+    expect(fl.map(f => f.k)).toEqual(['silence']); expect(fl[0].text).toContain('после последнего слова в файле ещё')
+    expect(checkLine('x', { status: 'ok', now: 'слово ушло совсем' }, { url: 'u', duration: 1.9, words: [{ w: 'Слово', t: 0, e: 0.4 }, { w: 'ушло', t: 0.45, e: 1.8 }] }).flags.filter(f => f.k === 'mouth').map(f => f.level)).toEqual(['warn']) // слов в разметке меньше, чем в тексте
     expect(edgeSilence(evenWords('раз два три', 0.9, 2), 3.5).head).toBeCloseTo(0.9); expect(edgeSilence(evenWords('раз два три', 0.9, 2), 3.5).tail).toBeCloseTo(1.52)
     expect(edgeSilence(null, 2)).toBeNull()
   })

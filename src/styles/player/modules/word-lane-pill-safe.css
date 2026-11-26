@@ -33,3 +33,5 @@
 
 /* Линия уровня, тёмная подпись и пузыри — те же узлы и те же transform / opacity, что в обычном режиме, но без will-change; блоков с display / visibility по состоянию нет (переключений слоёв в полёте нет) */
 .wlField.wl--safe .wlPill[data-held] .wlPillSparks i, .wlField.wl--safe .wlPill[data-held] .wlPillSparks b, .wlField.wl--safe .wlPill[data-held] .wlPillInkIn { will-change: auto; }
+/* Свет линии уровня (2026-11-26): на data-live его opacity менялась переходом 0,3 с — Safari заводил под переход слой в начале заливки и снимал после; в безопасном режиме смена мгновенная, слоя нет */
+.wlField.wl--safe .wlPillSparks b::after, .wlField.wl--safe .wlPill[data-wide] .wlPillSparks i::after { transition: none; }

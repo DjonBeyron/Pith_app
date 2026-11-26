@@ -1,13 +1,15 @@
 /* Экзамен «Шкала памяти», правила «трофеи на кону» (features/pitrace/boss/RaceBossLoot.jsx): счётчик Мии — слева сверху, ПОД счётчиком игрока (.wlXp у гонки: верх safe-area + 54 px,
    race-panel.css), того же вида, жёлтый («Мия N»). Кнопки панели (назад, пауза, ⚙, 💬) выше и справа, шкала справа — не закрывает; верх и левый край — через safe-area.
-   Слой выше коробки и Мии (.wlMia z-index 8), касаний не ловит. В покое анимаций нет: «+N» от счётчика игрока и вздрагивание числа — разовые (Web Animations). */
+   Слой выше коробки и Мии (.wlMia z-index 8), касаний не ловит. В покое анимаций нет: пилюля трофеев Мии и «вдох» её счётчика — разовые (Web Animations). */
 .wlStage > .wlLoot { position: absolute; inset: 0; pointer-events: none; z-index: 9; opacity: 0; transition: opacity 0.35s ease; overflow: hidden; }
 .wlStage > .wlLoot[data-on] { opacity: 1; }
 .wlLootChip { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 80px); left: calc(env(safe-area-inset-left, 0px) + 14px); max-width: calc(100% - 64px); box-sizing: border-box;
   padding: 3px 10px; border-radius: 999px; background: rgba(255, 214, 120, 0.14); color: #ffd678; font-size: 12px; font-weight: 800; white-space: nowrap; }
-.wlLootChip b { display: inline-block; min-width: 1ch; font-weight: 800; font-variant-numeric: tabular-nums; transform-origin: 50% 60%; }
-/* «+N» потерянных трофеев: место пишет компонент (transform), в покое не виден */
-.wlLootFly { position: absolute; left: 0; top: 0; margin: -10px 0 0 -16px; min-width: 32px; height: 20px; opacity: 0; font-style: normal; font-size: 14px; font-weight: 800; line-height: 20px; text-align: center; color: #ffd678; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7); }
+.wlLootChip b { display: inline-block; min-width: 1ch; font-weight: 800; font-variant-numeric: tabular-nums; }
+/* Пилюля трофеев Мии «+N XP» (владелец 2026-11-26: «в том же стиле, что у пользователя»): капсула с обводкой, как пилюля слова, цвета счётчика Мии. Появляется над головой Мии, уменьшается и летит
+   к её счётчику — место, размер и прозрачность пишет ОДНА анимация компонента (transform + opacity, bossLoot.lootFrames); в покое не видна и стоит за краем */
+.wlLootFly { position: absolute; left: 0; top: 0; box-sizing: border-box; padding: 5px 13px; border: 2px solid rgba(255, 214, 120, 0.9); border-radius: 999px; background: #33290f; color: #ffd678;
+  font-style: normal; font-size: 16px; font-weight: 800; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; opacity: 0; transform: translate(-200px, -200px); }
 @media (prefers-reduced-motion: reduce) { .wlStage > .wlLoot { transition: none; } }
 /* в экзамене счётчиков всегда два: счётчик игрока виден и с нулём (обычно он проявляется с первой наградой) — иначе при нуле счётчик Мии висел бы один под пустым местом */
 .wl[data-race][data-sid^='boss'] .wlXp { opacity: 1; }

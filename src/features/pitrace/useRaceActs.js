@@ -34,7 +34,7 @@ import { useMiaEnter } from './mia/useMiaEnter.js'
 import { miaAfterPass, miaSkip } from './mia/miaRound.js'; import { isCircleEnd, circleHoldMs, revLineAfterMia, syncJump } from './mia/miaCircleEnd.js'
 import { afterLeaveSpeech } from './mia/miaLeave.js'; import { revBack } from './raceReverseTurn.js'; import { createLeadTimer, leadAfter } from './boss/bossLead.js'; import { revTimes, convSpeed } from './raceReverseTimes.js'; import { REV_START_SLACK_MS } from './raceReverseTurn.js'; import { useMiaPlate } from './mia/useMiaPlate.js'; import { sceneRun, sceneStage, sceneAsk } from '../player/modules/rotate-phone/wordLaneSceneTrace.js'
 import { bossFill } from './boss/bossWords.js'; import { markBossAnswer } from './boss/bossAnswer.js'
-import { useExamSpeech } from './boss/useExamSpeech.js'; import { examPlateOn } from './boss/lineWordAt.js'; import { useExamEnd } from './boss/examEndWait.js'; import { examOf, markClaimed, markAsked, spokeSince } from './boss/bossMia.js'; import { logPre } from './raceVoiceLog.js'
+import { useExamSpeech } from './boss/useExamSpeech.js'; import { examPlateOn } from './boss/lineWordAt.js'; import { useExamEnd } from './boss/examEndWait.js'; import { examOf, markClaimed, markAsked, spokeSince } from './boss/bossMia.js'; import { examWordLine } from './boss/examLog.js'; import { peekBossZone } from './boss/bossZoneNow.js'; import { wordTrophies } from './boss/bossTrophies.js'; import { logPre } from './raceVoiceLog.js'
 
 // Директор игры «Встряхни память» («Гонка с Питом», CONCEPT_RACE.md) поверх директора репетиции: useWordLaneFlow зовёт ЭТОТ хук вместо useRehearsalActs. Без плана гонки (plan.game !== 'race') он возвращает то, что вернул бы useRehearsalActs, —
 // остальные хуки внутри бездействуют. Что делает для гонки сверх репетиции (реплики на старте стадий, отсчёт, тишина экрана, вступление race_start, пауза — всё это уже у useRehearsalActs, он знает про plan.game):
@@ -100,7 +100,7 @@ export function useRaceActs(args) {
     const r = reduceMia(mb.m, { ...ev, now: performance.now() })
     if (r.mia === mb.m && !r.say.length && r.boost == null) return
     if (r.mia.phase !== mb.m.phase) pLog(`[mia] ${r.mia.phase === 'in' ? `Мия пришла (${r.mia.act}, второй круг), дорожка быстрее на ${Math.round((r.boost - 1) * 100)} %` : r.mia.phase === 'out' ? `Мия уходит: ${r.mia.why === 'win' ? 'три верных подряд' : 'круг кончился'}` : 'Мии нет'}`)
-    if (ev.stage?.silent && ['win', 'zone', 'fail'].includes(ev.t)) { const x = examOf(r.mia); pLog(`[boss] экзамен: слово ${(ev.idx ?? 0) + 1} — ${ev.t === 'zone' ? `ответ в зоне ${ev.zone}` : ev.t === 'win' ? 'верно' : 'не названо'}; трофеи ${x.got}, у Мии ${x.lost}`) }
+    if (ev.stage?.silent && ['win', 'zone', 'fail'].includes(ev.t)) { const x = examOf(r.mia); pLog(`[boss] экзамен: слово ${(ev.idx ?? 0) + 1} — ${ev.t === 'zone' ? `ответ в зоне ${ev.zone}` : ev.t === 'win' ? 'верно' : 'не названо'}; трофеи ${x.got}, у Мии ${x.lost}`); const el = examWordLine(mb.m, r.mia, ev, wordTrophies({ ok: true, zone: peekBossZone() })); if (el) pLog(el) }
     setMiaView(applyMia(mb, r, ev.stage))
     if (r.say.length) mspeech.enqueue(r.say)
   }, [mb, mspeech])

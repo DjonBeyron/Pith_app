@@ -1,10 +1,12 @@
-// Дебаг заливки круга 2 «Скажи» для сцены (racePhraseScene.js) в одном месте: журнал «[fill]» (racePhraseFillLog.js) и отладочная полоска под пилюлей (racePhraseDebugBar.js, только в режиме отладки).
+// Дебаг заливки круга 2 «Скажи» для сцены (racePhraseScene.js) в одном месте: журнал «[fill]» (racePhraseFillLog.js) и отладочная полоска под пилюлей (racePhraseDebugBar.js; в игре выключена, см. ниже).
 // Сцена зовёт: spawn — пилюля «Скажи» выехала; word / phrase — слово цели / итог фразы (onWord / onPhrase); wrong — неверное слово (рывок кромки); ear — что слышит Vosk (onEar слушателя: черновик, итог, затвор тишины);
 // frame — каждый кадр (цель и экран); full / rise — заливка дошла до 100 % / взлёт; end — сводка хода; drop — пилюля решена, ушла или сцена снята (полоска убирается).
 import { createFillLog } from './racePhraseFillLog.js'
-import { debugBarOn, mountDebugBar, barText } from './racePhraseDebugBar.js'
+import { mountDebugBar, barText } from './racePhraseDebugBar.js'
 
-export function createSayTrace({ log = () => {}, bar = debugBarOn, mount = mountDebugBar } = {}) {
+// 2026-11-26 (владелец 2026-11-26: «под пилюлями есть логирование, его можно убрать прямо в игре»): в ИГРЕ полоски нет даже при отладочном интерфейсе — bar по умолчанию выключен (раньше — debugBarOn);
+// включить можно только явно (bar: true / функция). Те же сведения по-прежнему идут в журнал: «[fill] …» (цель и экран заливки), «[phrase-ear] …» (черновики и итоги Vosk), «[gate] …» (затвор тишины).
+export function createSayTrace({ log = () => {}, bar = false, mount = mountDebugBar } = {}) {
   const fill = createFillLog({ log })
   const on = (() => { try { return !!(typeof bar === 'function' ? bar() : bar) } catch { return false } })()
   let strip = null, born = 0, partial = '', gate = null

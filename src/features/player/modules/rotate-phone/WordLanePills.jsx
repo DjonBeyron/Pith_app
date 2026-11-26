@@ -1,4 +1,4 @@
-import { memo, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { LANE_EDGES, SLOT_COUNT } from './wordLaneTimeline.js'
 import WordLanePillEls from './WordLanePillEls.jsx'
 import { useWordLanePills } from './useWordLanePills.js'
@@ -8,6 +8,7 @@ import { RUN_NONE } from './wordLaneRunLanes.js'
 import { useLaneConveyor } from './useLaneConveyor.js'
 import { reducedMotion } from './laneConveyorDrive.js'
 import { usePillWatch } from './wordLanePillWatch.js'
+import { pLog } from '../../../../shared/lib/debug.js'
 
 // Дорожки и пилюли игры. Три колонки разделены линиями; пилюли — вертикальные пустые капсулы (без надписей) из пула POOL штук: движок (useWordLanePills) выдаёт их кускам и повторам
 // ступени, ставит дорожку (data-lane: x и цвет — ступени «Моей памяти»: зелёная с одной обводкой, синяя с двумя, фиолетовая с тремя), запускает полёт и пишет заливку.
@@ -29,6 +30,7 @@ function WordLanePills({ scene, levels, fx, live, sceneApi, visible, onLane, arm
   const [still] = useState(() => lite || reducedMotion()) // слабое устройство и reduced-motion: пунктир без движения, только яркость
   useLaneConveyor(rootRef, { armed, paused, still, speed, speedKey, fx })
   usePillWatch(rootRef, watch) // журнал «[pill] …»: что менялось на летящей пилюле (разбор «капсула моргнула», только отладочный интерфейс — wordLanePillWatch.js)
+  useEffect(() => { if (watch) pLog(`[pill] слои пилюль: ${safe ? 'безопасные (wl--safe: без will-change)' : 'обычные (will-change; клип заливки и свет линии — постоянные слои)'}${lite ? ', слабое устройство (без пузырей)' : ''}`) }, [watch, safe, lite]) // журнал: в каком режиме слоёв шла игра (разбор «часть пилюли исчезла» — раньше по журналу этого было не узнать)
   return (
     <div ref={rootRef} className={`wlField${lite ? ' wl--lite' : ''}${safe ? ' wl--safe' : ''}`} data-testid="wl-field">
       <div className={`wlLanes${visible ? ' wlLanes--in' : ''}`} aria-hidden="true" data-testid="wl-lanes">

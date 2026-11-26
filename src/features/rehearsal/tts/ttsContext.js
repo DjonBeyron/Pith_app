@@ -2,7 +2,10 @@
 // Соседи — реплики, которые в игре «Встряхни память» звучат ПОДРЯД одной сценой (церемонии Мии, пример Пита, концовки). Порядок продублирован из сценария игры (timeline/check/scenarioBuild.js — он тянет
 // за собой всю игру, в админку озвучки его не подключаем); сторож ttsContext.test.js сверяет каждую цепочку с последовательной частью сценария. Реплика стоит не больше чем в одной цепочке.
 // У последней реплики цепочки next_text нет; у «продолжающейся» реплики (ttsText.isOpenLine) — тоже. Сосед — другой ведущий: это нормально, поле — текст беседы, а не голос.
-// Выключатель «контекст соседних реплик» — в админке (TtsContextToggle.jsx), по умолчанию включён; хранится в памяти браузера админа (на игру не влияет: игра играет готовые файлы).
+// Выключатель «контекст соседних реплик» — в админке (admin/speech/VoiceTonePanel.jsx); хранится в памяти браузера админа (на игру не влияет: игра играет готовые файлы).
+// ПО УМОЛЧАНИЮ ВЫКЛЮЧЕН (v3.3.372, владелец 2026-11-26: «в конце фразы слышен кусочек следующей, в начале — кусочек предыдущей, будто нечётко нарезали»). По журналу игры реплики не накладываются
+// (между соседними 0,35–0,43 с тишины, длина звука совпадает с записью до 16 мс) — значит, лишний звук в самих файлах; он появился вместе с контекстом, а «затягивание» соседнего текста в клип —
+// известный риск previous_text / next_text. Сами файлы не прослушаны (хранилище из сессии недоступно). Ключ памяти новый (v2): прежний выбор «включён по умолчанию» не наследуется.
 import { dictorText, isOpenLine } from './ttsText.js'
 
 export const CHAINS = [
@@ -19,11 +22,11 @@ const AROUND = Object.fromEntries(CHAINS.flatMap(c => c.map((id, i) => [id, { pr
 /** Соседи реплики по сценарию: { prev, next } (id или null) */
 export const neighborsOf = id => AROUND[id] ?? { prev: null, next: null }
 
-const KEY = 'pithy_tts_context_v1'
-let mem = true // память браузера недоступна (частный режим, тесты) — выбор живёт до перезагрузки страницы
-/** Включён ли контекст соседних реплик (по умолчанию да) */
-export function contextOn() { try { const v = globalThis.localStorage?.getItem(KEY); return v == null ? mem : v !== '0' } catch { return mem } }
-export function setContextOn(on) { mem = !!on; try { if (on) globalThis.localStorage?.removeItem(KEY); else globalThis.localStorage?.setItem(KEY, '0') } catch { /* остаётся выбор в памяти страницы */ } }
+const KEY = 'pithy_tts_context_v2'
+let mem = false // память браузера недоступна (частный режим, тесты) — выбор живёт до перезагрузки страницы
+/** Включён ли контекст соседних реплик (по умолчанию НЕТ) */
+export function contextOn() { try { const v = globalThis.localStorage?.getItem(KEY); return v == null ? mem : v === '1' } catch { return mem } }
+export function setContextOn(on) { mem = !!on; try { if (on) globalThis.localStorage?.setItem(KEY, '1'); else globalThis.localStorage?.removeItem(KEY) } catch { /* остаётся выбор в памяти страницы */ } }
 
 /** Контекст для запроса озвучки реплики id: { previousText?, nextText? } — тексты для диктора соседей (со знаками); lines — реплики из настроек (normalizeLines). Соседей нет или выключено — null */
 export function contextOf(id, lines, on = contextOn()) {

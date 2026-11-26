@@ -4,7 +4,8 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { readFileSync } from 'node:fs'
 import RaceBossLoot from './RaceBossLoot.jsx'
 import RaceSummary from '../RaceSummary.jsx'
-import { lootFlight, LOOT_OUT_PX, LOOT_FLY_MS, LOOT_BUMP_MS, LOOT_TOTAL_MS } from './bossLoot.js'
+import { lootStart, lootFrames, lootScale, isLootLine, LOOT_SHOW_MS, LOOT_FLY_MS, LOOT_TOTAL_MS, LOOT_END_SCALE, LOOT_UP_PX, LOOT_EDGE_PX } from './bossLoot.js'
+import { riseScale, RISE_MS, RISE_SCALE, RISE_SHRINK_FROM, RISE_FADE_FROM } from '../../player/modules/rotate-phone/wordLaneRise.js'
 import { marksStep, MARKS_MAX } from './bossScale.js'
 import { fixturePlan } from '../../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../../rehearsal/rehearsalPlan.js'
@@ -28,22 +29,37 @@ describe('счётчики экзамена: игрок сверху, Мия п�
     expect(css).toMatch(/\.wlLootChip \{[^}]*color: #ffd678/); expect(css).toMatch(/max-width: calc\(100% - 64px\)/)
     expect(css).not.toMatch(/animation|infinite|@keyframes|will-change/); expect(css).toMatch(/\.wlStage > \.wlLoot \{[^}]*pointer-events: none/)
     expect(read('../../../styles/player/modules/race-sprint.css')).toContain("@import './race-boss-loot.css'")
-    expect(read('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain("<RaceBossLoot m={f.rh.mia.mia} on={f.stage === 'run' && ['boss', 'boss-sw', 'boss2', 'boss-end'].includes(f.stageObj?.sid)} />")
+    expect(read('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain("<RaceBossLoot m={f.rh.mia.mia} talk={f.rh.miaTalk} on={f.stage === 'run' && ['boss', 'boss-sw', 'boss2', 'boss-end'].includes(f.stageObj?.sid)} />")
   })
   it('счётчик игрока при Мии не желтеет: у него свой цвет, а не переменная дорожек, которую подменяет «Допрос» и экзамен', () => {
     const panel = read('../../../styles/player/modules/race-panel.css'), mia = read('../../../styles/player/modules/race-mia.css'), base = read('../../../styles/player/modules/word-lane.css')
     expect(mia).toMatch(/\.wl\[data-mia='in'\] \{[^}]*--lvl1: #ffb23e/); expect(base).toMatch(/--wl-accent: var\(--lvl1/) // причина: акцент игры = --lvl1, при Мии он жёлтый
     expect(panel).toMatch(/\.wl\[data-race\] \.wlXp \{[^}]*color: #b6fe3b;/); expect(panel.match(/\.wl\[data-race\] \.wlXp \{[^}]*\}/)[0]).not.toContain('var(--wl-accent)')
   })
-  it('потеря: «+N» выплывает от счётчика игрока к числу Мии, число вздрагивает; всё ≤ 700 мс, разово; слабое устройство — без «+N»', () => {
-    expect(lootFlight({ xp: { right: 70, cy: 64 }, tx: 52, ty: 90 })).toEqual({ from: [70 + LOOT_OUT_PX, 64], to: [52, 90] })
-    expect(lootFlight({ xp: null, tx: 52, ty: 90 })).toEqual({ from: [52 + LOOT_OUT_PX * 2, 90], to: [52, 90] }) // счётчика игрока нет на экране — старт рядом со счётчиком Мии
-    expect(LOOT_TOTAL_MS).toBe(LOOT_FLY_MS + LOOT_BUMP_MS); expect(LOOT_TOTAL_MS).toBeLessThanOrEqual(700)
-    const src = read('./RaceBossLoot.jsx')
-    expect(src).toContain('isWeakDevice()'); expect(src).toContain('if (lite || !el) return'); expect(src).toContain('{show && !lite && <i ref={fly} className="wlLootFly" />}')
-    expect(src).toContain("delay: lite ? 0 : LOOT_FLY_MS"); expect(src).not.toMatch(/iterations|Infinity|setInterval|requestAnimationFrame|fill:/) // конечные анимации без fill: после них getAnimations() пуст
-    expect(src).not.toContain('.wlBossLine') // прежнего полёта от шкалы к коробке нет
-    expect(src).toContain('if (!show || was == null || lost <= was) return') // первый показ и сброс счёта — без анимации
+  it('трофеи Мии — в стиле игрока: пилюля над её головой, тот же закон сжатия и гашения, что у взлёта пилюли игрока; одна конечная анимация на одном узле', () => {
+    expect(LOOT_FLY_MS).toBe(RISE_MS); expect(LOOT_TOTAL_MS).toBe(LOOT_SHOW_MS + LOOT_FLY_MS); expect(LOOT_TOTAL_MS).toBeLessThanOrEqual(1500)
+    expect(lootScale(0)).toBe(1); expect(lootScale(RISE_SHRINK_FROM)).toBe(1); expect(lootScale(1)).toBeCloseTo(LOOT_END_SCALE, 5) // сжатие — кривая riseScale, но до размера числа счётчика
+    expect(lootScale(0.5)).toBeCloseTo(1 - ((1 - LOOT_END_SCALE) * (1 - riseScale(0.5))) / (1 - RISE_SCALE), 6)
+    const f = lootFrames([70, 600], [52, 90]), hold = LOOT_SHOW_MS / LOOT_TOTAL_MS
+    expect(f[0]).toMatchObject({ offset: 0, opacity: 0 }); expect(f.at(-1)).toMatchObject({ offset: 1, opacity: 0 })
+    expect(f.at(-1).transform).toBe('translate(52.0px, 90.0px) translate(-50%, -50%) scale(0.400)') // прилетает в центр числа Мии
+    const standing = f.filter(x => x.offset > 0 && x.offset <= hold + 1e-6); expect(standing.length).toBeGreaterThanOrEqual(2)
+    for (const x of standing) { expect(x.transform).toContain('translate(70.0px, 600.0px)'); expect(x.opacity).toBe(1) } // стоит над головой, пока Мия начинает колкость
+    const flying = f.filter(x => x.offset > hold + 1e-6), fadeAt = hold + (1 - hold) * RISE_FADE_FROM
+    for (const x of flying) expect(x.opacity === 1).toBe(x.offset <= fadeAt + 1e-3) // гаснет только на последней четверти пути, как пилюля игрока
+    for (let k = 1; k < f.length; k++) expect(f[k].offset).toBeGreaterThan(f[k - 1].offset)
+    for (const x of f) expect(Object.keys(x).sort()).toEqual(['offset', 'opacity', 'transform']) // только transform и opacity — композитор
+  })
+  it('пилюля появляется над макушкой Мии и целиком в слое; колкости про трофеи — три реплики промаха', () => {
+    expect(lootStart({ head: { cx: 70, top: 640 }, w: 375 })).toEqual([70, 640 - LOOT_UP_PX])
+    expect(lootStart({ head: { cx: 10, top: 640 }, w: 320, half: { x: 44, y: 15 } })[0]).toBe(44 + LOOT_EDGE_PX) // у левого края не обрезается
+    expect(lootStart({ head: { cx: 400, top: 5 }, w: 320, half: { x: 44, y: 15 } })).toEqual([320 - 44 - LOOT_EDGE_PX, 15 + LOOT_EDGE_PX])
+    expect(['boss_mia_miss_1', 'boss_mia_miss_2', 'boss_mia_miss_3'].every(isLootLine)).toBe(true); expect(isLootLine('mia_ok_2')).toBe(false); expect(isLootLine(undefined)).toBe(false)
+    const src = read('./RaceBossLoot.jsx') + read('./bossLootFlow.js') + read('./bossLoot.js')
+    expect(src).not.toMatch(/iterations|Infinity|setInterval|requestAnimationFrame|fill:|isWeakDevice/) // конечные анимации без fill: после них getAnimations() пуст; своего цикла кадров нет; слабое устройство — как у игрока
+    expect(src).toContain("from '../../player/modules/rotate-phone/wordLaneRise.js'"); expect(src).toContain('xpPulseFrames') // механизм игрока переиспользован, не продублирован
+    expect(src).not.toContain("querySelector('.wlXp") // прежнего «+N от счётчика игрока» нет
+    expect(read('./RaceBossLoot.jsx')).toContain('{show && <i ref={fly} className="wlLootFly" data-testid="race-loot-fly" />}')
   })
 })
 
@@ -76,6 +92,6 @@ describe('треугольники шкалы — правило владель�
     const src = read('./RaceBossScale.jsx'), css = read('../../../styles/player/modules/race-boss.css')
     expect(src).toContain('if (m) e.style.translate = `0 ${(m.y * H).toFixed(1)}px`'); expect(src).not.toContain('if (m) e.style.transform = `translate3d(0, ${(m.y * H)')
     expect(css).toMatch(/\.wlBossMark\[data-set\] \{ scale: 1\.2/)
-    expect(src).toContain("clock.current.onZone?.(zoneAt(Math.min(1, Math.max(0, tr.y / H))))") // зона для трофеев берётся в тот же момент и с той же высоты, что треугольник
+    expect(src).toContain("{ const z = zoneAt(Math.min(1, Math.max(0, tr.y / H))); setBossWonZone(z); clock.current.onZone?.(z) }") // зона для трофеев берётся в тот же момент и с той же высоты, что треугольник
   })
 })
