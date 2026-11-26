@@ -24,8 +24,9 @@ export const missWhy = (m, gi, ev) => (m.failed?.[gi] ? 'wrong' : ev?.spoke === 
 /** Счёт экзамена по блокам (английские слова, потом русские): блок со смещением offset считается заново, прежние блоки остаются; total — всего слов к концу блока */
 export function examBlock(m, stage) {
   const off = stage.offset ?? 0, len = stage.words?.length ?? 0, keepOld = o => Object.fromEntries(Object.entries(o ?? {}).filter(([k]) => Number(k) < off))
+  if (stage.bonus) return {} // бонус-круг счёт экзамена не трогает: у него свой (m.bonus, bonusRound)
   return off ? { total: off + len, won: keepOld(m.won), failed: keepOld(m.failed), dug: keepOld(m.dug), zones: keepOld(m.zones), lw: null, keep: false, bye: null }
-    : { total: len, won: {}, failed: {}, dug: {}, zones: {}, lw: null, redWins: 0, reds: 0, keep: false, bye: null, outcome: '' }
+    : { total: len, won: {}, failed: {}, dug: {}, zones: {}, lw: null, redWins: 0, reds: 0, keep: false, bye: null, outcome: '', bonus: null }
 }
 
 /** Трофеи экзамена по состоянию машины (bossTrophies.examTrophies). final — экзамен кончился: всё, что не названо верно, потеряно; иначе слова впереди пока ничьи */
@@ -36,6 +37,7 @@ export function examOf(m, final = false) {
 
 /** Событие круга экзамена (win / zone / miss / fail) → { mia, say, boost } или null (событие не для круга) */
 export function examRound(m, ev) {
+  if (ev.stage?.bonus) return bonusRound(m, ev)
   const { t, stage } = ev, gi = (ev.idx ?? 0) + (stage.offset ?? 0) // номер слова в общем счёте экзамена (у второго блока — со смещением)
   if (t === 'win') { // верный ответ: Мия иногда подкалывает (на второй верный подряд и на каждый третий), даже когда слово названо в красной зоне
     const streak = m.streak + 1, wins = m.wins + 1
@@ -49,6 +51,18 @@ export function examRound(m, ev) {
     return { mia: { ...m, streak: 0, hits: dig ? m.hits + 1 : m.hits, dug: dig ? { ...m.dug, [gi]: true } : m.dug, failed, reds: count(failed) + m.redWins }, say, boost: null }
   }
   return null
+}
+
+/** Условие бонус-круга (владелец 2026-11-26): названы верно ВСЕ слова экзамена и каждое — в зелёной зоне (та же зона, что идёт в трофеи; верный ответ без зоны — зелёная, как в bossTrophies) */
+export const examPerfect = m => m?.act === 'boss' && (m.total ?? 0) > 0 && Array.from({ length: m.total }, (_, i) => i).every(i => m.won?.[i] && (m.zones?.[i] ?? 'fast') === 'fast')
+/** Счёт бонус-круга: { total, won } или null (бонуса не было) */
+export const bonusOf = m => (m?.bonus ? { total: m.bonus.total, won: count(m.bonus.won) } : null)
+
+/** Событие бонус-круга (boss/bossBonus.js). Счёт свой (m.bonus: won / zones / gone по номеру слова круга): трофеи и исход экзамена не меняются, Мии ничего не уходит. Мия и Пит молчат всегда —
+ *  ни колкостей, ни «это значит», ни «Следующее слово»: на высокой скорости речь съела бы окно ответа следующей пилюли */
+function bonusRound(m, ev) {
+  const b = m.bonus ?? { total: ev.stage.words?.length ?? 0, won: {}, zones: {}, gone: {}, lw: null }, i = ev.idx ?? (ev.t === 'zone' ? b.lw ?? 0 : 0), put = (k, v) => ({ mia: { ...m, bonus: { ...b, [k]: { ...b[k], [i]: v }, ...(k === 'won' ? { lw: i } : {}) } }, say: [], boost: null })
+  return ev.t === 'win' ? put('won', true) : ev.t === 'zone' ? put('zones', ev.zone) : ev.t === 'fail' ? put('gone', true) : null
 }
 
 /** Итог экзамена по накопленному: верно названо, красных (всё, кроме верных не в красной зоне), неверных / не названных, трофеи и исход; keep — Пит остаётся в коробке (исход stay) */

@@ -35,7 +35,7 @@ describe('нежный отсчёт: расписание', () => {
         if (!['student', 'read'].includes(s.type) || stages[i - 1]?.type !== 'announce') return
         let j = i - 1; while (j > 0 && stages[j - 1].type === 'announce') j--
         const afterDemo = s.step?.phrases?.countAfter // круг «Скажи» с демо: ноты играет сцена после демо, плашка без нот (count: false)
-        expect(stages.slice(j, i).filter(x => x.count)).toHaveLength(afterDemo ? 0 : 1)
+        expect(stages.slice(j, i).filter(x => x.count)).toHaveLength(afterDemo || s.bonus ? 0 : 1) // бонус-круг экзамена идёт без трёх нот: сразу за репликой Мии (boss/bossBonus.js)
         if (afterDemo) expect(stages[i - 1].count).toBe(false)
       })
       expect(stages.filter(s => s.count && !['student', 'read'].includes(stages[s.idx + 1]?.type) && s.idx !== 0)).toHaveLength(0)

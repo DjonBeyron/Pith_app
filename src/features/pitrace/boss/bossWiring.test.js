@@ -15,7 +15,7 @@ describe('финал «Шкала памяти»: подключение', () =>
     expect(src).toContain("(act === 'sprint' || (act === 'boss' && running?.step?.lang !== 'ru')) && said"); expect(src).toContain("['sprint', 'catch', 'boss'].includes(running.act)) speech.pillGone"); expect(src).toContain("if (['boss-intro-ann', 'boss-ann'].includes(stages[r]?.sid)) bossFill(stages, box.s, seed)")
   })
   it('игра рисует шкалу только на финале (RaceBossScale live по act boss), стили подключены', () => {
-    expect(read('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain("['boss-ann', 'boss', 'boss-sw', 'boss2'].includes(f.stageObj?.sid)"); expect(read('../../../styles/player/modules/race-sprint.css')).toContain("@import './race-boss.css'")
+    expect(read('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain("['boss-ann', 'boss', 'boss-sw', 'boss2', 'boss-fast-ann', 'boss-fast'].includes(f.stageObj?.sid)"); expect(read('../../../styles/player/modules/race-sprint.css')).toContain("@import './race-boss.css'")
   })
   it('Пит произносит верный ответ только когда слово не названо / ошибка (fail), верно названное не повторяет; «занят» держится до конца — следующая пилюля после него; красное слово пугает Пита (зрачки)', () => {
     const src = read('../useRaceActs.js')

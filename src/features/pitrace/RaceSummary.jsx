@@ -45,6 +45,7 @@ export default function RaceSummary({ plan, result, onAgain = null, onShown = nu
         {!twoStages && <div><dt>Вершина</dt><dd data-testid="race-summary-climb" data-medal={r?.medal}>{r ? climbTitle(r) : '…'}</dd></div>}
         {!twoStages && <div><dt>Спуск</dt><dd data-testid="race-summary-descent">{r ? mark(r.descent) : '…'}</dd></div>}
         {r?.exam && <div><dt>Экзамен: трофеи</dt><dd data-testid="race-summary-exam">{`${r.exam.got} из ${r.exam.max}`}</dd></div>}
+        {r?.exam?.bonus && <div><dt>Бонус-круг</dt><dd data-testid="race-summary-exam-bonus">{`${r.exam.bonus.won} из ${r.exam.bonus.total}`}</dd></div>}
         {r?.exam && <div><dt>Забрала Мия</dt><dd data-testid="race-summary-exam-mia">{r.exam.lost}</dd></div>}
         {r?.exam && <div><dt>Пит</dt><dd data-testid="race-summary-exam-pit" data-outcome={r.exam.outcome}>{EXAM_PIT[r.exam.outcome]}</dd></div>}
         <div><dt>XP</dt><dd data-testid="race-summary-xp">{r ? `+${r.xp}${r.capped ? ' (потолок дня)' : ''}` : '…'}</dd></div>

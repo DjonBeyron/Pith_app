@@ -34,7 +34,7 @@ import { useMiaEnter } from './mia/useMiaEnter.js'
 import { miaAfterPass, miaSkip } from './mia/miaRound.js'; import { isCircleEnd, circleHoldMs, revLineAfterMia, syncJump } from './mia/miaCircleEnd.js'
 import { afterLeaveSpeech } from './mia/miaLeave.js'; import { revBack } from './raceReverseTurn.js'; import { createLeadTimer, leadAfter } from './boss/bossLead.js'; import { revTimes, convSpeed } from './raceReverseTimes.js'; import { REV_START_SLACK_MS } from './raceReverseTurn.js'; import { useMiaPlate } from './mia/useMiaPlate.js'; import { sceneRun, sceneStage, sceneAsk } from '../player/modules/rotate-phone/wordLaneSceneTrace.js'
 import { bossFill } from './boss/bossWords.js'; import { markBossAnswer } from './boss/bossAnswer.js'
-import { useExamSpeech } from './boss/useExamSpeech.js'; import { examPlateOn } from './boss/lineWordAt.js'; import { useExamEnd } from './boss/examEndWait.js'; import { examOf, markClaimed, markAsked, spokeSince } from './boss/bossMia.js'; import { examWordLine } from './boss/examLog.js'; import { peekBossZone } from './boss/bossZoneNow.js'; import { wordTrophies } from './boss/bossTrophies.js'; import { logPre } from './raceVoiceLog.js'
+import { bonusRoute } from './boss/bossBonus.js'; import { useExamSpeech } from './boss/useExamSpeech.js'; import { examPlateOn } from './boss/lineWordAt.js'; import { useExamEnd } from './boss/examEndWait.js'; import { examOf, bonusOf, markClaimed, markAsked, spokeSince } from './boss/bossMia.js'; import { examWordLine, bonusPreLine } from './boss/examLog.js'; import { peekBossZone } from './boss/bossZoneNow.js'; import { wordTrophies } from './boss/bossTrophies.js'; import { logPre } from './raceVoiceLog.js'
 
 // Директор игры «Встряхни память» («Гонка с Питом», CONCEPT_RACE.md) поверх директора репетиции: useWordLaneFlow зовёт ЭТОТ хук вместо useRehearsalActs. Без плана гонки (plan.game !== 'race') он возвращает то, что вернул бы useRehearsalActs, —
 // остальные хуки внутри бездействуют. Что делает для гонки сверх репетиции (реплики на старте стадий, отсчёт, тишина экрана, вступление race_start, пауза — всё это уже у useRehearsalActs, он знает про plan.game):
@@ -154,7 +154,7 @@ export function useRaceActs(args) {
   useEffect(() => {
     if (!on || running?.type !== 'summary') return undefined
     const t = setTimeout(() => {
-      const res = reportRace({ plan, race: box.s }); setResult(mb.m.act === 'boss' && mb.m.total ? { ...res, exam: { ...examOf(mb.m, true), stay: miaStays(mb) } } : res)
+      const res = reportRace({ plan, race: box.s }); setResult(mb.m.act === 'boss' && mb.m.total ? { ...res, exam: { ...examOf(mb.m, true), stay: miaStays(mb), bonus: bonusOf(mb.m) } } : res)
       if (miaStays(mb)) pLog('[race] итог: Пит остался в коробке — обычную реплику итога не играю (она оборвала бы «Тут темно и тесно…»)')
       else sayRef.current.sayLine?.(res.gold ? 'race_done_gold' : 'race_done')
       if (memoryOn(plan) && !memSent.current) { memSent.current = true; pushRaceMemory({ outcomes: outcomesOf(res), lessonId: plan.lessonId ?? null }).catch(e => pLog(`[memory] игра: сбой записи (${e?.message ?? e})`)) } // память слов: одно событие на слово, source 'game' (raceMemory.js), один раз за игру; результат — только в журнал
@@ -171,7 +171,8 @@ export function useRaceActs(args) {
     if (mt >= 0) return mt
     const r = climbTarget(stages, stages[i - 1], box.s) ?? baseNext(i); if (revLineAfterMia(stages, stages[i - 1], mb.m)) pLog('[mia] «Допрос» после прохода A пройден без ошибок: на развороте конвейера Пит говорит pit_back_2 вместо race_reverse')
     if (['boss-intro-ann', 'boss-ann'].includes(stages[r]?.sid)) bossFill(stages, box.s, seed) // финал: слабые слова этой игры вписаны перед входом (мало слов — финал пропускается, stage.empty)
-    return miaSkip(stages, r, mb.m, baseNext)
+    const bonus = bonusRoute(stages, miaSkip(stages, r, mb.m, baseNext), mb.m, seed); if (bonus.log) pLog(bonus.log) // экзамен: после последнего блока — бонус-круг (все слова верны и в зелёной зоне) или сразу концовка (boss/bossBonus.js)
+    return bonus.idx
   }, [on, stages, box, baseNext, seed, mb])
   // Мия ушла после трёх верных подряд: круг с Мией кончен — Пит идёт к следующему этапу, а не доигрывает слова круга (владелец 2026-11-15: «не продолжать эту итерацию, а начинать следующую»)
   const leftByWin = on && miaView.mia.phase === 'out' && miaView.mia.why === 'win' && running?.mia === 'round' && !running.silent
@@ -198,6 +199,7 @@ export function useRaceActs(args) {
      *  Пилюля ждёт, пока он договорит (pitLeft) */
     pre(rep, e) { sceneAsk(e)
       if (running?.act === 'phrases') { tr.pill(); if (rep?.demo) e?.demo?.(demo.kit()); else phr.pre(rep, e); return } // этап «Фразы»: демо-ход просит голос и ворота; иначе смысл / фраза голосом Пита (racePhraseVoice.js), ход ждёт его через pitLeft
+      if (running?.bonus) { pLog(bonusPreLine(running, rep)); markAsked(mb); speech.translation(0); return } // бонус-круг экзамена: Пит слово не называет и «Следующее слово» не говорит — пилюля выезжает сразу, окно ответа не съедает речь
       logPre(running, rep); markAsked(mb) // askAt — с этого момента слово «в работе»: слышал ли слушатель речь до ухода пилюли (колкость экзамена по причине)
       if (ruOn) { listenerRef?.current?.resetSaid?.(); ru.start(rep?.idx) } // новое слово прохода B: журнал слушает его с чистого листа
       const said = rep?.say ?? rep?.cap // проход A: Пит говорит перевод (rep.say); надпись пилюли (rep.cap) в тапе английская — её не озвучиваем (v3.3.127)

@@ -48,7 +48,8 @@ describe('финал в стадиях гонки', () => {
     expect(st[i + 1]).toMatchObject({ type: 'student', sid: 'boss', mia: 'round', noBoost: true, noLeave: true }); expect(st[i + 1].step).toMatchObject({ wide: true, overlap: false }); expect(st[i + 1].step.reps.every(r => r.lane === 1)).toBe(true)
     expect(st[i + 2]).toMatchObject({ type: 'announce', sid: 'boss-sw', switchTo: 'ru', mia: 'hold', say: 'boss_mia_ru', count: false }) // между блоками: слух → русский, Мия говорит, что теперь по-русски
     expect(st[i + 3]).toMatchObject({ type: 'student', sid: 'boss2', mia: 'round', silent: true }); expect(st[i + 3].step.lang).toBe('ru')
-    expect(st[i + 4]).toMatchObject({ type: 'announce', sid: 'boss-end', mia: 'end', always: true, line: null }); expect(st[i + 5].type).toBe('summary') // эпилог на сцене с коробкой, потом итог
+    expect(st[i + 4]).toMatchObject({ type: 'announce', sid: 'boss-fast-ann', mia: 'hold', bonus: true, say: 'boss_mia_fast', count: false, line: null }); expect(st[i + 5]).toMatchObject({ type: 'student', sid: 'boss-fast', mia: 'round', silent: true, bonus: true }) // бонус-круг: директор идёт на него, только если все слова экзамена верны и в зелёной зоне (bossBonus.bonusRoute)
+    expect(st[i + 6]).toMatchObject({ type: 'announce', sid: 'boss-end', mia: 'end', always: true, line: null }); expect(st[i + 7].type).toBe('summary') // эпилог на сцене с коробкой, потом итог
   })
   it('в «Тапаю» финала нет', () => { expect(buildRaceStages({ plan, tap: true, ru: true }).stages.some(x => x.act === 'boss')).toBe(false) })
   it('bossFill вписывает слабые слова этой игры; мало слов — empty, и nextIdx обходит финал (miaSkip: always)', () => {
