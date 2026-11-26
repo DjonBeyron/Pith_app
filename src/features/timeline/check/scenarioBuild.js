@@ -87,7 +87,8 @@ function bossBlock(stages) {
   rest.forEach((g, i) => parts.push(part(`fail${i + 1}`, names[i] ?? 'Затем', g.length > 1 ? 'variants' : 'seq', g)))
   if (r.hold.length) parts.push(part('hold', 'Смена языка между блоками слов', 'seq', r.hold))
   const bonus = bonusCues(stages)
-  if (bonus.cues.length) parts.push(part('bonus', 'Бонус-круг: все слова названы верно и каждое в зелёной зоне — Мия ускоряет игру', 'seq', bonus.cues, { note: 'Плашки и трёх нот нет. Затем все слова экзамена идут заново, в новом порядке и всё быстрее; в самом бонус-круге Пит и Мия молчат. После него — концовка «успех».', stage: bonus.stage?.sid }))
+  if (bonus.cues.length) parts.push(part('bonus', 'Бонус-круг: все слова верно, без красных, собрано не меньше 90 % трофеев — Мия ускоряет игру', 'seq', bonus.cues, { note: 'Плашки и трёх нот нет. Затем все слова экзамена идут заново, в новом порядке и всё быстрее; в самом бонус-круге Пит молчит, а Мия колет только на ушедшее слово (см. ниже). После него — концовка «успех».', stage: bonus.stage?.sid }))
+  if (bonus.cues.length) { const j = bonus.jabs, ids = uniq(Object.values(j).flat().filter(Boolean)), note = { mia_miss_1: 'чужое слово; перед быстрыми словами круга — на любую причину', mia_miss_2: 'молчание или «не успел» (только перед словами разгона)' }; parts.push(part('bonusJab', 'Бонус-круг: слово ушло — колкость Мии (одна, поверх выезда следующего слова), одна из', ids.length > 1 ? 'branch' : 'seq', ids.map(id => item(id, note[id] ?? '')), { stage: 'boss-fast' })) }
   ends.forEach((e, i) => parts.push(part(`end${i}`, `Концовка: ${e.title}`, 'seq', e.cues, { cues: e.cues, stage: e.stage?.sid })))
   return { key: 'boss', title: 'Экзамен «Шкала памяти»', note: 'Исход зависит от доли собранных трофеев: за слово в зелёной зоне — все, в жёлтой — половина, в красной — малая часть, за неназванное — ничего.', parts, sim: { ceremony: seen, ceremonyNew: fresh, fail: [jabs.map(x => x.first), ...rest], ends, bonus } }
 }

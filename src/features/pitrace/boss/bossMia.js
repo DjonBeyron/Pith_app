@@ -53,16 +53,28 @@ export function examRound(m, ev) {
   return null
 }
 
-/** Условие бонус-круга (владелец 2026-11-26): названы верно ВСЕ слова экзамена и каждое — в зелёной зоне (та же зона, что идёт в трофеи; верный ответ без зоны — зелёная, как в bossTrophies) */
-export const examPerfect = m => m?.act === 'boss' && (m.total ?? 0) > 0 && Array.from({ length: m.total }, (_, i) => i).every(i => m.won?.[i] && (m.zones?.[i] ?? 'fast') === 'fast')
 /** Счёт бонус-круга: { total, won } или null (бонуса не было) */
 export const bonusOf = m => (m?.bonus ? { total: m.bonus.total, won: count(m.bonus.won) } : null)
 
-/** Событие бонус-круга (boss/bossBonus.js). Счёт свой (m.bonus: won / zones / gone по номеру слова круга): трофеи и исход экзамена не меняются, Мии ничего не уходит. Мия и Пит молчат всегда —
- *  ни колкостей, ни «это значит», ни «Следующее слово»: на высокой скорости речь съела бы окно ответа следующей пилюли */
+/** Колкость Мии в бонус-круге — короткие реплики «Допроса» (в бонусе трофеи к Мии не уходят: «…трофеи за это слово мои» экзамена не годятся): чужое слово — «Мимо», не успели / молчали — «Слово ушло,
+ *  я ждать не люблю» (≈ 2 с). Перед быстрыми словами длинная не помещается в окно ответа следующей пилюли — там на любую причину «Мимо» (≈ 0,7 с): какая длина допустима после слова, считает
+ *  bossBonus.bonusWords (поле слова jab: 'long' | 'short'). mia_miss_3 «Не торопись, а зря» не берётся: «слишком рано» бонус-круг не различает */
+export const BONUS_MISS = { wrong: 'mia_miss_1', late: 'mia_miss_2', forgot: 'mia_miss_2' }
+export const BONUS_MISS_SHORT = 'mia_miss_1'
+export const BONUS_JAB_TTL_MS = 250 // колкость не начала звучать за столько после ухода пилюли (Мия ещё говорит прошлое, Пит занят) — не звучит вовсе: поздняя съела бы окно ответа следующего слова
+/** Почему слово i бонус-круга ушло (как missWhy экзамена): на нём сказали чужое — wrong, слушатель речи не слышал — forgot, иначе late */
+export const bonusWhy = (b, i, ev) => (b?.failed?.[i] ? 'wrong' : ev?.spoke === false ? 'forgot' : 'late')
+/** Реплика Мии на ушедшее слово w бонус-круга по причине why → id */
+export const bonusJab = (w, why) => (w?.jab === 'long' ? BONUS_MISS[why] : BONUS_MISS_SHORT)
+
+/** Событие бонус-круга (boss/bossBonus.js). Счёт свой (m.bonus: won / zones / gone / failed по номеру слова круга): трофеи и исход экзамена не меняются, Мии ничего не уходит. Пит молчит всегда
+ *  (ни «это значит», ни «Следующее слово»). Мия: на ушедшее слово (fail; чужое слово miss — пилюля ещё едет, можно поправиться — молча) одна короткая колкость, один раз на слово. Реплика «лёгкая»
+ *  (free): следующую пилюлю не задерживает (miaSpeech: Пит «занятым» не становится, в оценку очереди не входит), а если Мия ещё говорит прошлую — не ставится вовсе (isChatter + ttl) */
 function bonusRound(m, ev) {
-  const b = m.bonus ?? { total: ev.stage.words?.length ?? 0, won: {}, zones: {}, gone: {}, lw: null }, i = ev.idx ?? (ev.t === 'zone' ? b.lw ?? 0 : 0), put = (k, v) => ({ mia: { ...m, bonus: { ...b, [k]: { ...b[k], [i]: v }, ...(k === 'won' ? { lw: i } : {}) } }, say: [], boost: null })
-  return ev.t === 'win' ? put('won', true) : ev.t === 'zone' ? put('zones', ev.zone) : ev.t === 'fail' ? put('gone', true) : null
+  const b = m.bonus ?? { total: ev.stage.words?.length ?? 0, won: {}, zones: {}, gone: {}, failed: {}, lw: null }, i = ev.idx ?? (ev.t === 'zone' ? b.lw ?? 0 : 0)
+  const put = (k, v, say = []) => ({ mia: { ...m, bonus: { ...b, [k]: { ...b[k], [i]: v }, ...(k === 'won' ? { lw: i } : {}) } }, say, boost: null })
+  if (ev.t === 'fail') return put('gone', true, b.gone?.[i] ? [] : [{ ...line(bonusJab(ev.stage.words?.[i], bonusWhy(b, i, ev)), 'mia'), free: true, ttl: BONUS_JAB_TTL_MS }])
+  return ev.t === 'win' ? put('won', true) : ev.t === 'zone' ? put('zones', ev.zone) : ev.t === 'miss' ? put('failed', true) : null
 }
 
 /** Итог экзамена по накопленному: верно названо, красных (всё, кроме верных не в красной зоне), неверных / не названных, трофеи и исход; keep — Пит остаётся в коробке (исход stay) */

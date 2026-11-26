@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { bonusRoute, bonusWords, bonusOrder, bonusSteps, bonusTarget, windowMs, minWindowMs, kMax, BONUS_ANN_SID, BONUS_SID, BONUS_LINE, BONUS_LAST, BONUS_K_FIRST, BONUS_K_LAST_FROM, BONUS_MIN } from './bossBonus.js'
-import { examPerfect, examOf, bonusOf } from './bossMia.js'
+import { bonusRoute, bonusWords, bonusOrder, bonusSteps, bonusTarget, windowMs, minWindowMs, kMax, bonusGate, bonusJabKind, bonusLaneSpeed, bonusPlayedOf, BONUS_MIN_PCT, BONUS_JAB_MS, BONUS_NEXT_MS, BONUS_ANN_SID, BONUS_SID, BONUS_LINE, BONUS_LAST, BONUS_K_FIRST, BONUS_K_LAST_FROM, BONUS_MIN } from './bossBonus.js'
+import { examOf, bonusOf } from './bossMia.js'
 import { examWordLine } from './examLog.js'
+import { conveyorSpeedHint } from '../../player/modules/rotate-phone/wordLaneConveyorSpeed.js'
 import { bossFill, BOSS_SPEED } from './bossWords.js'
 import { reduceMia, miaInit } from '../mia/raceMia.js'
 import { miaLine } from '../mia/miaLines.js'
@@ -31,27 +32,35 @@ function exam(stages, zone = () => 'fast') {
 }
 const route = (stages, m) => bonusRoute(stages, sidAt(stages, BONUS_ANN_SID), m, plan.seed)
 
-describe('условие входа: все слова верны и каждое в зелёной зоне', () => {
-  it('всё верно и зелёное — директор идёт на реплику Мии; одно жёлтое или одна ошибка — сразу на концовку, как раньше', () => {
+describe('условие входа: все слова верны, нет красных, собрано не меньше 90 % трофеев', () => {
+  it('шесть зелёных — идём на реплику Мии; пять зелёных и жёлтое (91,7 %) — тоже; четыре и два жёлтых (83,3 %), красное, ошибка — сразу на концовку', () => {
     const st = game(), ann = sidAt(st, BONUS_ANN_SID), end = sidAt(st, 'boss-end')
-    expect(examPerfect(exam(st))).toBe(true); expect(route(st, exam(st)).idx).toBe(ann)
-    const yellow = exam(game(), n => (n === 2 ? 'mid' : 'fast')), st2 = game()
-    expect(examPerfect(yellow)).toBe(false); expect(route(st2, yellow)).toMatchObject({ idx: end }); expect(route(game(), yellow).log).toMatch(/бонус-круга нет: верно названо 6 из 6, из них в зелёной зоне 5/)
-    const miss = exam(game(), n => (n === 5 ? 'fail' : 'fast'))
-    expect(examPerfect(miss)).toBe(false); expect(route(game(), miss).idx).toBe(end)
-    expect(examPerfect(exam(game(), n => (n === 0 ? 'slow' : 'fast')))).toBe(false)
+    expect(bonusGate(exam(st))).toMatchObject({ ok: true, total: 6, won: 6, red: 0, pct: 100 }); expect(route(st, exam(st)).idx).toBe(ann)
+    const one = exam(game(), n => (n === 2 ? 'mid' : 'fast')), st1 = game(), r1 = route(st1, one)
+    expect(bonusGate(one)).toMatchObject({ ok: true, got: 110, max: 120 }); expect(bonusGate(one).pct).toBe(91); expect(r1.idx).toBe(sidAt(st1, BONUS_ANN_SID)); expect(r1.log).toMatch(/бонус-круг: верно 6 из 6, красных 0, собрано 91 % \(110 из 120\) ≥ 90 %/)
+    const two = exam(game(), n => (n < 2 ? 'mid' : 'fast')), st2 = game(), r2 = route(st2, two)
+    expect(bonusGate(two).ok).toBe(false); expect(bonusGate(two).pct).toBe(83); expect(r2.idx).toBe(sidAt(st2, 'boss-end')); expect(r2.log).toMatch(/бонус-круга нет: верно 6 из 6, красных 0, собрано 83 %.*меньше 90 %/)
+    const red = exam(game(), n => (n === 0 ? 'slow' : 'fast')), miss = exam(game(), n => (n === 5 ? 'fail' : 'fast'))
+    expect(bonusGate(red)).toMatchObject({ ok: false, red: 1, won: 6 }); expect(bonusGate(red).why).toMatch(/красной/); expect(route(game(), red).idx).toBe(end)
+    expect(bonusGate(miss)).toMatchObject({ ok: false, won: 5, total: 6 }); expect(bonusGate(miss).why).toMatch(/ошибка/); expect(route(game(), miss).idx).toBe(end); expect(route(game(), miss).log).toMatch(/бонус-круга нет: верно 5 из 6/)
+    expect(BONUS_MIN_PCT).toBe(90)
+  })
+  it('границы на 3, 4, 5, 10 словах: сколько жёлтых (10 очков вместо 20) ещё можно', () => {
+    const gate = (n, yellows, { red = 0, miss = 0 } = {}) => { const idx = Array.from({ length: n }, (_, i) => i), won = {}, zones = {}; idx.forEach(i => { if (i >= n - miss) return; won[i] = true; zones[i] = i < red ? 'slow' : i < red + yellows ? 'mid' : 'fast' }); return bonusGate({ act: 'boss', total: n, won, zones }).ok }
+    expect([3, 4, 5, 6, 10].map(n => [0, 1, 2, 3].map(y => gate(n, y)))).toEqual([[true, false, false, false], [true, false, false, false], [true, true, false, false], [true, true, false, false], [true, true, true, false]]) // 5 слов: одно жёлтое = ровно 90 %; 10 слов: два жёлтых = ровно 90 %
+    for (const n of [3, 4, 5, 6, 10]) { expect(gate(n, 0, { red: 1 })).toBe(false); expect(gate(n, 0, { miss: 1 })).toBe(false) }
   })
   it('верный ответ без зоны (принят раньше, чем пилюля коснулась шкалы) — зелёный, как в трофеях; экзамена не было — условия нет', () => {
     const st = game(); let m = reduceMia({ ...miaInit(), phase: 'in', act: 'boss' }, { t: 'enter', stage: blocksOf(st)[0] }).mia
     for (const stage of blocksOf(st)) { m = reduceMia(m, { t: 'enter', stage }).mia; stage.words.forEach((_, idx) => { m = reduceMia(m, { t: 'win', idx, stage }).mia }) }
-    expect(examPerfect(m)).toBe(true); expect(examOf(m, true)).toMatchObject({ got: 120, max: 120 })
-    expect(examPerfect(miaInit())).toBe(false); expect(examPerfect({ ...m, act: 'sprint' })).toBe(false)
+    expect(bonusGate(m).ok).toBe(true); expect(examOf(m, true)).toMatchObject({ got: 120, max: 120 })
+    expect(bonusGate(miaInit())).toMatchObject({ ok: false, why: 'экзамена не было' }); expect(bonusGate({ ...m, act: 'sprint' }).ok).toBe(false)
   })
   it('пока экзамен идёт (директор заглядывает вперёд за дорожками), маршрут молча ведёт мимо бонуса и ничего не вписывает; решение считается заново на каждый вызов', () => {
     const st = game(), ann = sidAt(st, BONUS_ANN_SID), half = reduceMia(reduceMia({ ...miaInit(), phase: 'in', act: 'boss' }, { t: 'enter', stage: blocksOf(st)[0] }).mia, { t: 'win', idx: 0, stage: blocksOf(st)[0] }).mia
     expect(route(st, half)).toEqual({ idx: sidAt(st, 'boss-end'), log: null }); expect(st[ann].bonusKey).toBeUndefined()
-    const block1 = exam([st[sidAt(st, 'boss')]]); expect(block1.total).toBe(3); expect(examPerfect(block1)).toBe(true); expect(route(st, block1)).toEqual({ idx: sidAt(st, 'boss-end'), log: null }) // первый блок сыгран идеально, второй ещё не начат — решать рано
-    const first = route(st, exam(st)); expect(first.log).toMatch(/^\[exam\] бонус-круг: все 6 слов названы верно и в зелёной зоне/)
+    const block1 = exam([st[sidAt(st, 'boss')]]); expect(block1.total).toBe(3); expect(bonusGate(block1).ok).toBe(true); expect(route(st, block1)).toEqual({ idx: sidAt(st, 'boss-end'), log: null }) // первый блок сыгран идеально, второй ещё не начат — решать рано
+    const first = route(st, exam(st)); expect(first.log).toMatch(/^\[exam\] бонус-круг: верно 6 из 6, красных 0, собрано 100 % \(120 из 120\) ≥ 90 %/)
     const step = st[ann + 1].step; expect(route(st, exam(st))).toEqual({ idx: ann, log: null }); expect(st[ann + 1].step).toBe(step) // повторный вызов слова не переписывает и в журнал не пишет
     expect(bonusRoute(st, sidAt(st, 'boss'), exam(st), plan.seed)).toEqual({ idx: sidAt(st, 'boss'), log: null }) // чужую стадию маршрут не трогает
   })
@@ -140,7 +149,7 @@ describe('скорость: ступенями, последние три — р
   })
 })
 
-describe('в бонус-круге Пит и Мия молчат; исход экзамена и трофеи Мии не меняются', () => {
+describe('в бонус-круге Пит молчит, Мия только колет на ушедшее слово; исход экзамена и трофеи Мии не меняются', () => {
   const st = game(); route(st, exam(st))
   const ann = st[sidAt(st, BONUS_ANN_SID)], round = st[sidAt(st, BONUS_SID)], end = st[sidAt(st, 'boss-end')]
   const bonus = evs => { let m = exam(st); const say = []; for (const stage of [ann, round]) { const r = reduceMia(m, { t: 'enter', stage }); say.push(...r.say); m = r.mia } const cut = say.length; for (const e of evs) { const r = reduceMia(m, { stage: round, ...e }); say.push(...r.say); m = r.mia } return { m, say, inRound: say.slice(cut) } }
@@ -149,12 +158,29 @@ describe('в бонус-круге Пит и Мия молчат; исход э�
     expect(miaLine(BONUS_LINE)).toMatchObject({ who: 'mia', text: 'раз для тебя это просто, я ускоряю игру', tts: 'Раз для тебя это просто… Я ускоряю игру!' })
     expect(ann).toMatchObject({ type: 'announce', mia: 'hold', count: false, line: null, round: { title: '', task: '', brief: '' } }); expect(ann.count).toBe(false)
   })
-  it('ни на верное слово, ни на ошибку, ни на ушедшее слово в очередь речи ничего не встаёт: нет колкостей, нет «это значит», нет «Следующее слово»', () => {
-    const r = bonus([{ t: 'zone', zone: 'fast', idx: 0 }, { t: 'win', idx: 0 }, { t: 'zone', zone: 'mid', idx: 1 }, { t: 'win', idx: 1 }, { t: 'win', idx: 2 }, { t: 'miss', idx: 3 }, { t: 'fail', idx: 3, spoke: true }, { t: 'fail', idx: 4, spoke: false }, { t: 'fail', idx: 5 }])
-    expect(r.inRound).toEqual([]); expect(round.step.reps.every(x => x.say == null)).toBe(true) // слова круга голосом не называются
+  it('Пит молчит; на верное слово и «слишком рано» Мия молчит; на ушедшее — одна короткая колкость без «это значит» и «Следующее слово»', () => {
+    const quiet = bonus([{ t: 'zone', zone: 'fast', idx: 0 }, { t: 'win', idx: 0 }, { t: 'zone', zone: 'mid', idx: 1 }, { t: 'win', idx: 1 }, { t: 'win', idx: 2 }, { t: 'miss', idx: 3 }])
+    expect(quiet.inRound).toEqual([]); expect(round.step.reps.every(x => x.say == null)).toBe(true) // слова круга голосом не называются
+    const gone = bonus([{ t: 'miss', idx: 3 }, { t: 'fail', idx: 3, spoke: true }, { t: 'fail', idx: 4, spoke: false }, { t: 'fail', idx: 5 }])
+    expect(gone.inRound.every(c => c.who === 'mia' && c.free === true && c.ttl > 0)).toBe(true); expect(gone.inRound.map(c => c.id).every(id => ['mia_miss_1', 'mia_miss_2'].includes(id))).toBe(true); expect(gone.inRound).toHaveLength(3)
+    const again = bonus([{ t: 'fail', idx: 4, spoke: false }, { t: 'fail', idx: 4, spoke: false }]); expect(again.inRound).toHaveLength(1) // одно слово — одна колкость
     const src = read('../useRaceActs.js')
     expect(src).toContain('if (running?.bonus) { pLog(bonusPreLine(running, rep)); markAsked(mb); speech.translation(0); return }') // директор: перед пилюлей бонуса Пит не говорит ничего — пилюля выезжает сразу
     expect(src.indexOf('if (running?.bonus) {')).toBeLessThan(src.indexOf('surface.run(e?.wait')); expect(read('./bossMia.js')).toContain('if (ev.stage?.bonus) return bonusRound(m, ev)')
+  })
+  it('колкость: чужое слово — «Мимо», молчание и «не успел» — «Слово ушло…» (только перед словами разгона), перед быстрыми — всегда «Мимо»; mia_miss_3 не берётся', () => {
+    const w = (i) => round.words[i], long = round.words.map(x => x.jab)
+    expect(long).toEqual(['long', 'long', 'short', 'short', 'short', 'short']); expect(long).toEqual(round.words.map((_, i) => bonusJabKind(i, 6)))
+    const say = (i, ev) => bonus([...(ev.t === 'fail' && ev.wrong ? [{ t: 'miss', idx: i }] : []), { t: 'fail', idx: i, spoke: ev.spoke }]).inRound.map(c => c.id)
+    expect(say(0, { t: 'fail', wrong: true })).toEqual(['mia_miss_1']); expect(say(1, { t: 'fail', spoke: false })).toEqual(['mia_miss_2']); expect(say(0, { t: 'fail', spoke: true })).toEqual(['mia_miss_2'])
+    for (const i of [2, 3, 4, 5]) { expect(say(i, { t: 'fail', spoke: false })).toEqual(['mia_miss_1']); expect(say(i, { t: 'fail', spoke: true })).toEqual(['mia_miss_1']) }
+    expect(w(0).jab).toBe('long')
+  })
+  it('колкость не мешает: по записям длина реплики + пауза укладывается в окно следующего слова; опоздавшая не звучит; на скорость очереди не влияет; пауза снимает таймер', () => {
+    expect(BONUS_JAB_MS.short).toBeLessThan(BONUS_JAB_MS.long); expect(bonusJabKind(1, 6)).toBe('long'); expect(bonusJabKind(2, 6)).toBe('short') // следующее слово (номер 3) уже в последних трёх, длинная не помещается
+    expect(BONUS_JAB_MS.long + BONUS_NEXT_MS + 600).toBeLessThan(windowMs(BOSS_SPEED * 1.6)) // длинная колкость + микрофон закрыт до выезда и ещё разгон — в окне разгонной пилюли остаётся время ответить
+    const speech = read('../mia/miaSpeech.js'); expect(speech).toContain('if (!c.free) cat?.holdBusy?.(ms + miaGap())'); expect(speech).toContain('if (c.ttl > 0 && wait > 0 && now() + wait - c.at > c.ttl)'); expect(speech).toContain('if (c.free) return a') // свободная реплика: Пита не держит, в оценку очереди не входит, опоздавшая — пропускается
+    expect(speech).toContain('clearTimer(timer)') // остановка и пауза речи гасят таймер очереди
   })
   it('счёт бонуса свой: исход «успех», трофеи экзамена и счёт Мии прежние, даже если в бонусе не названо ни одного слова', () => {
     const none = bonus(round.words.map((_, idx) => ({ t: 'fail', idx, spoke: false })))
@@ -177,7 +203,7 @@ describe('в бонус-круге Пит и Мия молчат; исход э�
     expect(examWordLine(a, b, { t: 'win', idx: 0, stage: round })).toBe(`[exam] бонус, слово 1 из 6 «${w.text}» ×1,3 (окно 5207 мс): зона зелёная, игроку +20; бонус-круг 1 из 6`)
     m = reduceMia(b, { t: 'fail', idx: 5, stage: round }).mia
     const last = round.words[5]; expect(last.k).toBe(Math.min(3.8, kMax(last.translation, 'ru'))); expect(last.win).toBe(windowMs(last.speed))
-    expect(examWordLine(b, m, { t: 'fail', idx: 5, stage: round })).toBe(`[exam] бонус, слово 6 из 6 «${last.text}» ×${String(last.k).replace('.', ',')} (окно ${last.win} мс): не названо, игроку +0; бонус-круг 1 из 6`)
+    expect(examWordLine(b, m, { t: 'fail', idx: 5, stage: round })).toBe(`[exam] бонус, слово 6 из 6 «${last.text}» ×${String(last.k).replace('.', ',')} (окно ${last.win} мс): не названо (не успели), игроку +0, Мия: mia_miss_1; бонус-круг 1 из 6`)
     expect(examWordLine(m, reduceMia(m, { t: 'fail', idx: 5, stage: round }).mia, { t: 'fail', idx: 5, stage: round })).toBeNull() // одно слово — одна строка
   })
 })
@@ -194,5 +220,16 @@ describe('пауза и таймеры: бонус-круг своих очер�
     for (let t = 0; t <= 800; t += 16) seen.push(...stepStudent(g, t, {}).map(e => e.type))
     const y = g.reps[0].pills[0]?.y; expect(seen).toContain('spawn'); expect(seen).not.toContain('fail') // 800 мс игры, потом «пауза» на минуту: шагов нет — состояние то же
     expect(g.reps[0].pills[0].y).toBe(y); expect(g.reps[0].state).toBe('fly')
+  })
+})
+
+describe('узор дорожки в бонусе: скорость пилюли, которая сейчас в работе', () => {
+  it('слов сыграно столько — скорость узора слова с таким номером; после последнего держится последняя; сыгранные считаются по верным и ушедшим', () => {
+    const st = game(); route(st, exam(st)); const reps = st[sidAt(st, BONUS_SID)].step.reps, sp = reps.map(r => r.speed)
+    expect([0, 1, 2, 3, 4, 5, 9].map(n => bonusLaneSpeed(reps, n))).toEqual([...sp, sp[5]]); expect(bonusLaneSpeed([], 0)).toBeNull()
+    const stages = [st[sidAt(st, BONUS_ANN_SID)], st[sidAt(st, BONUS_SID)]], i = 1
+    expect([0, 3, 5].map(n => conveyorSpeedHint(stages, i, false, n))).toEqual([sp[0], sp[3], sp[5]])
+    expect(conveyorSpeedHint(stages, 0, false, 4)).toBe(sp[0]) // с реплики Мии — первая пилюля: узор набирает её заранее
+    const m = { bonus: { won: { 0: true, 1: true }, gone: { 1: true, 2: true } } }; expect(bonusPlayedOf(m)).toBe(3); expect(bonusPlayedOf(null)).toBe(0)
   })
 })

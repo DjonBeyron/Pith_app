@@ -1,24 +1,38 @@
 // Бонус-круг экзамена «Шкала памяти» (владелец 2026-11-26: «если пользователь всё ответил верно и в зелёной зоне, Мия говорит: раз для тебя это просто, я ускоряю игру, и все слова идут снова
 // в рандомном порядке на этом же языке детекции и с ускорением, где последние три слова прям реально быстро идут, чтобы система могла успеть это считать»). Чистые функции без React и DOM.
-//  • условие — bossMia.examPerfect: все слова экзамена верны и каждое в зелёной зоне; иначе экзамен кончается, как раньше (три исхода);
+//  • условие — bonusGate (владелец 2026-11-26: «все шесть зелёные — слишком строго, сделай на свой взгляд»): все слова названы верно, ни одного в красной зоне, собрано не меньше BONUS_MIN_PCT %
+//    трофеев экзамена; иначе экзамен кончается, как раньше (три исхода);
 //  • ход — стадия-реплика BONUS_ANN_SID (Мия: BONUS_LINE; плашки и трёх нот нет, шкала и Мия на коробке остаются) → круг BONUS_SID: все слова экзамена заново → обычная концовка;
 //  • язык — тот, на котором шёл ПОСЛЕДНИЙ блок экзамена (модель Vosk не переключается): обычно русский — на пилюле английское слово, ответ по-русски, и слова первого блока спрашиваются так же;
 //    русской модели нет — весь экзамен английский, бонус тоже (на пилюле перевод, ответ по-английски);
 //  • порядок — случайный по семени плана, не как в экзамене, и первое слово бонуса — не последнее слово экзамена;
 //  • скорость — каждое слово быстрее предыдущего, последние BONUS_LAST — резко быстрее, но не быстрее, чем слово можно успеть сказать и распознать (kMax);
-//  • в бонус-круге Пит и Мия молчат (bossMia.bonusRound, useRaceActs.pre): только пилюля и линия шкалы.
+//  • в бонус-круге Пит молчит (useRaceActs.pre), Мия — только короткая колкость на ушедшее слово (bossMia.bonusRound): она идёт поверх выезда следующей пилюли и её не задерживает;
+//  • узор дорожки едет со скоростью пилюли, которая сейчас в работе (bonusLaneSpeed → wordLaneConveyorSpeed.conveyorSpeedHint).
 import { rngFor, rngShuffle } from '../../rehearsal/rehearsalSeed.js'
 import { SPEED, LISTEN_Y_MIN } from '../../player/modules/rotate-phone/wordLaneTimeline.js'
 import { FAIL_Y } from '../../player/modules/rotate-phone/wordLaneStudent.js'
 import { QUIET_MS, syllables } from '../../player/modules/rotate-phone/wordEarRule.js'
 import { BOSS_SPEED } from './bossWords.js'
-import { examPerfect } from './bossMia.js'
+import { examOf } from './bossMia.js'
 
 export const BONUS_ANN_SID = 'boss-fast-ann' // стадия-реплика Мии перед бонус-кругом
 export const BONUS_SID = 'boss-fast'         // сам бонус-круг
 export const BONUS_LINE = 'boss_mia_fast'    // «раз для тебя это просто, я ускоряю игру»
 export const BONUS_ANN_MS = 400              // минимум стадии-реплики; на деле её держит длина реплики Мии (useRaceActs.holdMs, стадия mia 'hold')
 export const BONUS_MIN = 3                   // слов в бонус-круге не меньше (как в экзамене, bossWords.BOSS_MIN): иначе бонуса нет
+// ПРЕДЛОЖЕНИЕ, владелец может поменять: бонус-круг включается, если собрано не меньше стольких % трофеев экзамена (и нет ни ошибок, ни красной зоны). Трофеи — те же, что решают исход (bossTrophies:
+// зелёная 20, жёлтая 10). 6 слов: шесть зелёных (100 %) или пять зелёных и одно жёлтое (110 из 120 = 91,7 %) — да; четыре и два (83,3 %) — нет. 3 и 4 слова — только все зелёные (одно жёлтое —
+// 83,3 % и 87,5 %); 5 слов — одно жёлтое можно (ровно 90 %); 10 слов — два жёлтых (90 %).
+export const BONUS_MIN_PCT = 90
+
+/** Условие бонус-круга по состоянию машины Мии m (экзамен сыгран целиком) → { ok, total, won, red, got, max, pct, why }; why — причина отказа простыми словами ('' — бонус есть). Трофеи — bossMia.examOf */
+export function bonusGate(m) {
+  const total = m?.act === 'boss' ? m.total ?? 0 : 0, idx = Array.from({ length: total }, (_, i) => i), won = idx.filter(i => m.won?.[i]).length, red = idx.filter(i => m.won?.[i] && m.zones?.[i] === 'slow').length
+  const { got, max, pct } = total ? examOf(m, true) : { got: 0, max: 0, pct: 0 }
+  const why = !total ? 'экзамена не было' : won < total ? `есть ошибка или молчание (${total - won})` : red ? 'есть слово в красной зоне' : got * 100 < max * BONUS_MIN_PCT ? `собрано меньше ${BONUS_MIN_PCT} % трофеев` : ''
+  return { ok: !why, total, won, red, got, max, pct, why }
+}
 
 // ── СКОРОСТЬ БОНУС-КРУГА. ПРЕДЛОЖЕНИЕ, владелец может поменять: все числа скорости — здесь. Множитель K — во сколько раз пилюля быстрее пилюли экзамена (экзамен: BOSS_SPEED 0,5 конвейера ≈ 13 %
 // высоты в секунду). Для сравнения: «Конвейер слов» идёт на K 2,0–2,55, «Допрос у Мии» (×1,15) — на K 2,3–2,94: последние три слова бонуса быстрее всего, что есть в игре.
@@ -36,6 +50,19 @@ export const BONUS_K_LAST_STEP = 0.5  // 2,8 → 3,3 → 3,8: окна 2418 → 
 export const BONUS_REACT_MS = 700     // увидеть слово на пилюле и начать говорить
 export const BONUS_SYL_MS = 180       // длительность слога в быстрой речи
 export const BONUS_FINAL_MS = 350     // запас на итог Vosk после тишины QUIET_MS
+// ── КОЛКОСТЬ МИИ на ушедшее слово (bossMia.bonusRound). Пока Мия говорит, микрофон не слушает (эхо динамика): её реплика + miaSpeech.MIC_MUTE_PAD_MS 600 мс. Следующая пилюля выезжает через ≈ 0,6 с
+// после ухода прошлой (замер на стенде: 615 мс) и ещё (LISTEN_Y_MIN − ENTER_Y) / скорость едет до «слушает». По записи реплик: «Мимо» 679 мс — микрофон свободен через ≈ 1,3 с после ухода слова, это
+// раньше, чем человек успевает начать ответ даже на самой быстрой пилюле (×3,8: слушает с 1,05 с, реакция 700 мс → 1,75 с): окно ответа не тронуто. «Слово ушло, я ждать не люблю» 1985 мс — микрофон
+// свободен через ≈ 2,6 с: перед словом разгона (окна 4231 и 3563 мс) остаётся 3,3 и 2,5 с — хватает на ответ в пять слогов; перед быстрым словом (окно 2418 мс) остаётся ≈ 1 с — мало. Поэтому
+// длинная реплика — только если и ушедшее, и следующее слово не входят в последние BONUS_LAST; иначе на любую причину «Мимо». Проверка расчёта — bossBonus.test.js.
+export const BONUS_NEXT_MS = 600      // от ухода пилюли до выезда следующей (PRE_SAY_GAP секвенсора речи + кадр): для расчёта выше и теста
+export const BONUS_JAB_MS = { long: 2000, short: 700 } // длительности реплик по записи (mia_miss_2 1985 мс, mia_miss_1 679 мс), с округлением вверх
+/** Какой длины колкость допустима после слова idx круга из n слов: 'long' — и оно, и следующее слово в разгоне; иначе 'short' */
+export const bonusJabKind = (idx, n) => (idx + 1 < n - BONUS_LAST ? 'long' : 'short')
+/** Скорость узора дорожки в бонус-круге: скорость пилюли, которая сейчас в работе, — слова круга words, сыграно played (верно + ушло); после последнего — её же */
+/** Сколько слов бонус-круга уже сыграно (верно или ушло) по состоянию машины Мии m — номер слова, пилюля которого сейчас в работе */
+export const bonusPlayedOf = m => new Set([...Object.keys(m?.bonus?.won ?? {}), ...Object.keys(m?.bonus?.gone ?? {})]).size
+export const bonusLaneSpeed = (words, played = 0) => words?.[Math.min(Math.max(0, played), (words?.length ?? 1) - 1)]?.speed ?? null
 
 /** Окно ответа, мс: сколько пилюля со скоростью speed (доли конвейера) слушает — от LISTEN_Y_MIN (видно 90 % её высоты) до FAIL_Y («не успел») */
 export const windowMs = speed => Math.round(((FAIL_Y - LISTEN_Y_MIN) / (SPEED * (speed > 0 ? speed : 1))) * 1000)
@@ -60,10 +87,10 @@ export function bonusOrder(words, seed) {
   return words.length > 1 ? [...words.slice(1), words[0]] : [...words]
 }
 
-/** Слова бонус-круга из слов экзамена words (в порядке экзамена): → { list: [{ ...слово, idx, lane, speed, k, win }], skipped: [слова, которые на этом языке спросить нельзя] }; k — множитель, win — окно ответа, мс */
+/** Слова бонус-круга из слов экзамена words (в порядке экзамена): → { list: [{ ...слово, idx, lane, speed, k, win, jab }], skipped: [слова, которые на этом языке спросить нельзя] }; k — множитель, win — окно ответа, мс, jab — длина колкости Мии после этого слова */
 export function bonusWords(words, ru, seed) {
   const ok = words.filter(w => bonusTarget(w, ru)), skipped = words.filter(w => !bonusTarget(w, ru)), steps = bonusSteps(ok.length)
-  const list = bonusOrder(ok, seed).map((w, idx) => { const k = Math.min(steps[idx], kMax(bonusTarget(w, ru), ru ? 'ru' : 'en')), speed = +(BOSS_SPEED * k).toFixed(4); return { ...w, idx, lane: 1, speed, k, win: windowMs(speed) } })
+  const list = bonusOrder(ok, seed).map((w, idx) => { const k = Math.min(steps[idx], kMax(bonusTarget(w, ru), ru ? 'ru' : 'en')), speed = +(BOSS_SPEED * k).toFixed(4); return { ...w, idx, lane: 1, speed, k, win: windowMs(speed), jab: bonusJabKind(idx, ok.length) } })
   return { list, skipped }
 }
 
@@ -81,11 +108,11 @@ export function bonusRoute(stages, i, m, seed) {
   const blocks = stages.slice(0, i).filter(x => x.act === 'boss' && x.mia === 'round' && !x.bonus && !x.empty), ru = blocks.at(-1)?.step?.lang === 'ru', all = blocks.flatMap(x => x.words ?? [])
   const played = Object.keys(m?.won ?? {}).length + Object.keys(m?.dug ?? {}).length
   if (m?.act !== 'boss' || !(m.total > 0) || m.total < all.length || played < m.total) return skip // экзамен ещё идёт (заглядывание вперёд; второй блок ещё не начат) — решать рано
-  const green = Array.from({ length: m.total }, (_, k) => k).filter(k => m.won?.[k] && (m.zones?.[k] ?? 'fast') === 'fast').length
-  if (!examPerfect(m)) return { ...skip, log: note(`бонус-круга нет: верно названо ${Object.keys(m.won ?? {}).length} из ${m.total}, из них в зелёной зоне ${green} (нужно все ${m.total})`) }
+  const g = bonusGate(m), nums = `верно ${g.won} из ${g.total}, красных ${g.red}, собрано ${g.pct} % (${g.got} из ${g.max})`
+  if (!g.ok) return { ...skip, log: note(`бонус-круга нет: ${nums} — ${g.why} (нужно: все верно, без красных, не меньше ${BONUS_MIN_PCT} %)`) }
   const { list, skipped } = bonusWords(all, ru, seed)
   if (list.length < BONUS_MIN) return { ...skip, log: note(`бонус-круга нет: на языке последнего блока можно спросить только ${list.length} слов (нужно ${BONUS_MIN})`) }
   const key = `${ru ? 'ru' : 'en'}:${list.map(w => `${w.text}@${w.speed}`).join('|')}`
   if (ann.bonusKey !== key) { ann.bonusKey = key; round.fill(list, ru); if (ru) ann.switchTo = 'ru'; else delete ann.switchTo } // switchTo 'ru' при уже русском слухе ничего не грузит (raceSwitch.forRu) и не даёт вернуть английскую модель на стадии-реплике (useRaceSwitch)
-  return { idx: i, log: note(`бонус-круг: все ${m.total} слов названы верно и в зелёной зоне — Мия ускоряет игру; язык ответа ${ru ? 'русский (на пилюле английское слово)' : 'английский (на пилюле перевод)'}, слов ${list.length}${skipped.length ? `, пропущено ${skipped.length} (нет русского перевода): ${skipped.map(w => `«${w.text}»`).join(', ')}` : ''}: ${list.map((w, n) => `${n + 1}) «${w.text}» ×${RU_NUM(w.k)}, окно ${w.win} мс`).join('; ')}`) }
+  return { idx: i, log: note(`бонус-круг: ${nums} ≥ ${BONUS_MIN_PCT} % — Мия ускоряет игру; язык ответа ${ru ? 'русский (на пилюле английское слово)' : 'английский (на пилюле перевод)'}, слов ${list.length}${skipped.length ? `, пропущено ${skipped.length} (нет русского перевода): ${skipped.map(w => `«${w.text}»`).join(', ')}` : ''}: ${list.map((w, n) => `${n + 1}) «${w.text}» ×${RU_NUM(w.k)}, окно ${w.win} мс`).join('; ')}`) }
 }

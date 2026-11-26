@@ -87,11 +87,14 @@ describe('допрос у Мии и экзамен — те же реплики 
     expect(idsOf(block('boss'), p => p.key === 'hold')).toEqual(['boss_mia_ru'])
     expect(idsOf(block('boss'), p => p.key === 'fail2')).toEqual(['boss_pit_next'])
   })
-  it('экзамен: бонус-круг — веткой «все слова верны и в зелёной зоне»: одна реплика Мии, в самом круге никто не говорит; одно жёлтое слово — ветки нет', () => {
+  it('экзамен: бонус-круг — веткой «все верно, без красных, ≥ 90 %»: реплика Мии, в круге Пит молчит, Мия колет только на ушедшее слово; одно жёлтое слово — ветка есть', () => {
     const parts = block('boss').parts, at = parts.findIndex(p => p.key === 'bonus'), b = sc.sim.boss.bonus
-    expect(parts[at]).toMatchObject({ kind: 'seq', stage: 'boss-fast-ann' }); expect(parts[at].title).toMatch(/все слова названы верно и каждое в зелёной зоне/); expect(parts[at].items.map(x => [x.id, x.who])).toEqual([['boss_mia_fast', 'mia']])
+    expect(parts[at]).toMatchObject({ kind: 'seq', stage: 'boss-fast-ann' }); expect(parts[at].title).toMatch(/все слова верно, без красных, собрано не меньше 90 %/); expect(parts[at].items.map(x => [x.id, x.who])).toEqual([['boss_mia_fast', 'mia']])
     expect(at).toBeGreaterThan(parts.findIndex(p => p.key === 'hold')); expect(at).toBeLessThan(parts.findIndex(p => p.key === 'end0')) // после смены языка, перед концовками
-    expect(b.on).toBe(true); expect(b.miss).toBe(false); expect(b.round).toEqual([]) // событиям круга (верно, чужое слово, слово ушло) машина Мии не отвечает ни одной репликой
+    expect(b.on).toBe(true); expect(b.miss).toBe(true) // одно жёлтое слово (91 %) бонус не отменяет
+    expect(b.round.every(c => c.who === 'mia' && ['mia_miss_1', 'mia_miss_2'].includes(c.id))).toBe(true); expect(b.round.length).toBeGreaterThan(0) // в круге звучат только колкости Мии
+    expect(b.jabs.wrong.every(id => id === 'mia_miss_1')).toBe(true); expect(b.jabs.forgot.slice(0, 2)).toEqual(['mia_miss_2', 'mia_miss_2']); expect(b.jabs.late.slice(-3)).toEqual(['mia_miss_1', 'mia_miss_1', 'mia_miss_1'])
+    expect(parts.find(p => p.key === 'bonusJab').items.map(x => x.id).sort()).toEqual(['mia_miss_1', 'mia_miss_2'])
     expect(b.k.length).toBe(6); expect(Math.min(...b.k.slice(-3))).toBeGreaterThan(Math.max(...b.k.slice(0, -3))); expect(b.win.every(ms => ms > 1500)).toBe(true)
     expect(sc.ids.has('boss_mia_fast')).toBe(true); expect(sc.unused.some(u => u.id === 'boss_mia_fast')).toBe(false)
   })

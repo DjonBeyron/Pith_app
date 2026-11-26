@@ -3,17 +3,19 @@
 // wordLaneConveyor.js (SPEED_RAMP_MS), привод — laneConveyorDrive.setSpeedHint.
 import { ENTER_Y, SPEED } from './wordLaneTimeline.js'
 import { MIA } from '../../../pitrace/mia/raceMia.js'
+import { bonusLaneSpeed } from '../../../pitrace/boss/bossBonus.js'
 
 const HORIZON = 3 // плашки и реплика второго круга стоят перед стадией пилюль: заглядываем вперёд не дальше стольких стадий
 
 /** → множитель скорости первой пилюли ближайшей стадии-очереди (текущей или следующей в том же акте) или null: пилюль со скоростью нет (обычная игра, другой акт) */
-export function conveyorSpeedHint(stages, idx, miaSpoke = false) { // miaSpoke — Мия заговорила за кадром на церемонии: конвейер плавно набирает скорость круга с Мией заранее (v3.3.271)
+export function conveyorSpeedHint(stages, idx, miaSpoke = false, bonusPlayed = 0) { // bonusPlayed — бонус-круг экзамена: сколько его слов уже сыграно — узор едет со скоростью пилюли, которая сейчас в работе, а не первой (каждая следующая быстрее; привод набирает новую скорость плавно, фаза узора сохраняется) // // miaSpoke — Мия заговорила за кадром на церемонии: конвейер плавно набирает скорость круга с Мией заранее (v3.3.271)
   const cur = stages?.[idx]
   if (!cur?.race || !cur.act) return null
   for (let j = idx; j < Math.min(stages.length, idx + HORIZON + 1); j++) {
     const st = stages[j]
     if (!st || st.act !== cur.act) return null
     const reps = st.step?.reps
+    if (st.type === 'student' && st.bonus && reps?.length) return bonusLaneSpeed(reps, j === idx ? bonusPlayed : 0)
     if (st.type === 'student' && reps?.length) return reps[0].speed > 0 ? reps[0].speed * (st.mia === 'round' && !st.noBoost && (j === idx || (miaSpoke && cur.mia === 'ann')) ? MIA.BOOST : 1) : null // круг с Мией: дорожки ускоряет она (×MIA.BOOST) — на входе в круг, плавно
   }
   return null

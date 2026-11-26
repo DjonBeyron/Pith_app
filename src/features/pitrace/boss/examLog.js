@@ -1,6 +1,6 @@
 // Журнал экзамена: одна строка на слово — зона, сколько получил игрок и сколько ушло Мии, счёт после слова (владелец 2026-11-26: «кажется, что в красной зоне мне всё равно начисляется XP» —
 // по этим строкам видно, что именно начислено). Чистая функция: директор (useRaceActs.miaEvent) зовёт её на каждое событие круга экзамена.
-import { examOf, missWhy } from './bossMia.js'
+import { examOf, missWhy, bonusWhy, bonusJab } from './bossMia.js'
 import { wordTrophies, TROPHY_PER_WORD } from './bossTrophies.js'
 import { peekBossSeen } from './bossZoneNow.js'
 
@@ -26,12 +26,12 @@ export function examWordLine(before, after, ev, corner = null, seen = peekBossSe
   return `${head} зона ${ZONE_RU[z] ?? z}${seen?.pct != null ? ` (линия на ${seen.pct} % шкалы)` : ''}, игроку +${got}, Мии +${TROPHY_PER_WORD - got}${corner != null && corner !== got ? ` (РАСХОЖДЕНИЕ: счётчик в углу получает +${corner})` : ''}; ${tail}`
 }
 
-/** Слово бонус-круга (boss/bossBonus.js): `[exam] бонус, слово 5 из 6 «learn» ×3,3 (окно 2051 мс): зона зелёная, игроку +20; бонус-круг 5 из 6`. Мии ничего не уходит, счёт экзамена не меняется */
+/** Слово бонус-круга (boss/bossBonus.js): `[exam] бонус, слово 5 из 6 «learn» ×3,3 (окно 2051 мс): зона зелёная, игроку +20; бонус-круг 5 из 6`. Мии ничего не уходит, счёт экзамена не меняется; ушедшее слово — с причиной и колкостью Мии */
 function bonusWordLine(before, after, ev, st) {
   const b0 = before.bonus ?? {}, b = after.bonus
   if (!b) return null
   const i = ev.idx ?? b.lw ?? 0, w = st.words?.[i], head = `[exam] бонус, слово ${i + 1} из ${b.total}${w ? ` «${w.text}»${w.k ? ` ×${String(w.k).replace('.', ',')} (окно ${w.win} мс)` : ''}` : ''}:`, tail = `бонус-круг ${Object.keys(b.won).length} из ${b.total}`
-  if (ev.t === 'fail') return b0.gone?.[i] || !b.gone?.[i] ? null : `${head} не названо, игроку +0; ${tail}`
+  if (ev.t === 'fail') { const why = bonusWhy(b0, i, ev); return b0.gone?.[i] || !b.gone?.[i] ? null : `${head} не названо (${WHY_RU[why]}), игроку +0, Мия: ${bonusJab(w, why)}; ${tail}` }
   const settled = ev.t === 'win' ? !!b.zones?.[i] && !b0.won?.[i] : !!b.won?.[i] && !b0.zones?.[i]
   return settled ? `${head} зона ${ZONE_RU[b.zones[i]] ?? b.zones[i]}, игроку +${wordTrophies({ ok: true, zone: b.zones[i] })}; ${tail}` : null
 }
