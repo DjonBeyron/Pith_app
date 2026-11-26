@@ -22,8 +22,8 @@ beforeEach(() => {
 afterEach(() => { releaseNotes(); releasePlate(); releaseClips(); setLessonMuted(false); vi.unstubAllGlobals() })
 
 describe('награда за пилюлю через Web Audio', () => {
-  it('мяу по умолчанию: три файла качаются и декодируются в тапе, <audio> не создаются; играет буфер с gain = громкость награды', async () => {
-    setup({ pithy_game_reward_volume_v1: '0.8' })
+  it('мяу (выбрано в админке): три файла качаются и декодируются в тапе, <audio> не создаются; играет буфер с gain = громкость награды', async () => {
+    setup({ pithy_game_reward_volume_v1: '0.8', pithy_game_reward_sound_v1: 'meow' })
     unlockNotes()
     expect(playNote(0)).toBe(false) // буфер ещё декодируется — тишина, а не ошибка
     await flush()
@@ -61,7 +61,7 @@ describe('награда за пилюлю через Web Audio', () => {
     unlockNotes(); warmRewardBuffers(); await flush()
     expect(playNote(0)).toBe(false)
     expect(fetched).toHaveLength(0)
-    setup({})
+    setup({ pithy_game_reward_sound_v1: 'meow' })
     warmRewardBuffers(); await flush()
     expect(fetched).toHaveLength(3) // подготовлено ДО тапа
     setLessonMuted(true)

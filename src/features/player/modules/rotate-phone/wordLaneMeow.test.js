@@ -79,16 +79,17 @@ afterEach(() => { releaseNotes(); vi.unstubAllGlobals() })
 const flush = () => new Promise(r => setTimeout(r, 0))
 
 describe('переключатель и громкость награды', () => {
-  it('по умолчанию мяу и 0.5; значения читаются и запоминаются', () => {
-    expect(getRewardSound()).toBe('meow')
+  it('по умолчанию ноты (с v3.3.379) и 0.5; значения читаются и запоминаются', () => {
+    expect(getRewardSound()).toBe('notes')
     expect(getRewardVolume()).toBe(0.5)
+    setRewardSound('meow'); expect(getRewardSound()).toBe('meow')
     setRewardSound('notes'); expect(getRewardSound()).toBe('notes'); expect(store.get(REWARD_SOUND_KEY)).toBe('notes')
     setRewardSound('off'); expect(getRewardSound()).toBe('off')
     setRewardVolume(0.2); expect(getRewardVolume()).toBe(0.2); expect(store.get(REWARD_VOLUME_KEY)).toBe('0.2')
   })
   it('мусор игнорируется; громкость зажата в 0…1', () => {
-    setRewardSound('banana'); expect(getRewardSound()).toBe('meow')
-    store.set(REWARD_SOUND_KEY, 'banana'); expect(getRewardSound()).toBe('meow')
+    setRewardSound('banana'); expect(getRewardSound()).toBe('notes')
+    store.set(REWARD_SOUND_KEY, 'banana'); expect(getRewardSound()).toBe('notes')
     store.set(REWARD_VOLUME_KEY, 'abc'); expect(getRewardVolume()).toBe(0.5)
     store.set(REWARD_VOLUME_KEY, ''); expect(getRewardVolume()).toBe(0.5)
     setRewardVolume(7); expect(getRewardVolume()).toBe(1)
@@ -97,13 +98,14 @@ describe('переключатель и громкость награды', () =
   })
   it('без localStorage (приватный режим) — значения по умолчанию, ничего не падает', () => {
     vi.stubGlobal('localStorage', { getItem() { throw new Error('denied') }, setItem() { throw new Error('denied') } })
-    expect(getRewardSound()).toBe('meow'); expect(getRewardVolume()).toBe(0.5)
+    expect(getRewardSound()).toBe('notes'); expect(getRewardVolume()).toBe(0.5)
     expect(() => { setRewardSound('notes'); setRewardVolume(0.1) }).not.toThrow()
   })
 })
 
 describe('проигрывание награды', () => {
   it('unlockNotes прогревает три файла мяу (слоты нот): тихий wav в тапе, затем src = meow-k.wav', async () => {
+    setRewardSound('meow')
     unlockNotes()
     expect(created).toHaveLength(3)
     expect(plays).toHaveLength(3) // play() внутри жеста
@@ -114,7 +116,7 @@ describe('проигрывание награды', () => {
     expect(created.every(a => a.volume === 0.5)).toBe(true)
   })
   it('playNote(k) играет файл мяу k с выставленной громкостью (регулятор — audio.volume)', async () => {
-    setRewardVolume(0.25)
+    setRewardSound('meow'); setRewardVolume(0.25)
     unlockNotes(); await flush(); plays.length = 0
     expect(playNote(0)).toBe(true); expect(playNote(2)).toBe(true)
     expect(plays).toEqual([{ src: MEOW_PATHS[0], volume: 0.25 }, { src: MEOW_PATHS[2], volume: 0.25 }])
@@ -140,7 +142,7 @@ describe('проигрывание награды', () => {
     expect(playNote(0)).toBe(false); expect(plays).toHaveLength(0)
   })
   it('«Послушать» из админки играет выбранный вариант отдельным элементом', () => {
-    expect(previewReward(1)).toBe(true)
+    setRewardSound('meow'); expect(previewReward(1)).toBe(true)
     expect(plays).toEqual([{ src: MEOW_PATHS[1], volume: 0.5 }])
     setRewardSound('notes'); setRewardVolume(0.8); plays.length = 0
     expect(previewReward(2)).toBe(true)

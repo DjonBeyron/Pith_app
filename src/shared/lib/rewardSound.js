@@ -1,7 +1,7 @@
 // Настройки звука награды игры «Повтори за диктором» (лесенка из трёх тонов за принятые пилюли): что играть и насколько громко. Меняются в админке «Голос» → «Звуки игры» (GameSoundsBlock.jsx), читаются игрой (player/modules/rotate-phone/wordLaneNotes.js).
-//  - `pithy_game_reward_sound_v1`: 'meow' (по умолчанию) — три «мяу» из public/sounds/meow-{1,2,3}.wav (их делает scripts/meow/make_meow.mjs; RMS вдвое ниже прежних нот), 'notes' — прежние синтез-ноты до-ми-соль, 'off' — тишина;
+//  - `pithy_game_reward_sound_v1`: 'notes' — по умолчанию (с v3.3.379) прежние синтез-ноты до-ми-соль; 'meow' — три «мяу» из public/sounds/meow-{1,2,3}.wav (их делает scripts/meow/make_meow.mjs; RMS вдвое ниже прежних нот), 'off' — тишина;
 //  - 'custom' — ОДНА запись (url в `pithy_game_reward_url_v1`: сгенерированное «мяу» ElevenLabs или загруженный файл, громкость уже выровнена в браузере до RMS ≈ мяу) на три тона: playbackRate 1 / 1.26 / 1.5 при preservesPitch=false (высота растёт вместе со скоростью);
-//    'custom' без сохранённого url невозможен — читается как 'meow';
+//    'custom' без сохранённого url невозможен — читается как значение по умолчанию (ноты);
 //  - `pithy_game_reward_volume_v1`: 0…1 (по умолчанию 0.5) → audio.volume. На iOS volume у <audio> игнорируется, поэтому там тише сами файлы мяу, а регулятор работает на Android и десктопе.
 // СЕЙЧАС всё лежит в localStorage устройства владельца (url файла тоже). ЧТОБЫ БЫЛО У ВСЕХ: завести в app_settings ключ `game_reward_sound` = { sound, url } (по образцу appSettingsApi.js:
 // getAudioStaticWaveform/set…), писать его из GameSoundsBlock (после saveCandidate) и читать в игре при старте (getRewardSound/getRewardUrl смотрят сначала в кэш app_settings, потом в localStorage); таблица app_settings уже есть (проверить, что чтение открыто всем, а запись — админу; как у остальных ключей).
@@ -11,7 +11,7 @@ export const REWARD_VOLUME_KEY = 'pithy_game_reward_volume_v1'
 export const REWARD_URL_KEY = 'pithy_game_reward_url_v1'
 export const REWARD_SOUNDS = ['meow', 'notes', 'custom', 'off']
 export const REWARD_RATES = [1, 1.26, 1.5] // playbackRate трёх тонов «одного файла»; те же ступени, что у синтезированных мяу (RATIOS в scripts/meow/make_meow.mjs)
-export const REWARD_SOUND_DEFAULT = 'meow'
+export const REWARD_SOUND_DEFAULT = 'notes' // v3.3.379 (владелец: «по умолчанию у всех только ноты, на Android почему-то кошачьи»): без своего выбора в админке играют ноты
 export const REWARD_VOLUME_DEFAULT = 0.5
 
 const readStore = key => { try { return localStorage.getItem(key) } catch { return null } }
@@ -28,7 +28,7 @@ export function setRewardUrl(value) {
   if (typeof value === 'string' && URL_RE.test(value)) writeStore(REWARD_URL_KEY, value)
 }
 
-/** 'meow' | 'notes' | 'custom' | 'off'; мусор или пусто → по умолчанию; 'custom' без сохранённого url → 'meow' */
+/** 'meow' | 'notes' | 'custom' | 'off'; мусор или пусто → по умолчанию (ноты); 'custom' без сохранённого url → по умолчанию */
 export function getRewardSound() {
   const v = readStore(REWARD_SOUND_KEY)
   if (v === 'custom') return getRewardUrl() ? 'custom' : REWARD_SOUND_DEFAULT

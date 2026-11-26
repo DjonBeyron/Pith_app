@@ -31,14 +31,14 @@ const useCustom = () => { setRewardUrl(URL1); setRewardSound('custom') }
 
 describe('режим «custom»: настройка и адрес файла', () => {
   it('custom нельзя выбрать без сохранённого url; с url — выбирается и читается', () => {
-    setRewardSound('custom'); expect(getRewardSound()).toBe('meow')
+    setRewardSound('custom'); expect(getRewardSound()).toBe('notes')
     useCustom()
     expect(getRewardSound()).toBe('custom'); expect(getRewardUrl()).toBe(URL1)
     expect(store.get(REWARD_SOUND_KEY)).toBe('custom'); expect(store.get(REWARD_URL_KEY)).toBe(URL1)
   })
   it('url пропал или испорчен — custom читается как мяу; чужие схемы (javascript:, data:) не принимаются', () => {
     useCustom(); store.delete(REWARD_URL_KEY)
-    expect(getRewardSound()).toBe('meow')
+    expect(getRewardSound()).toBe('notes')
     ;['javascript:alert(1)', 'data:audio/wav;base64,AAAA', '//evil.example/x.wav', 'banana', ''].forEach(bad => { setRewardUrl(bad); expect(getRewardUrl()).toBeNull() })
     store.set(REWARD_URL_KEY, 'javascript:alert(1)'); expect(getRewardUrl()).toBeNull()
     setRewardUrl('/sounds/own.wav'); expect(getRewardUrl()).toBe('/sounds/own.wav')
