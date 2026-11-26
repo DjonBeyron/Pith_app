@@ -19,6 +19,7 @@ const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, de
 await ctx.addInitScript(([weak, start]) => {
   if (start) localStorage.setItem('pithy_race_start_stage_v1', start) // START=boss-intro-ann — «начать с этапа» (как у админа): сразу экзамен
   localStorage.setItem('pithy_weak_device_v6', weak ? '1' : '0'); localStorage.setItem('pithy_debug', '1'); localStorage.setItem('pithy_debug_console', '0')
+  if (weak) document.addEventListener('DOMContentLoaded', () => document.documentElement.classList.add('weak-device', 'perf-no-textures')) // как в приложении (main.jsx → applyWeakDeviceClasses): стенд этот вызов не делает, а CSS-упрощения слабых устройств висят на классе
   const nraf = window.requestAnimationFrame.bind(window)
   let calls = 0
   window.requestAnimationFrame = cb => { calls++; return nraf(cb) }

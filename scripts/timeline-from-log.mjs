@@ -13,3 +13,5 @@ const runs = splitRuns(parseSceneLines(readFileSync(file, 'utf8'))).filter(r => 
 if (!runs.length) { console.log('В журнале нет событий сцены («[scene] …»): игра не запускалась, версия старше 3.3.338 или начало журнала вытеснено.'); process.exit(0) }
 const pick = opt('run', 0), list = pick > 0 ? [runs[runs.length - pick]].filter(Boolean) : runs
 list.forEach((r, i) => console.log(`${i ? '\n\n' : ''}${reportText(buildTimeline(r.events, r.meta), { threshold: opt('thr', 1500), title: `ТАЙМЛАЙН ИГРЫ — прохождение ${runs.indexOf(r) + 1} из ${runs.length}` })}`))
+const lag = readFileSync(file, 'utf8').split('\n').filter(l => l.includes('[lag] итог')) // сводки трассера лагов (shared/lib/lagTrace.js): по строке на каждую сыгранную игру
+if (lag.length) console.log(`\n== ЛАГИ (строки «[lag] итог» журнала; подробности — строки «[lag] …» рядом с моментом) ==\n${lag.map(l => l.trim()).join('\n')}`)
