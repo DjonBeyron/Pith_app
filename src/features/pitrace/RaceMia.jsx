@@ -13,6 +13,7 @@ import { arrivalAt, leaveAt, flightPath, talkLevel, soloLeave, panicAt, PANIC_LE
 import { GAZE, readPills, pickPill, stepGaze } from './mia/miaGaze.js'
 import { layoutOf, artMatrix, toScene, poseApply, poseSvg, poseOfMotion, miaCss, MIA_W, MIA_H } from './mia/miaLayout.js'
 import { frameTick, frameCancel } from '../player/modules/rotate-phone/gameFrame.js'
+import { miaStep, markMiaStep } from './mia/miaLagMark.js'
 
 // Эпизод «Мия» поверх сцены игры (.wlStage, прототип 2026-11-14): картонная коробка падает на голову Пита (его голова скрыта, в прорези коробки — глаза Пита, совмещённые
 // с настоящими), Мия запрыгивает на крышку из-за экрана, коробка прогибается; пока Пит говорит (рот его головы живёт по озвучке), из краёв прорези идут звуковые линии —
@@ -56,7 +57,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
     const box = createBox(); artG.current.appendChild(box.el)
     let tailInit = false
     const later = (fn, ms) => { const id = setTimeout(fn, ms); return () => clearTimeout(id) }
-    let raf = 0, last = performance.now(), L = null, M = null, talk = 0, n = 0, tt = 0, gz = { look: 0, w: 0 }, gzPill = null, talkUntil = 0, shown = { pose: null, vis: null }, pupils = null // gz — взгляд на пилюлю (mia/miaGaze.js)
+    let raf = 0, last = performance.now(), L = null, M = null, talk = 0, n = 0, tt = 0, gz = { look: 0, w: 0 }, gzPill = null, talkUntil = 0, shown = { pose: null, vis: null, step: '' }, pupils = null, tailIn = null // gz — взгляд на пилюлю (mia/miaGaze.js)
     const measure = () => {
       const s = stage.getBoundingClientRect(), c = cat.getBoundingClientRect()
       L = layoutOf({ stageW: s.width, stageH: s.height, catX: c.x - s.x, catY: c.y - s.y, catW: c.width, catH: c.height }, ART.PER_EYE)
@@ -76,11 +77,16 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
       if (n++ % 20 === 0 || !L) measure()
       if (!L || L.f <= 0) return
       const leaving = c.mode === 'lv', m = leaving ? leaveAt(c.lv) : arrivalAt(c.arr, jumpRef.current ?? ARR.JUMP)
+      const step = miaStep(leaving, c.mode, m.mia.mode === 'flight', m.shown); if (step !== shown.step) { markMiaStep(shown.step, step, sp.alone); shown.step = step } // метка трассера лагов: началось движение (mia/miaLagMark.js)
       const head = cat.querySelector(`[data-part="head"][data-face="${cat.getAttribute('data-face') || 'base'}"]`)
       talk = Math.max(talkLevel(head?.getAttribute('data-vis'), head?.getAttribute('data-mouth')), talk * 0.8)
       const tk = m.hideCat && m.shown && !leaving ? talk : 0
       const sc = (now - alarmAt.current) / 1000, fear = sc < 0 || sc > 1.6 ? 0 : sc < 0.12 ? sc / 0.12 : sc < 0.9 ? 1 : 1 - (sc - 0.9) / 0.7 // испуг: зрачки быстро сжимаются, держатся, медленно отпускают
-      if (n % 4 === 0) gzPill = c.mode === 'lv' ? null : pickPill(readPills(stage)) // следим за пилюлей в середине её падения (30…70 % ленты), в остальное время глаза живут сами
+      if (n % 4 === 0) { // рамки пилюль читаются ОДИН раз на оба дела (взгляд Пита и хвост Мии) и ДО записей кадра: раньше взгляд читал каждый 4-й кадр, хвост — каждый 3-й и после записи позы (34 вынужденных пересчёта стилей в секунду вместо 15)
+        const kind = kindRef.current, round = kind === 'round' && !leaving, s0 = round ? stage.getBoundingClientRect() : null // на церемонии, в конце и при уходе пилюль на ленте нет: рамки не читаем вовсе — ни взгляду, ни хвосту
+        gzPill = (round || kind === 'hold') && !leaving ? pickPill(readPills(stage)) : null // следим за пилюлей в середине её падения (30…70 % ленты), в остальное время глаза живут сами; hold — пауза между кругами экзамена (пилюля может доезжать)
+        tailIn = { kind, pills: round ? pillsOf(stage, s0) : [], redY: round ? redLevelOf(stage, s0) : 0 }
+      }
       if (tk > 0.04) talkUntil = now + 350 // Пит говорит — смотрит прямо (по перспективе чуть влево); паузы между слогами не считаются концом речи
       gz = stepGaze(gz, { pill: gzPill, talking: now < talkUntil && !leaving, dt: c.paused || leaving ? 0 : dt })
       const rave = c.mode === 'rave' ? panicAt(c.rv) : null // метание после ухода Мии
@@ -103,7 +109,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
         else if (c.mode === 'rave' || c.mode === 'stuck' || (leaving && soloRef.current.alone)) mr = { mode: 'off' } // Мии нет: коробка одна (ждёт касаний / отлетает)
         mi.style.display = mr.mode === 'off' ? 'none' : 'block'
         if (!tailInit) { restTail(mi); tailInit = true } // хвост лежит на кадре 1, пока не позовут
-        if (n % 3 === 0) { const kind = kindRef.current, s0 = stage.getBoundingClientRect(), round = kind === 'round'; tailW.current = wantStep(tailW.current, { kind, shown: mr.mode !== 'off' && !leaving, pills: round ? pillsOf(stage, s0) : [], redY: round ? redLevelOf(stage, s0) : 0 }); driveTail(mi, tailCtl.current, tailW.current.want, later) }
+        if (tailIn) { tailW.current = wantStep(tailW.current, { ...tailIn, shown: mr.mode !== 'off' && !leaving }); tailIn = null; driveTail(mi, tailCtl.current, tailW.current.want, later) }
         const tk0 = talkRef.current, sl = slitOn(tk0 && now < tk0.until ? tk0.id : null, mr.mode); if (sl !== slit.current) { slit.current = sl; mi.toggleAttribute('data-slit', sl) } // зрачок-щель: в прыжке и на колких репликах (mia/miaSlit.js)
         let pk = 0 // пик речи: широкий рот → зрачок плавно шире (mia/miaSlit.js)
         if (tk0 && now < tk0.until) { const h = [...mi.querySelectorAll('[data-part="head"]')].find(x => x.style.display !== 'none'); pk = peakTarget(talkLevel(h?.getAttribute('data-vis'), h?.getAttribute('data-mouth'))) }

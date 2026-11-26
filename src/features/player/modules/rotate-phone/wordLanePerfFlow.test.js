@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url'
 import { createStudentGame, stepStudent, isClaimable } from './wordLaneStudent.js'
 import { buildRecipe } from './wordLaneRecipe.js'
 import { createWordListener } from './wordLaneListen.js'
-import { snapPill } from './wordLaneSnap.js'
+import { snapPill, SPARK_COUNT, SPARK_COUNT_WEAK } from './wordLaneSnap.js'
+import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 
 // Производительность оверлея «Повтори за диктором» при трёх кусках, часть 2: один залп искр и одна цифра XP на повтор, пропуск одинаковых черновиков распознавателя,
 // кусок звука 2048, кеш «кого можно взять» за шаг конвейера. Часть 1 (слои, заливка, рот и лицо кота) — wordLanePerf.test.js.
@@ -37,7 +38,8 @@ describe('один залп искр и одна цифра XP на повтор
     const loud = fakePill()
     snapPill(loud, 0)
     expect(loud.animate).toHaveBeenCalledTimes(1)
-    expect(made.length).toBeGreaterThan(14)               // вспышка + кольцо + хост залпа + 14 искр
+    expect(made.length).toBeGreaterThan(isWeakDevice() ? SPARK_COUNT_WEAK : SPARK_COUNT) // вспышка + кольцо + хост залпа + искры: 14, на слабом устройстве 5 (там 14 новых слоёв в кадре ответа — самое дорогое в щелчке)
+    expect([SPARK_COUNT, SPARK_COUNT_WEAK]).toEqual([14, 5])
     expect(navigator.vibrate).toHaveBeenCalledTimes(1)
   })
 

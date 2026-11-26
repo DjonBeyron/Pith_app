@@ -25,8 +25,12 @@ export function drawCatMouth(head, key) {
 /** Заглушка для слабого устройства (.scn--lite): зрачки и усы не трогаем, остаётся один рот */
 export const NO_LOOK = Object.freeze({ lineStart() {}, word() {}, lineEnd() {}, idle() {}, talking() {}, release() {}, stop() {} })
 
+/** Голова Пита спрятана под коробкой Мии (RaceMia.jsx ставит .wlCat inline-стиль visibility: hidden): усы не качаем — их не видно, а каждая запись угла четырёх усов пересчитывала стили (замер 2026-11-26:
+ *  ≈ 130 записей в секунду, пока Пит говорит из коробки). Читается inline-стиль, не вычисленный: пересчёта стилей чтение не вызывает. Коробку сняли — усы продолжают с того же места */
+export const underBox = root => root?.closest?.('.wlCat')?.style?.visibility === 'hidden'
+
 /** getRoot() → <g class="scn-cat"> | null; skin — пакет маскота (масштаб посадки зрачков); whiskers — привод усов (в тестах подменяется) */
-export function createCatLook({ getRoot, skin = 'kit', timers = globalThis, rand = Math.random, whiskers = createWhiskerDrive({ getRoot, raf: frameDraw, caf: frameCancel }) }) { // усы игры — на общем цикле кадров (gameFrame.js)
+export function createCatLook({ getRoot, skin = 'kit', timers = globalThis, rand = Math.random, whiskers = createWhiskerDrive({ getRoot, raf: frameDraw, caf: frameCancel, held: underBox }) }) { // усы игры — на общем цикле кадров (gameFrame.js); под коробкой Мии стоят
   const pupils = createPupilLook({ whos: ['a'], getEl: getRoot, skinOf: () => skin, timers, rand }) // один персонаж: взгляд прямо, без «собеседника»
   let on = false
   let offTimer = null

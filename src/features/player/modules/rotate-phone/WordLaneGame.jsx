@@ -22,7 +22,7 @@ import RaceMia from '../../../pitrace/RaceMia.jsx'
 import RaceBossScale from '../../../pitrace/boss/RaceBossScale.jsx'
 import RaceBossLoot from '../../../pitrace/boss/RaceBossLoot.jsx'
 import { flashOf } from '../../../pitrace/boss/bossScale.js'
-import { miaColorOn } from '../../../pitrace/mia/miaTint.js'
+import { miaColorOn, useMiaTint } from '../../../pitrace/mia/miaTint.js'
 import { useMiaDrop } from '../../../pitrace/mia/useMiaDrop.js'
 import { useBossReveal } from '../../../pitrace/boss/useBossReveal.js'
 import { trioFor, trioCtx } from '../../../pitrace/raceTapTrio.js'
@@ -44,6 +44,7 @@ import { conveyorSpeedHint } from './wordLaneConveyorSpeed.js'
 import { laneTape, laneUp } from './wordLaneTape.js'
 import { useLabelFrames } from './useLaneLabels.js'
 import { useGameOpenFlag } from './gameOpenFlag.js'
+import { useLagTrace, useLagMarkOn } from './useLagTrace.js'
 
 // Вертикальная игра «Повтори за диктором» (полный экран, портрет). Фраза из кусков (до трёх) стоит над дорожками: кусок над своей дорожкой, дорожки слева направо читаются как предложение.
 // Раунды: наращивание (диктор — ученик по ступеням «кусок ×3 → следующий ×3 → вместе ×3 …»), «Порядок» (тап по дорожкам), «Вслепую» (ни текста, ни перевода) → перевод. Одно слово (фраза из одного куска)
@@ -85,6 +86,8 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
   const karaoke = f.rh.on && f.stage === 'run' && ['read', 'descent'].includes(f.stageObj?.act) && !intro // акт «Читка»: слова заливаются зелёным под голос Пита / игрока (rehearsal/read/)
   const debug = isWordLaneDebug()
   const miaDropped = useMiaDrop(f.rh.mia?.mia) // финал: дорожки желтеют с момента, когда коробка падает на Пита
+  const miaTint = useMiaTint(miaColorOn(f.rh.mia?.mia, f.stageObj, miaDropped, f.rh.miaPlate?.started)) // выключение цвета — с выдержкой 0,2 с: на стыке стадий он не мигает (mia/miaTint.js)
+  useLagTrace(f.dbg.enabled, f.paused, f.stageObj?.type === 'summary'); useLagMarkOn(miaTint, 'цвет дорожек → Мия', 'цвет дорожек → обычный', 900) // трассер лагов «[lag] …» (только отладочный интерфейс) и метка перекраски поля (race-mia.css)
   const bossSid = f.rh.on && ['boss-ann', 'boss', 'boss-sw', 'boss2'].includes(f.stageObj?.sid) // стадии экзамена «Шкала памяти» (пауза стадию не меняет)
   const bossLive = bossSid && f.stage === 'run' // шкала живёт на церемонии Мии и в круге
   const bossReveal = useBossReveal(f.rh.miaTalk, bossSid) // шкала на церемонии появляется на слове «шкала» и больше не гаснет до конца экзамена (boss/useBossReveal.js)
@@ -94,7 +97,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
   const laneTap = useCallback((lane, pt) => { const api = f.sceneApi.current; if (api?.trio && !api.trio(lane, pt)) return; f.onLane(lane, pt) }, [f.sceneApi, f.onLane]) // eslint-disable-line react-hooks/exhaustive-deps -- тройка: тап по чужой пилюле — ошибка (дрожь), по верной дорожке — слово засчитывается как обычно
 
   return createPortal(
-    <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-streak={f.rh.race?.streakMode} data-charge={cfg.plan?.game === 'race' && chargeOn(f) ? '' : undefined} data-race={race ? '' : undefined} data-mia={miaColorOn(f.rh.mia?.mia, f.stageObj, miaDropped, f.rh.miaPlate?.started) ? 'in' : undefined} data-tape={laneTape(f) ? '' : undefined} data-up={laneUp(f) ? '' : undefined} data-testid="wl">
+    <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-streak={f.rh.race?.streakMode} data-charge={cfg.plan?.game === 'race' && chargeOn(f) ? '' : undefined} data-race={race ? '' : undefined} data-mia={miaTint ? 'in' : undefined} data-tape={laneTape(f) ? '' : undefined} data-up={laneUp(f) ? '' : undefined} data-testid="wl">
       <div className="wlStage" data-tex={race && !lite ? '' : undefined}>
         <WordLaneCat apiRef={catApi} />
         <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} speed={speed} paused={f.paused} speedKey={f.stage === 'run' ? f.idx : -1} trio={trio} dodge={dodge} watch={f.dbg.enabled} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || ((tapMode || f.stageObj?.step?.tapOnly) && (phase === 'student' || f.stageObj?.speak)) ? laneTap : null} />

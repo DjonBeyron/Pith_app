@@ -37,14 +37,17 @@ describe('RaceMia: слой эпизода «Мия»', () => {
 
 describe('смена цвета дорожек при Мии', () => {
   const css = read('../../styles/player/modules/race-mia.css')
-  it('цвета уровней зарегистрированы (@property) и переходят плавно на .wl[data-race]', () => {
-    for (const v of ['--lvl1', '--lvl2', '--lvl3', '--lvl1-rgb', '--lvl2-rgb', '--lvl3-rgb', '--wl-bg', '--mia-a']) { expect(css).toContain(`@property ${v}`); expect(css).toMatch(new RegExp(`transition:[^;]*${v} 0\\.9s`)) }
+  it('цвета уровней зарегистрированы (@property) и переходят на .wl[data-race] за 0,9 с ступенями (не каждый кадр: переменные наследуются всем полем); слабое устройство — сразу', () => {
+    for (const v of ['--lvl1', '--lvl2', '--lvl3', '--lvl1-rgb', '--lvl2-rgb', '--lvl3-rgb', '--wl-bg', '--mia-a']) expect(css).toContain(`@property ${v}`)
+    for (const v of ['--lvl1', '--lvl2', '--lvl3', '--lvl1-rgb', '--lvl2-rgb', '--lvl3-rgb', '--wl-bg']) expect(css).toMatch(new RegExp(`transition:[^;]*${v} 0\\.9s steps\\(6, end\\)`))
+    expect(css).not.toMatch(/\.wl\[data-race\] \{ transition:[^;]*0\.9s ease/) // плавный переход наследуемых переменных = пересчёт стилей всей игры каждый кадр
+    expect(css).toContain('.weak-device .wl[data-race] { transition: none; }')
   })
   it("при .wl[data-mia='in'] все три цвета заменены; стиль подключён к гонке; игра ставит атрибут по фазе", () => {
     expect(css).toMatch(/\.wl\[data-mia='in'\] \{[^}]*--wl-bg: #1d130a[^}]*--lvl1: #ffb23e[^}]*--lvl2: #f0662c[^}]*--lvl3: #b9c2d8/s)
     expect(read('../../styles/player/modules/race-sprint.css')).toContain("@import './race-mia.css'")
     const game = read('../player/modules/rotate-phone/WordLaneGame.jsx')
-    expect(game).toContain("data-mia={miaColorOn(f.rh.mia?.mia, f.stageObj, miaDropped, f.rh.miaPlate?.started) ? 'in' : undefined}"); expect(game).toContain('<RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap} talk={f.rh.miaTalk}')
+    expect(game).toContain('const miaTint = useMiaTint(miaColorOn(f.rh.mia?.mia, f.stageObj, miaDropped, f.rh.miaPlate?.started))'); expect(game).toContain("data-mia={miaTint ? 'in' : undefined}"); expect(game).toContain('<RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap} talk={f.rh.miaTalk}')
   })
   it('колонки и разделители подсвечены через --mia-a (при 0 прозрачны — обычная игра не меняется); нить конвейера ярче', () => {
     expect(css).not.toMatch(/\.wlLanes i \{ background: linear-gradient/); // жёлтая растушёванная заливка колонок убрана (владелец 2026-11-15)

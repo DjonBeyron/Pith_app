@@ -36,8 +36,14 @@ describe('кот игры — «живой Пит v2» подключён', () =
     expect(css).not.toContain('--wh-amp')
     expect(css).not.toContain('is-tail')
     const look = read('./wordLaneCatLook.js')
-    expect(look).toContain('whiskers = createWhiskerDrive({ getRoot, raf: frameDraw, caf: frameCancel })') // привод усов по умолчанию — на общем цикле кадров игры (gameFrame.js)
+    expect(look).toContain('whiskers = createWhiskerDrive({ getRoot, raf: frameDraw, caf: frameCancel, held: underBox })') // привод усов по умолчанию — на общем цикле кадров игры (gameFrame.js); под коробкой Мии усы стоят
     expect(read('./WordLaneCat.jsx')).toContain('lite ? NO_LOOK : createCatLook(')
+  })
+  it('усы не качаются, пока голова Пита спрятана под коробкой Мии (inline visibility: hidden у .wlCat); вычисленные стили не читаются', async () => {
+    const { underBox } = await import('./wordLaneCatLook.js')
+    const root = vis => ({ closest: sel => (sel === '.wlCat' ? { style: { visibility: vis } } : null) })
+    expect(underBox(root('hidden'))).toBe(true); expect(underBox(root(''))).toBe(false)
+    expect(underBox({ closest: () => null })).toBe(false); expect(underBox(null)).toBe(false)
   })
 
   it('--talk не переходит на корне кота (перепросчёт стилей всего поддерева каждый кадр)', () => {

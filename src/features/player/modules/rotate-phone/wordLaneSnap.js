@@ -6,6 +6,7 @@
 import { fireBurst } from '../../../../shared/lib/burstParticles.js'
 import { levelHex } from '../../../../shared/lib/memory/memoryLevels.js'
 import { burstBubbles } from './wordLaneBubbles.js'
+import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 
 const LIGHT = ['#e6ff9e', '#bfe4ff', '#d9ccff'] // светлый тон цвета пилюли: зелёная, синяя, фиолетовая
 // Длительности подобраны плавными (первая версия, 380 мс, читалась резко): хлопок дышит 0,62 с, вспышка тает 0,65 с, кольцо расходится 0,85 с, искры парят ≈ 1,1 с
@@ -16,6 +17,7 @@ export const dictorFillMs = ms => Math.max(ms - SNAP_LEAD_MS, Math.min(ms, DICTO
 export const POP_MS = 620
 export const FLASH_MS = 850
 export const SPARK_COUNT = 14
+export const SPARK_COUNT_WEAK = 5 // слабое устройство: запасной залп втрое меньше — 14 новых слоёв поверх игры в кадре верного ответа там дороже всего остального щелчка (замер 2026-11-26, lite, CPU 4×)
 
 /** Цвета искр пилюли k: её цвет, его светлый тон и белый */
 export const sparkColors = k => [levelHex(k + 1), LIGHT[k] ?? '#ffffff', '#ffffff']
@@ -64,7 +66,7 @@ export function snapPill(pill, k, { full = true } = {}) {
   const c = levelHex(k + 1)
   if (clip) flash(clip, 'inset:0;border-radius:999px;background:#fff;', [{ opacity: 0.7 }, { opacity: 0 }], FLASH_MS * 0.75)
   flash(pill, `inset:calc(-2px - var(--ring));border-radius:999px;border:3px solid ${c};`, [{ opacity: 0.8, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(1.45, 1.2)' }], FLASH_MS)
-  if (!out) fireBurst({ count: SPARK_COUNT, size: 3.5, colors: sparkColors(k), origin: burstOrigin(pill.getBoundingClientRect(), pill.hasAttribute?.('data-wide')) })
+  if (!out) fireBurst({ count: isWeakDevice() ? SPARK_COUNT_WEAK : SPARK_COUNT, size: 3.5, colors: sparkColors(k), origin: burstOrigin(pill.getBoundingClientRect(), pill.hasAttribute?.('data-wide')) })
   try { navigator.vibrate?.(14) } catch { /* не везде есть */ }
   return out
 }
