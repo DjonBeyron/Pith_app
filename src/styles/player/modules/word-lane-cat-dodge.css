@@ -6,6 +6,12 @@
    По x голова не скользит никогда. data-dodge: set — без перехода; dive-down — за нижний край 0,17 с (ease-in); dive-up — выныривает 0,22 с с лёгким перелётом; hide — уход, когда речь кончилась (0,3 с);
    rise — подъём для речи (0,44 с, пружина); jump — прыжок-пружина 0,18 с + наклон и сжатие (keyframes, rotate / scale) и шлейф (::before). */
 .wl .wlStage > .wlCat.scn.wlCat--track { left: 50%; transform: translate(-50%, 4%); transition: none; }
+/* Сдвиги головы НЕ наследуются (третий цикл оптимизации, 2026-11-26): --wl-dx / --wl-dy пишутся в стиль .wlCat на каждом нырке и прыжке, а читают их только <svg> головы и шлейф. Обычная переменная наследуется
+   всем ≈ 140 узлам кота — трасса Chromium: каждый уворот пересчитывал стили 149 элементов (8–9 мс при CPU 4×). Теперь переменные зарегистрированы без наследования, а два читателя берут их у родителя явно (inherit):
+   на уворот пересчитываются 2–3 элемента. Браузер без @property (Safari до 16.4) правило не поймёт — переменные наследуются, как раньше. */
+@property --wl-dx { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+@property --wl-dy { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+.wlCat--track .wlCatSvg, .wlCat--track::before { --wl-dx: inherit; --wl-dy: inherit; }
 .wlCat--track .wlCatSvg {
   transform: translateX(var(--wl-dx, 0%));
   translate: 0 var(--wl-dy, 0%);

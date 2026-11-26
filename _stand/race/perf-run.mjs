@@ -16,7 +16,8 @@ mkdirSync(OUT, { recursive: true })
 const args = ['--no-sandbox', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required', '--enable-precise-memory-info']
 const browser = await chromium.launch({ executablePath: E.PW_CHROMIUM_PATH, args })
 const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true, permissions: ['microphone'] })
-await ctx.addInitScript(([weak, start]) => {
+await ctx.addInitScript(([weak, start, lagOff]) => {
+  if (lagOff) localStorage.setItem('pithy_lag_trace', '0') // LAG=0 — трассер лагов выключен (цена самого трассера: пара прогонов LAG=1 / LAG=0)
   if (start) localStorage.setItem('pithy_race_start_stage_v1', start) // START=boss-intro-ann — «начать с этапа» (как у админа): сразу экзамен
   localStorage.setItem('pithy_weak_device_v6', weak ? '1' : '0'); localStorage.setItem('pithy_debug', '1'); localStorage.setItem('pithy_debug_console', '0')
   if (weak) document.addEventListener('DOMContentLoaded', () => document.documentElement.classList.add('weak-device', 'perf-no-textures')) // как в приложении (main.jsx → applyWeakDeviceClasses): стенд этот вызов не делает, а CSS-упрощения слабых устройств висят на классе
@@ -35,10 +36,11 @@ await ctx.addInitScript(([weak, start]) => {
     P.sec.push({ t: Math.round(t0), sid: wl?.dataset.sid ?? null, raf: calls, an: an.length, run, inf, names, wl: inWl, out: all - inWl, heap: performance.memory?.usedJSHeapSize ?? 0, logN: window.__logN ?? 0 })
     P.skip.push([Math.round(t0), Math.round(performance.now()) + 1])
   }, 2000)
-}, [WEAK, E.START ?? ''])
+}, [WEAK, E.START ?? '', E.LAG === '0'])
 const page = await ctx.newPage()
 const cdp = await ctx.newCDPSession(page)
 await cdp.send('Performance.enable')
+if (E.PAINT_RECTS === '1') { await cdp.send('DOM.enable'); await cdp.send('Overlay.enable'); await cdp.send('Overlay.setShowPaintRects', { result: true }) } // PAINT_RECTS=1 (вместе с SHOTS=1) — на снимках зелёным подсвечено то, что браузер перекрашивал: видно, какая область экрана красится каждый кадр
 page.on('pageerror', e => console.log('PAGEERROR', e.message, String(e.stack).split('\n').slice(0, 4).join(' | ')))
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 const log = [], metrics = [], shots = new Set(), TRACE = (E.TRACE || '').split(',').filter(Boolean)
@@ -63,7 +65,7 @@ while (Date.now() - t0 < SECS * 1000) {
   const sid = st.sid
   if (sid !== lastSid) {
     lastSid = sid; sidAt = Date.now(); console.log(`${String(Date.now() - t0).padStart(7)} стадия ${sid}`); await snap(sid)
-    if (TRACE.includes(sid) && !tracing) { tracing = sid; await browser.startTracing(page, { categories: ['devtools.timeline', 'disabled-by-default-devtools.timeline', 'disabled-by-default-devtools.timeline.stack', 'v8.execute', 'disabled-by-default-v8.cpu_profiler', ...(E.TRACE_INV === '1' ? ['disabled-by-default-devtools.timeline.invalidationTracking'] : [])] }) /* TRACE_INV=1 — ещё и кто именно требует пересчёта стилей */; setTimeout(async () => { writeFileSync(`${OUT}/${NAME}-trace-${tracing}.json`, await browser.stopTracing()); tracing = null }, Number(E.TRACE_MS || 10000)) } // TRACE=sprint,boss — трасса Chromium первых 10 с стадии (разбор: что именно стоит времени)
+    if (TRACE.includes(sid) && !tracing) { tracing = sid; if (E.TRACE_DELAY) await new Promise(r => setTimeout(r, Number(E.TRACE_DELAY))) /* TRACE_DELAY=мс — трасса начинается позже входа в стадию (поймать ПЕРЕХОД в следующую: TRACE=sprint-ann TRACE_DELAY=3000); драйвер это время не отвечает на пилюли */; await browser.startTracing(page, { categories: ['devtools.timeline', 'disabled-by-default-devtools.timeline', 'disabled-by-default-devtools.timeline.stack', 'v8.execute', 'disabled-by-default-v8.cpu_profiler', ...(E.TRACE_INV === '1' ? ['disabled-by-default-devtools.timeline.invalidationTracking'] : [])] }) /* TRACE_INV=1 — ещё и кто именно требует пересчёта стилей */; setTimeout(async () => { writeFileSync(`${OUT}/${NAME}-trace-${tracing}.json`, await browser.stopTracing()); tracing = null }, Number(E.TRACE_MS || 10000)) } // TRACE=sprint,boss — трасса Chromium первых 10 с стадии (разбор: что именно стоит времени)
     if (/3$/.test(sid ?? '') && !miaSids.has(sid)) { miaSids.add(sid); if (miaSids.size === 2) skipMia = 1 } // второй «Допрос»: одно слово пропущено — Мия уходит одна, коробка остаётся
   }
   if (AT && sid === AT[0] && Date.now() - sidAt > Number(AT[1])) { const src = readFileSync(AT[2], 'utf8'); AT = null; console.log('AT:', JSON.stringify(await page.evaluate(`(async () => { ${src} })()`), null, 1)) } // AT=sid:мс:файл — в стадии sid через мс выполнить в странице тело функции из файла и напечатать ответ (разовые замеры)

@@ -231,7 +231,9 @@ describe('проводка и аудит исходников', () => {
   })
   it('CSS: на паузе анимации замирают; стили подключены в index.css', () => {
     const css = read('../../../../styles/player/modules/word-lane-pause.css')
-    expect(css).toContain(".wl[data-phase='paused'] *")
+    expect(css).toContain('.wl[data-paused] *')
+    expect(css).not.toMatch(/\[data-phase[^\]]*\] \*/) // правило со звёздочкой не зависит от data-phase: иначе каждая смена стадии пересчитывает стили всех узлов игры (третий цикл оптимизации)
+    expect(read('./WordLaneGame.jsx')).toContain("data-paused={phase === 'paused' ? '' : undefined}") // признак паузы на корне игры
     expect(css).toContain('animation-play-state: paused')
     expect(read('../../../../index.css')).toContain('word-lane-pause.css')
   })

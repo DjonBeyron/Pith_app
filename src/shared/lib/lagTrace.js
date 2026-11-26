@@ -47,15 +47,16 @@ export function createLagTrace({ limit = LAG_MS, log = pLog, events = () => scen
 
   function collect(b) {
     const from = b.start - LAG_LEAD_MS, to = b.end, found = []
-    let stage = null
+    let stage = null, talk // talk — последнее событие реплики ДО окна: line-start — реплика ещё звучит (журнал Android 2026-11-26: 68 мест «меток нет» из 163 — это кадры посреди речи Пита или Мии: рот, усы, штрихи из коробки)
     const ev = events()
-    for (let i = ev.length - 1, n = 0; i >= 0 && n < SCAN; i--, n++) { // с конца: до первой смены стадии раньше окна
+    for (let i = ev.length - 1, n = 0; i >= 0 && n < SCAN; i--, n++) { // с конца: до первой смены стадии и первого события реплики раньше окна
       const e = ev[i]
       if (e.t > to) continue
       if (e.k === 'stage-in' && stage == null) stage = e.sid ?? e.idx ?? null
-      if (e.t < from) { if (stage != null) break; continue }
+      if (e.t < from) { if (talk === undefined && (e.k === 'line-start' || e.k === 'line-end')) talk = e.k === 'line-start' ? e : null; if (stage != null && talk !== undefined) break; continue }
       const l = sceneLabel(e); if (l) found.push({ t: e.t, ...l, at: true })
     }
+    if (talk && !(talk.ms > 0 && talk.t + talk.ms + 400 < from)) found.push({ t: talk.t, key: 'идёт реплика', text: `идёт реплика ${String(talk.id ?? '').slice(0, 28)} (${Math.round(b.start - talk.t)} мс)`, at: false }) // у реплики без события конца (обрыв) — не дольше её длины + 0,4 с
     for (const m of marks.list()) if (m.t <= to && m.t + m.ms >= from) found.push({ t: m.t, key: m.label, text: m.t < from ? `${m.label} (идёт ${Math.round(b.start - m.t)} мс)` : m.label, at: m.t >= from })
     const jl = lines()
     for (let i = jl.length - 1, n = 0; i >= 0 && n < SCAN; i--, n++) {

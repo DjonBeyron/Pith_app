@@ -9,6 +9,9 @@
 .wlFailBtn:disabled { opacity: 0.6; cursor: default; }
 
 /* На паузе всё, что анимирует CSS (усы кота, летящие цифры XP, плашки), замирает; пилюли (WAAPI) снимает сцена idle — пул возвращается в исходное */
-.wl[data-phase='paused'] *,
-.wl[data-phase='paused'] *::before,
-.wl[data-phase='paused'] *::after { animation-play-state: paused !important; }
+/* Признак — отдельный атрибут data-paused на корне (WordLaneGame), а не data-phase='paused' (третий цикл оптимизации, 2026-11-26): правило со звёздочкой заставляет браузер на ЛЮБУЮ смену атрибута, от которого
+   оно зависит, пересчитать стили всех узлов игры. data-phase меняется на каждой смене стадии (плашка → ход → плашка…) — трасса Chromium: 438 элементов, 20 мс при CPU 4× в кадре входа в стадию.
+   data-paused меняется только на паузе. Поведение то же: на паузе корень несёт и data-phase='paused', и data-paused. */
+.wl[data-paused] *,
+.wl[data-paused] *::before,
+.wl[data-paused] *::after { animation-play-state: paused !important; }

@@ -141,6 +141,19 @@ describe('подписи', () => {
     expect(journalLabel('[boss] экзамен: слово 3 — верно; трофеи 73, у Мии 47')).toBe('экзамен: счёт и полёт «+N»')
     expect(journalLabel('[cat] cat-speak {}')).toBe(null)
   })
+  it('лаг посреди речи называет идущую реплику (журнал Android 2026-11-26: такие кадры шли «без меток»); договорившая реплика не называется', () => {
+    const quiet = Math.ceil(LAG_QUIET_MS / 16.7) + 1
+    const a = rig({ events: [{ t: 100, k: 'stage-in', sid: 'boss-ann' }, { t: 300, k: 'line-start', id: 'pit_reply', ms: 3000 }, { t: 800, k: 'knob', key: 'x' }] })
+    a.frames(...calm(3), 67, ...calm(quiet)) // длинный кадр начался в 1050,1 — реплика идёт 750 мс
+    expect(a.out).toEqual(['[lag] кадр 67 мс · стадия boss-ann · что шло: идёт реплика pit_reply (750 мс)'])
+    expect(a.trace.stats().keys.get('идёт реплика')).toBe(1); expect(a.trace.stats().blank).toBe(0)
+    const b = rig({ events: [{ t: 100, k: 'stage-in', sid: 'boss-ann' }, { t: 300, k: 'line-start', id: 'pit_reply', ms: 400 }, { t: 700, k: 'line-end', id: 'pit_reply' }] })
+    b.frames(...calm(3), 67, ...calm(quiet))
+    expect(b.out).toEqual(['[lag] кадр 67 мс · стадия boss-ann · что шло: меток нет'])
+    const c = rig({ events: [{ t: 100, k: 'stage-in', sid: 'boss-ann' }, { t: 200, k: 'line-start', id: 'cut', ms: 300 }] }) // оборванная реплика без события конца: не дольше её длины + 0,4 с
+    c.frames(...calm(3), 67, ...calm(quiet))
+    expect(c.out[0]).toContain('меток нет')
+  })
   it('сводка без лагов и с лагами без меток', () => {
     expect(lagSummaryLine({ frames: 2, bursts: 2, worst: 41.2, extra: 40, playMs: 200000, keys: new Map(), blank: 2 }, 24)).toBe('[lag] итог: 2 длинных кадров (от 24 мс) в 2 местах за 3:20 игры; худший 41 мс, всего лишних 40 мс; чаще всего: —; без меток ×2')
   })

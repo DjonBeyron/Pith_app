@@ -30,8 +30,18 @@ export const NO_LOOK = Object.freeze({ lineStart() {}, word() {}, lineEnd() {}, 
 export const underBox = root => root?.closest?.('.wlCat')?.style?.visibility === 'hidden'
 
 /** getRoot() → <g class="scn-cat"> | null; skin — пакет маскота (масштаб посадки зрачков); whiskers — привод усов (в тестах подменяется) */
+/** Переменные взгляда (--look-x / --look-y / --pupil) — самим зрачкам, а не общему родителю голов (третий цикл оптимизации, 2026-11-26): переменная на родителе наследуется всем ≈ 140 узлам кота, и каждая саккада,
+ *  дрейф и расширение зрачка пересчитывали стили всего кота (трасса Chromium: 2–3 пересчёта «всего кота» в секунду на церемонии и в круге Мии). Читают их только зрачки (.pu, scene-v2-pit.css, race-mia.css) —
+ *  им и пишем: пересчитываются 2–12 узлов. Зрачков не нашлось (другой спрайт, подделка в тестах) — пишем корню, как раньше. → getEl для createPupilLook */
+export function pupilTargets(getRoot) {
+  let root = null, list = []
+  const each = fn => { const r = getRoot(); if (r !== root) { root = r; list = r?.querySelectorAll ? [...r.querySelectorAll('.pu')] : [] } for (const p of list.length ? list : r ? [r] : []) fn(p.style) }
+  const style = { setProperty: (k, v) => each(s => s.setProperty(k, v)), removeProperty: k => each(s => s.removeProperty(k)) }
+  return () => (getRoot() ? { style } : null)
+}
+
 export function createCatLook({ getRoot, skin = 'kit', timers = globalThis, rand = Math.random, whiskers = createWhiskerDrive({ getRoot, raf: frameDraw, caf: frameCancel, held: underBox }) }) { // усы игры — на общем цикле кадров (gameFrame.js); под коробкой Мии стоят
-  const pupils = createPupilLook({ whos: ['a'], getEl: getRoot, skinOf: () => skin, timers, rand }) // один персонаж: взгляд прямо, без «собеседника»
+  const pupils = createPupilLook({ whos: ['a'], getEl: pupilTargets(getRoot), skinOf: () => skin, timers, rand }) // один персонаж: взгляд прямо, без «собеседника»
   let on = false
   let offTimer = null
   const clearOff = () => { if (offTimer !== null) { timers.clearTimeout(offTimer); offTimer = null } }

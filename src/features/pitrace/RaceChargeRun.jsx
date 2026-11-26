@@ -43,9 +43,10 @@ export default function ChargeRun({ view, leaving = false, plate = true }) {
       const barBox = bar?.getBoundingClientRect()
       const nudge = nudgeFrames()
       if (!still) {
-        pills.forEach(p => {
-          const node = el.querySelector(`[data-pill="${p.i}"]`)
-          const pillH = node?.offsetHeight ?? 28
+        const nodes = pills.map(p => el.querySelector(`[data-pill="${p.i}"]`)), heights = nodes.map(n => n?.offsetHeight ?? 28) // высоты всех пилюль — ДО записей: раньше чтение шло в цикле после записи стиля и старта анимации прошлой пилюли — раскладка пересчитывалась на каждую (трасса 2026-11-26: 8 пересчётов в одной задаче входа в стадию)
+        pills.forEach((p, n) => {
+          const node = nodes[n]
+          const pillH = heights[n]
           const dist = flyDist({ height: box.height, pillH, barTop })
           const dx = flyDx({ width: box.width, x: p.x, barLeft: barBox ? barBox.left - box.left : 16, barWidth: barBox?.width ?? box.width - 76 })
           if (trail) { node?.style.setProperty('--fly', `${p.flyMs}ms`); node?.style.setProperty('--delay', `${p.startAt}ms`); el.querySelector(`[data-tail="${p.i}"]`)?.animate(tailFrames({ dx, dist, sign: p.wave?.sign }), timing(p)) } // хвост наклоняется по касательной к синусоиде; --fly/--delay ведут его затухание (CSS)

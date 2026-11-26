@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createCatLook, drawCatMouth, NO_LOOK, TALK_OFF_MS } from './wordLaneCatLook.js'
+import { createCatLook, drawCatMouth, NO_LOOK, TALK_OFF_MS, pupilTargets } from './wordLaneCatLook.js'
 import { PUPIL_DILATE, PUPIL_MS, IDLE_MIN_MS, MAX_LOOK } from '../../../scene/v2/pupilLook.js'
 import { MASCOT_PACKS } from '../../../scene/v2/sprites/mascot/mascots.js'
 
@@ -219,5 +219,23 @@ describe('рот кота: data-vis на голове для широких фо
 
   it('нет головы — ничего не делает', () => {
     expect(() => drawCatMouth(undefined, 'D')).not.toThrow()
+  })
+})
+
+describe('переменные взгляда пишутся зрачкам, а не корню кота (третий цикл оптимизации)', () => {
+  const node = () => { const vars = {}; return { vars, style: { setProperty: (k, v) => { vars[k] = v }, removeProperty: k => { delete vars[k] } } } }
+  it('есть зрачки .pu — переменная у каждого зрачка, корень не тронут (иначе она наследуется всем узлам кота и каждый взгляд пересчитывает их стили)', () => {
+    const a = node(), b = node(), root = { ...node(), querySelectorAll: sel => (sel === '.pu' ? [a, b] : []) }
+    const el = pupilTargets(() => root)()
+    el.style.setProperty('--look-x', '1.50'); el.style.setProperty('--pupil', '1.18')
+    expect(a.vars).toEqual({ '--look-x': '1.50', '--pupil': '1.18' }); expect(b.vars).toEqual(a.vars); expect(root.vars).toEqual({})
+    el.style.removeProperty('--pupil')
+    expect(a.vars).toEqual({ '--look-x': '1.50' })
+  })
+  it('зрачков нет — пишем корню, как раньше; корня нет — null', () => {
+    const root = { ...node(), querySelectorAll: () => [] }
+    pupilTargets(() => root)().style.setProperty('--look-y', '0.20')
+    expect(root.vars).toEqual({ '--look-y': '0.20' })
+    expect(pupilTargets(() => null)()).toBe(null)
   })
 })

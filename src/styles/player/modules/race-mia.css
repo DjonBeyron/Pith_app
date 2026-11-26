@@ -25,6 +25,11 @@
   --lvl3: #b9c2d8; --lvl3-rgb: 185, 194, 216;
 }
 .wl[data-mia='in'] .wlLanes i::before { --run-k: 1.6; }
+/* Перекраска сужена до потребителей цвета (третий цикл оптимизации, 2026-11-26). Цвет эпизода читают дорожки, пилюли, затемнения, подписи и плашки; головы Пита и Мии (≈ 140 и ≈ 190 узлов SVG — половина поля)
+   его не читают, но переменные наследовались и им: каждый шаг перекраски пересчитывал их стили. Здесь переменные у Пита и у слоя Мии закреплены на исходных значениях (initial — из @property выше): у них и у
+   их потомков значение не меняется, и браузер в эти поддеревья не заходит. На вид ничего не меняется: ни один узел котов эти переменные не использует. */
+.wl[data-race] .wlStage > .wlCat, .wl[data-race] .wlStage > .wlMia { --wl-bg: initial; --mia-a: initial; --lvl1: initial; --lvl2: initial; --lvl3: initial; --lvl1-rgb: initial; --lvl2-rgb: initial; --lvl3-rgb: initial; --wl-accent: #b6fe3b; }
+.weak-device .wlMiaSrc i { filter: none; } /* только на слабом: дуги звука «из-за края» без свечения (размытая тень у трёх анимируемых дуг) */
 .wlStage > .wlMia { inset: 0; overflow: hidden; pointer-events: none; z-index: 8; }
 .wlMiaSvg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }
 .wlMiaCat { position: absolute; left: 0; top: 0; background: transparent; border: none; box-shadow: none; pointer-events: none; will-change: transform; }
