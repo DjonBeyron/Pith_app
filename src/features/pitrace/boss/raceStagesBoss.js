@@ -3,6 +3,7 @@ import { goodPlan } from '../raceGood.js'
 import { BOSS_SPEED } from './bossWords.js'
 import { BOSS } from '../mia/raceMia.js'
 import { SWITCH_MS } from '../raceSwitch.js'
+import { BONUS_ANN_SID, BONUS_SID, BONUS_LINE, BONUS_ANN_MS } from './bossBonus.js'
 
 export const BOSS_WAIT_CAP_MS = 70000 // страховка: три ноты ждут конца объяснения не дольше (Пит и «помолчи» ≈ 8 с, пример 15,75 с, последние реплики ≈ 8 с)
 export const BOSS_END_MS = 1200  // эпилог экзамена: минимум стадии; на деле её держит РЕАЛЬНЫЙ конец речи Мии и Пита и уход Мии (boss/examEndWait.js), а не расчёт по длинам реплик
@@ -23,9 +24,9 @@ export function bossStages(kit, act, o = {}) {
   Object.assign(kit.stages.at(-1), { mia: 'ann', miaPlate: { title: act.title, brief: act.brief }, always: true, waitCap: BOSS_WAIT_CAP_MS, script: 'boss', demoRun: true, dropAt: BOSS.DROP_AT, jumpAt: BOSS.JUMP }) // свой сценарий (boss_*): коробка падает почти сразу, Мия прыгает после реплик Пита и её из-за края
   // Блок слов: ru — пилюля с английским словом, ученик называет русское (русская модель Vosk), иначе пилюля с переводом, ученик называет английское слово; offset — номер первого слова блока в общем счёте (машина Мии)
   const round = (list, b = {}) => {
-    const sid = b.sid ?? 'boss', ru = !!b.ru, good = goodPlan(plan.seed, sid, list.length, { first: !b.offset })
-    const rep = ru ? w => ({ cap: w.text, say: w.text }) : w => ({ cap: w.translation, say: w.translation })
-    return { type: 'student', act: act.id, sid, mia: 'round', noBoost: true, noLeave: true, silent: true, ...(ru ? { always: true } : {}), offset: b.offset ?? 0, words: list, good, step: { ...queueStep(kit, sid, list, good, rep, ru ? { target: w => w.translation, lang: 'ru' } : {}), wide: true, overlap: false, holdMax: BOSS_HOLD_MAX_MS } }
+    const sid = b.sid ?? 'boss', ru = !!b.ru, good = b.bonus ? [] : goodPlan(plan.seed, sid, list.length, { first: !b.offset })
+    const rep = b.bonus ? w => ({ cap: ru ? w.text : w.translation }) : ru ? w => ({ cap: w.text, say: w.text }) : w => ({ cap: w.translation, say: w.translation }) // бонус-круг: слово голосом не называется (say нет) — только пилюля и линия шкалы
+    return { type: 'student', act: act.id, sid, mia: 'round', noBoost: true, noLeave: true, silent: true, ...(ru || b.bonus ? { always: true } : {}), ...(b.bonus ? { bonus: true } : {}), offset: b.offset ?? 0, words: list, good, step: { ...queueStep(kit, sid, list, good, rep, ru ? { target: w => w.translation, lang: 'ru' } : {}), wide: true, overlap: false, holdMax: BOSS_HOLD_MAX_MS } }
   }
   const split = o.voice && words.length >= 2 // финал-экзамен: половина слов — английские (ответ по-английски), половина — русские (ответ по-русски); русской модели нет — все английские
   const k = split ? Math.ceil(words.length / 2) : words.length
@@ -39,5 +40,9 @@ export function bossStages(kit, act, o = {}) {
     const rest = words.slice(k)
     push({ ...round(rest, { sid: 'boss2', ru: true, offset: k }), demote() { const st = kit.stages.find(x => x.sid === 'boss2'); Object.assign(st, round(st.words, { sid: 'boss2', offset: st.offset })) } }) // русская модель не загрузилась: блок идёт по-английски
   }
+  // Бонус-круг (boss/bossBonus.js): стоит в списке всегда, директор идёт на него, только если все слова экзамена названы верно и в зелёной зоне (bonusRoute), и перед входом вписывает слова (fill):
+  // все слова экзамена заново, в новом порядке, с ускорением, на языке последнего блока. Стадия-реплика без плашки и без трёх нот (count: false); в круге Пит и Мия молчат
+  push({ type: 'announce', act: act.id, sid: BONUS_ANN_SID, mia: 'hold', bonus: true, always: true, count: false, say: BONUS_LINE, round: { kind: 'switch', title: '', task: '', brief: '' }, ms: BONUS_ANN_MS, line: null })
+  push({ ...round(words, { sid: BONUS_SID, ru: split, bonus: true }), fill: (list, ru) => Object.assign(kit.stages.find(x => x.sid === BONUS_SID), round(list, { sid: BONUS_SID, ru, bonus: true })) })
   push({ type: 'announce', act: act.id, sid: 'boss-end', mia: 'end', always: true, round: { kind: 'mia', title: '', task: '' }, line: null, ms: BOSS_END_MS }) // эпилог: Мия и Пит договаривают на сцене с коробкой, потом итог
 }

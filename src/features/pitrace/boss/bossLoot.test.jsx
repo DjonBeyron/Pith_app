@@ -29,7 +29,7 @@ describe('счётчики экзамена: игрок сверху, Мия п�
     expect(css).toMatch(/\.wlLootChip \{[^}]*color: #ffd678/); expect(css).toMatch(/max-width: calc\(100% - 64px\)/)
     expect(css).not.toMatch(/animation|infinite|@keyframes|will-change/); expect(css).toMatch(/\.wlStage > \.wlLoot \{[^}]*pointer-events: none/)
     expect(read('../../../styles/player/modules/race-sprint.css')).toContain("@import './race-boss-loot.css'")
-    expect(read('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain("<RaceBossLoot m={f.rh.mia.mia} talk={f.rh.miaTalk} on={f.stage === 'run' && ['boss', 'boss-sw', 'boss2', 'boss-end'].includes(f.stageObj?.sid)} />")
+    expect(read('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain("<RaceBossLoot m={f.rh.mia.mia} talk={f.rh.miaTalk} on={f.stage === 'run' && ['boss', 'boss-sw', 'boss2', 'boss-fast-ann', 'boss-fast', 'boss-end'].includes(f.stageObj?.sid)} />")
   })
   it('счётчик игрока при Мии не желтеет: у него свой цвет, а не переменная дорожек, которую подменяет «Допрос» и экзамен', () => {
     const panel = read('../../../styles/player/modules/race-panel.css'), mia = read('../../../styles/player/modules/race-mia.css'), base = read('../../../styles/player/modules/word-lane.css')
@@ -73,9 +73,13 @@ describe('итог гонки называет исход экзамена', () 
     expect(mid).toMatch(/race-summary-exam">53 из 120</); expect(mid).toMatch(/race-summary-exam-mia">67</); expect(mid).toMatch(/data-outcome="mid">свободен</)
     expect(stay).toMatch(/race-summary-exam-mia">107</); expect(stay).toMatch(/data-outcome="stay">остался в коробке</)
   })
+  it('бонус-круг был — строка «Бонус-круг: N из M»; не было — строки нет', () => {
+    expect(sum({ got: 120, max: 120, lost: 0, outcome: 'free', bonus: { won: 4, total: 6 } })).toMatch(/<dt>Бонус-круг<\/dt><dd data-testid="race-summary-exam-bonus">4 из 6</)
+    expect(sum({ got: 120, max: 120, lost: 0, outcome: 'free', bonus: null })).not.toContain('race-summary-exam-bonus'); expect(sum({ got: 100, max: 120, lost: 20, outcome: 'free' })).not.toContain('Бонус-круг')
+  })
   it('экзамена не было — строк нет; сохраняемый XP считается как раньше (начисления не менялись)', () => {
     expect(sum(null)).not.toContain('race-summary-exam'); expect(sum(null)).toMatch(/race-summary-xp">\+1</)
-    expect(read('../useRaceActs.js')).toContain("setResult(mb.m.act === 'boss' && mb.m.total ? { ...res, exam: { ...examOf(mb.m, true), stay: miaStays(mb) } } : res)")
+    expect(read('../useRaceActs.js')).toContain("setResult(mb.m.act === 'boss' && mb.m.total ? { ...res, exam: { ...examOf(mb.m, true), stay: miaStays(mb), bonus: bonusOf(mb.m) } } : res)")
   })
 })
 
@@ -89,9 +93,9 @@ describe('треугольники шкалы — правило владель�
     s = marksStep(s, { id: 3, y: 1, now: 9000, drop: true }); expect(s.find(x => x.id === 3).dying).toBe(9000) // ответа нет — гаснет у низа
   })
   it('на экране треугольник стоит ровно на линии: место пишется свойством translate (transform умножался на scale 1,2 у зафиксированного маркера — треугольник вставал на 20 % ниже)', () => {
-    const src = read('./RaceBossScale.jsx'), css = read('../../../styles/player/modules/race-boss.css')
-    expect(src).toContain('if (m) e.style.translate = `0 ${(m.y * H).toFixed(1)}px`'); expect(src).not.toContain('if (m) e.style.transform = `translate3d(0, ${(m.y * H)')
+    const src = read('./bossScaleDrive.js'), css = read('../../../styles/player/modules/race-boss.css')
+    expect(src).toContain('const my = m ? `0 ${(m.y * H).toFixed(1)}px` : null'); expect(src).toContain('e.style.translate = my'); expect(src).not.toContain('if (m) e.style.transform = `translate3d(0, ${(m.y * H)')
     expect(css).toMatch(/\.wlBossMark\[data-set\] \{ scale: 1\.2/)
-    expect(src).toContain("{ const z = zoneAt(Math.min(1, Math.max(0, tr.y / H))); setBossWonZone(z); clock.current.onZone?.(z) }") // зона для трофеев берётся в тот же момент и с той же высоты, что треугольник
+    expect(src).toContain("setBossSeen({ pct }); setBossWonZone(z); clock.current.onZone?.(z)") // зона для трофеев берётся в тот же момент и с той же высоты, что треугольник
   })
 })

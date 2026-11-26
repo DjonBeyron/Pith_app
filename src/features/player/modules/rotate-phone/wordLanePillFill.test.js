@@ -62,7 +62,7 @@ describe('жидкость: чистый цвет дорожки, полная �
   const css = pillCss()
   it('цвет жидкости — сплошной var(--c) без альфы: ни бледного «в процессе» (rgba .35 поверх тёмной карточки — грязный оттенок), ни белёсой фаски, ни затемнения ко дну; без mask и box-shadow', () => {
     const fill = block(css, '.wlPillFill')
-    expect(fill).toMatch(/background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\) calc\(var\(--wl-surf\) - 0\.5px\), var\(--c\) calc\(var\(--wl-surf\) \+ 0\.5px\)\);/)
+    expect(fill).toMatch(/background: linear-gradient\(to bottom, rgba\(var\(--wl-fill-rgb\), 0\) calc\(var\(--wl-surf\) - 0\.5px\), var\(--wl-fill\) calc\(var\(--wl-surf\) \+ 0\.5px\)\);/)
     expect(fill.match(/rgba\(/g)).toHaveLength(1)                                 // единственная альфа — прозрачность над поверхностью
     expect(css).not.toMatch(/--edge|255, 255, 255, 0\.6|0 2px, rgba|0\.78|0\.35\) 8px/)
     expect(css).not.toMatch(/\.wlPillFill[^{]*\{[^}]*mask/)
@@ -81,8 +81,8 @@ describe('жидкость: чистый цвет дорожки, полная �
     expect(block(css, '.wlPillClip')).toMatch(/overflow: hidden/)               // верх слоя обрезан капсулой
   })
   it('полная пилюля (data-full): цвет жидкости — у клипа и у тела пилюли (зазора сверху нет при любом округлении слоёв); «не успел» — нет; специфичность выше фонов режимов и безопасного режима', () => {
-    expect(css).toContain('.wlField .wlPill[data-full]:not([data-fail]) { background-image: none; background-color: var(--c); }')
-    expect(css).toContain('.wlField .wlPill[data-full]:not([data-fail]) .wlPillClip { background-color: var(--c); }')
+    expect(css).toContain('.wlField .wlPill[data-full]:not([data-fail]) { background-image: none; background-color: var(--wl-fill); }')
+    expect(css).toContain('.wlField .wlPill[data-full]:not([data-fail]) .wlPillClip { background-color: var(--wl-fill); }')
     expect(css).not.toMatch(/data-full[^{]*\{[^}]*(transition|animation)/)       // смена фона в кадре доезда — без переходов
   })
   it('старой линии уровня в клипе (wlPillLine) нет — линия уровня теперь вне клипа, на слое .wlPillSparks (wordLaneSparks.test.js); «тени» слова и метки темпа на экране нет', () => {

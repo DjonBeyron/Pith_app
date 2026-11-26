@@ -14,7 +14,7 @@ import { SLIP_WORD_LINE, SLIP_RETRY_LINE, SLIP_NEXT_LINE } from '../../pitrace/r
 import { RACE_LINE_SET } from '../../admin/speech/voiceAudit.js'
 import { REV_LINE_AFTER_MIA } from '../../pitrace/mia/miaCircleEnd.js'
 import { FREE_PCT, MID_PCT } from '../../pitrace/boss/bossTrophies.js'
-import { gameStages, ceremonyCues, roundCues, endCues, boxCues, fallbackCues, FAIL_WHY } from './scenarioGame.js'
+import { gameStages, ceremonyCues, roundCues, endCues, boxCues, fallbackCues, bonusCues, FAIL_WHY } from './scenarioGame.js'
 import { UNUSED_WHY } from './scenarioUnused.js'
 
 export const YES_LINE = 'race_phrase_yes'   // pitrace/racePhraseVoice.js, react(): фраза сказана
@@ -86,8 +86,10 @@ function bossBlock(stages) {
   const rest = byPlace(Object.values(r.fail).flat().length ? Object.values(r.fail).flatMap(runs => runs.map(say => say.slice(1))) : []), names = ['Затем Пит подсказывает — одна из (и сразу верное слово)', 'Затем Пит зовёт следующее слово (если оно есть)']
   rest.forEach((g, i) => parts.push(part(`fail${i + 1}`, names[i] ?? 'Затем', g.length > 1 ? 'variants' : 'seq', g)))
   if (r.hold.length) parts.push(part('hold', 'Смена языка между блоками слов', 'seq', r.hold))
+  const bonus = bonusCues(stages)
+  if (bonus.cues.length) parts.push(part('bonus', 'Бонус-круг: все слова названы верно и каждое в зелёной зоне — Мия ускоряет игру', 'seq', bonus.cues, { note: 'Плашки и трёх нот нет. Затем все слова экзамена идут заново, в новом порядке и всё быстрее; в самом бонус-круге Пит и Мия молчат. После него — концовка «успех».', stage: bonus.stage?.sid }))
   ends.forEach((e, i) => parts.push(part(`end${i}`, `Концовка: ${e.title}`, 'seq', e.cues, { cues: e.cues, stage: e.stage?.sid })))
-  return { key: 'boss', title: 'Экзамен «Шкала памяти»', note: 'Исход зависит от доли собранных трофеев: за слово в зелёной зоне — все, в жёлтой — половина, в красной — малая часть, за неназванное — ничего.', parts, sim: { ceremony: seen, ceremonyNew: fresh, fail: [jabs.map(x => x.first), ...rest], ends } }
+  return { key: 'boss', title: 'Экзамен «Шкала памяти»', note: 'Исход зависит от доли собранных трофеев: за слово в зелёной зоне — все, в жёлтой — половина, в красной — малая часть, за неназванное — ничего.', parts, sim: { ceremony: seen, ceremonyNew: fresh, fail: [jabs.map(x => x.first), ...rest], ends, bonus } }
 }
 
 /** Сценарий на сейчас. Собирается один раз (код игры за время работы страницы не меняется) */

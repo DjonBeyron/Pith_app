@@ -30,8 +30,8 @@ describe('стадии гонки в формате движка', () => {
     expect(seq.slice(0, 6)).toEqual(['sprint:announce', 'sprint:student', 'sprint:announce', 'sprint:announce', 'sprint:student', 'sprint:announce']) // первый и второй круг разгона (второй идёт, только если были ошибки) и скрытые церемония + круг с Мией (идут только после ошибки во втором круге)
     expect(seq.slice(6, 13)).toEqual(['catch:announce', 'catch:announce', 'catch:student', 'catch:announce', 'catch:announce', 'catch:student', 'catch:announce']) // «Слушай и лови» — инверсия разгона: тоже два круга и Мия
     expect(of(st, 'climb').filter(s => s.type === 'student')).toHaveLength(4)
-    expect(seq.slice(-9)).toEqual(['descent:announce', 'descent:read', 'descent:turn', 'descent:student', 'boss:announce', 'boss:announce', 'boss:student', 'boss:announce', 'summary:summary']) // финал «Шкала памяти»: церемония Мии и круг
-    expect(st.filter(s => s.type === 'announce').map(s => s.line)).toEqual([null, null, 'pit_forgot', null, 'race_reverse_tap', null, null, 'pit_forgot', null, 'race_phrases_show', 'race_climb', 'race_climb_top', 'race_climb_time', 'race_descent', null, null, null])
+    expect(seq.slice(-11)).toEqual(['descent:announce', 'descent:read', 'descent:turn', 'descent:student', 'boss:announce', 'boss:announce', 'boss:student', 'boss:announce', 'boss:student', 'boss:announce', 'summary:summary']) // финал «Шкала памяти»: церемония Мии и круг
+    expect(st.filter(s => s.type === 'announce').map(s => s.line)).toEqual([null, null, 'pit_forgot', null, 'race_reverse_tap', null, null, 'pit_forgot', null, 'race_phrases_show', 'race_climb', 'race_climb_top', 'race_climb_time', 'race_descent', null, null, null, null]) // последние: заставка и церемония экзамена, реплика бонус-круга (говорит Мия, не стадия), эпилог
   })
   it('разгон: одна ступень ученика, по повтору на пилюлю; у повтора своя дорожка, скорость (+5 %), перевод внутри, без слова, которое проявлялось при промахе (тихий промах)', () => {
     const [s] = of(build().stages, 'sprint').filter(x => x.type === 'student')

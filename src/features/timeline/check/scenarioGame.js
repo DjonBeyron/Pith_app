@@ -10,6 +10,7 @@ import { withPhrases } from '../../pitrace/racePhraseData.js'
 import { PHRASE_FIXTURE } from '../../pitrace/racePhraseFixture.js'
 import { STAGES_ROUND } from '../../pitrace/raceOnly.js'
 import { reduceMia, miaInit } from '../../pitrace/mia/raceMia.js'
+import { bonusRoute } from '../../pitrace/boss/bossBonus.js'
 import { fixturePlan } from '../../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../../rehearsal/rehearsalPlan.js'
 import { isCutStage } from '../timelineStageNames.js'
@@ -55,7 +56,7 @@ export function roundCues(stages, act) {
  *  После реплик исхода машине подаётся событие bye (последняя реплика Мии доиграла) — как делает игра. → [{ missed, total, zone, cues, m, stage, outcome }] */
 export function endCues(stages, act) {
   const start = ceremonyCues(stages, act, act === 'boss').m, end = pick(stages, act, 'end')
-  const rounds = stages.filter(s => s.act === act && s.mia === 'round').map(st => wide(st)), sw = pick(stages, act, 'hold')
+  const rounds = stages.filter(s => s.act === act && s.mia === 'round' && !s.bonus).map(st => wide(st)), sw = pick(stages, act, 'hold') // бонус-круг экзамена — отдельная ветка (bonusCues)
   if (!end || !rounds.length) return []
   const total = rounds.length * SIM_WORDS
   const play = (missed, zone) => {
@@ -77,6 +78,21 @@ export function endCues(stages, act) {
     return { missed, total, zone, cues, m, stage: end, outcome }
   }
   return ['fast', 'mid', 'slow'].flatMap(zone => Array.from({ length: total + 1 }, (_, k) => play(k, zone)))
+}
+
+/** Бонус-круг экзамена (boss/bossBonus.js): все слова названы верно и в зелёной зоне → директор идёт на стадию-реплику Мии, потом все слова заново с ускорением. Играется той же функцией маршрута, что в игре
+ *  (bonusRoute: она же вписывает слова в стадию круга), и той же машиной. → { on, stage, cues (реплика Мии), round: реплики в самом круге (их быть не должно), k: множители слов, win: окна ответа, мс, miss — идёт ли бонус при одном жёлтом слове } */
+export function bonusCues(stages, act = 'boss') {
+  const list = stages, blocks = list.filter(s => s.act === act && s.mia === 'round' && !s.bonus), i = list.findIndex(s => s.act === act && s.mia === 'hold' && s.bonus)
+  if (i < 0 || !blocks.length) return { on: false, stage: null, cues: [], round: [], k: [], win: [], miss: false }
+  const play = lastZone => { let m = ceremonyCues(stages, act, true).m, off = 0; for (const st of blocks) { const stage = { ...st, offset: off }; m = step(m, { t: 'enter', stage, now: 0 }); stage.words.forEach((_, idx) => { m = step(m, { t: 'win', stage, idx, now: 0 }); m = step(m, { t: 'zone', stage, idx, zone: off + idx === lastZone.at ? lastZone.zone : 'fast', now: 0 }) }); off += stage.words.length } return m }
+  const total = blocks.reduce((a, st) => a + st.words.length, 0), miss = bonusRoute(list, i, play({ at: total - 1, zone: 'mid' }), 'check').idx === i
+  let m = play({ at: -1 })
+  const on = bonusRoute(list, i, m, 'check').idx === i, cues = [], round = [], st = list[i + 1]
+  if (!on) return { on, stage: list[i], cues, round, k: [], win: [], miss }
+  m = step(m, { t: 'enter', stage: list[i], now: 0 }, cues); m = step(m, { t: 'enter', stage: st, now: 0 }, round)
+  st.words.forEach((_, idx) => { for (const t of idx % 2 ? ['miss', 'fail'] : ['zone', 'win']) m = step(m, { t, stage: st, idx, zone: 'mid', now: 0 }, round) })
+  return { on, stage: list[i], cues, round, k: st.words.map(w => w.k), win: st.words.map(w => w.win), miss }
 }
 
 /** Что говорит Пит, оставшись в коробке без Мии (круг кончился с ошибками): события коробки по порядку → [{ t, cues }] */

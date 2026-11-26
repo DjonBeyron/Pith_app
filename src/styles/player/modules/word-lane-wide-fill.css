@@ -11,7 +11,7 @@
    ЦВЕТ (v3.3.185): жидкость — сплошной var(--c) без альфы и «в процессе», и «принято» (раньше «в процессе» — rgba(.38….5) поверх тёмной карточки и белёсая вуаль: грязный серо-синий тон); край цвета — 1 px под веретеном.
    При 100 % поверхность на --wl-surf за правым торцом клипа, у полной пилюли (data-full) цвета жидкости тело и клип. Свет — только на слое кромки (веретено и ореол). Пузыри в жидкости — word-lane-bubbles.css. */
 .wlPill[data-wide] .wlPillFill { inset: 0 calc(var(--wl-soft) * -1) 0 0; transform: translateX(-100%); }
-.wlPill[data-wide]:not([data-fail]) .wlPillFill { background: linear-gradient(to left, rgba(var(--rgb), 0) calc(var(--wl-surf) - 0.5px), var(--c) calc(var(--wl-surf) + 0.5px)); }
+.wlPill[data-wide]:not([data-fail]) .wlPillFill { background: linear-gradient(to left, rgba(var(--wl-fill-rgb), 0) calc(var(--wl-surf) - 0.5px), var(--wl-fill) calc(var(--wl-surf) + 0.5px)); }
 .wlField .wlPill[data-wide] .wlPillSparks {
   display: block; top: -12px; bottom: -12px; left: calc(var(--gap) - var(--wl-soft) / 2); right: calc(var(--gap) - var(--wl-soft) / 2);
   overflow: visible; border-radius: 0; opacity: 1; visibility: visible; transition: none;
@@ -24,12 +24,12 @@
   content: ''; position: absolute; left: -1.25px; top: 0; bottom: 0; width: 2.5px;
   background:
     linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.95) 38% 62%, rgba(255, 255, 255, 0)),
-    linear-gradient(to bottom, rgba(var(--rgb), 0), var(--rim, var(--c)) 18% 82%, rgba(var(--rgb), 0));
+    linear-gradient(to bottom, rgba(var(--wl-fill-rgb), 0), var(--rim, var(--wl-fill)) 18% 82%, rgba(var(--wl-fill-rgb), 0));
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
 .wlPill[data-wide] .wlPillSparks i::after {
   content: ''; position: absolute; left: -18px; width: 36px; top: 6px; bottom: 6px;
-  background: radial-gradient(closest-side, rgba(var(--rgb), 0.4), rgba(var(--rgb), 0.16) 55%, rgba(var(--rgb), 0));
+  background: radial-gradient(closest-side, rgba(var(--wl-fill-rgb), 0.4), rgba(var(--wl-fill-rgb), 0.16) 55%, rgba(var(--wl-fill-rgb), 0));
   opacity: 0.6; transition: opacity 0.3s ease-out;
 }
 .wlPill[data-wide][data-live] .wlPillSparks i::after { opacity: 1; }
@@ -40,7 +40,7 @@
 /* v3.3.314 (владелец: «нужно чтобы краснела не вся пилюля, а только её рамка и та часть прогресс-бара, которая заходит на слово»): жидкость пилюли цвет НЕ меняет и не едет. Красные — рамка (outline ниже),
    линия кромки (её собственные --c / --rgb) и ПОЛОСА .wlPillFill::after: стоит сразу за поверхностью жидкости (за правым краем слоя, внутри клипа), шириной --nw % и растёт от линии scaleX 0 → 1 → 0 вместе с кромкой. */
 .wlField .wlPill[data-wide][data-nudge] .wlPillSparks i { opacity: 1 !important; }
-.wlPill[data-wide][data-nudge]:not([data-lock]) .wlPillSparks i { --c: rgb(255, 72, 62); --rgb: 255, 72, 62; --rim: rgb(255, 72, 62); animation: wlNudgeFill 0.4s both; }
+.wlPill[data-wide][data-nudge]:not([data-lock]) .wlPillSparks i { --c: rgb(255, 72, 62); --rgb: 255, 72, 62; --wl-fill-rgb: 255, 72, 62; --rim: rgb(255, 72, 62); animation: wlNudgeFill 0.4s both; }
 .wlPill[data-wide] .wlPillFill::after { content: ''; position: absolute; top: 0; bottom: 0; left: calc(100% - var(--wl-surf)); width: calc(var(--nw, 7) * 1%); background: rgb(255, 72, 62); transform: scaleX(0); transform-origin: 0 50%; pointer-events: none; }
 .wlPill[data-wide][data-nudge]:not([data-lock]) .wlPillFill::after { animation: wlNudgeBar 0.4s both; }
 @keyframes wlNudgeFill {

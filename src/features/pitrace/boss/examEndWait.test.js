@@ -106,7 +106,7 @@ describe('пилюля экзамена ждёт конца длинной це�
   it('у обоих кругов экзамена свой потолок; выход из круга — время взлёта пилюли; заставка — стадия эпизода (не получает ноты стартовой плашки)', () => {
     const stages = [], kit = { stages, plan: { seed: 1 }, chunks: [], msOf: () => 500, doubles: () => [], push: s => { stages.push({ ...s, idx: stages.length }); return s }, announce: (act, o = {}) => kit.push({ type: 'announce', act: act.id, sid: `${o.sid ?? act.id}-ann`, ms: o.ms, line: o.line ?? null }) }
     bossStages(kit, { id: 'boss', title: 'Шкала памяти', brief: '', words: ['a', 'b', 'c', 'd'].map(text => ({ text, translation: `${text}-ру`, confusers: [] })) }, { voice: true })
-    expect(stages.filter(s => s.type === 'student').map(s => [s.sid, s.step.holdMax])).toEqual([['boss', BOSS_HOLD_MAX_MS], ['boss2', BOSS_HOLD_MAX_MS]]); expect(BOSS_HOLD_MAX_MS).toBeGreaterThan(MAX_HOLD_MS)
+    expect(stages.filter(s => s.type === 'student').map(s => [s.sid, s.step.holdMax])).toEqual([['boss', BOSS_HOLD_MAX_MS], ['boss2', BOSS_HOLD_MAX_MS], ['boss-fast', BOSS_HOLD_MAX_MS]]); expect(BOSS_HOLD_MAX_MS).toBeGreaterThan(MAX_HOLD_MS)
     expect(stages[0]).toMatchObject({ sid: 'boss-intro-ann', mia: 'intro', always: true }); expect(BOSS_EXIT_MS).toBeLessThan(1300)
     expect(read('../raceStages.js')).toContain("if (first?.type === 'announce' && !first.mia)")
   })

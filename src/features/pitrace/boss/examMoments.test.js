@@ -72,7 +72,7 @@ describe('2. шкала, появившись на слове «шкала», с
   })
   it('подключено: защёлка живёт все стадии экзамена (пауза её не снимает), шкала на сцене получает её вместе с прежними условиями круга', () => {
     const src = read('../../player/modules/rotate-phone/WordLaneGame.jsx')
-    expect(src).toContain("const bossSid = f.rh.on && ['boss-ann', 'boss', 'boss-sw', 'boss2'].includes(f.stageObj?.sid)"); expect(src).toContain('useBossReveal(f.rh.miaTalk, bossSid)')
+    expect(src).toContain("const bossSid = f.rh.on && ['boss-ann', 'boss', 'boss-sw', 'boss2', 'boss-fast-ann', 'boss-fast'].includes(f.stageObj?.sid)"); expect(src).toContain('useBossReveal(f.rh.miaTalk, bossSid)')
     expect(src).toContain("show={f.stageObj?.type === 'student' || bossReveal || f.stageObj?.sid === 'boss-sw'}")
   })
 })

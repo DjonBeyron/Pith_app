@@ -87,4 +87,12 @@ describe('допрос у Мии и экзамен — те же реплики 
     expect(idsOf(block('boss'), p => p.key === 'hold')).toEqual(['boss_mia_ru'])
     expect(idsOf(block('boss'), p => p.key === 'fail2')).toEqual(['boss_pit_next'])
   })
+  it('экзамен: бонус-круг — веткой «все слова верны и в зелёной зоне»: одна реплика Мии, в самом круге никто не говорит; одно жёлтое слово — ветки нет', () => {
+    const parts = block('boss').parts, at = parts.findIndex(p => p.key === 'bonus'), b = sc.sim.boss.bonus
+    expect(parts[at]).toMatchObject({ kind: 'seq', stage: 'boss-fast-ann' }); expect(parts[at].title).toMatch(/все слова названы верно и каждое в зелёной зоне/); expect(parts[at].items.map(x => [x.id, x.who])).toEqual([['boss_mia_fast', 'mia']])
+    expect(at).toBeGreaterThan(parts.findIndex(p => p.key === 'hold')); expect(at).toBeLessThan(parts.findIndex(p => p.key === 'end0')) // после смены языка, перед концовками
+    expect(b.on).toBe(true); expect(b.miss).toBe(false); expect(b.round).toEqual([]) // событиям круга (верно, чужое слово, слово ушло) машина Мии не отвечает ни одной репликой
+    expect(b.k.length).toBe(6); expect(Math.min(...b.k.slice(-3))).toBeGreaterThan(Math.max(...b.k.slice(0, -3))); expect(b.win.every(ms => ms > 1500)).toBe(true)
+    expect(sc.ids.has('boss_mia_fast')).toBe(true); expect(sc.unused.some(u => u.id === 'boss_mia_fast')).toBe(false)
+  })
 })

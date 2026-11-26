@@ -2,17 +2,24 @@
 //  • setBossZoneNow — зона линии, пока слово в работе (каждый кадр);
 //  • setBossWonZone — зона, в которой слово ПРИНЯТО (кадр, где линия встала: тот же вызов, что onZone → bossMia zones). Счётчик в углу берёт её, а не «зону сейчас»: между зачётом и начислением
 //    проходит ≈ 100 мс (взлёт пилюли), и за это время «зона сейчас» могла сброситься на зелёную под следующую пилюлю — тогда угол получил бы 20, а в счёт экзамена ушло бы 3 (расхождение закрыто 2026-11-26);
+//  • setBossZoneProbe — шкала отвечает «зона в этот миг» (v3.3.375): счётчик в углу спрашивает зону в кадре, где пилюля встала, раньше, чем шкала дошла до своего кадра, — шкала фиксирует слово сразу, в этом же вызове;
 //  • setBossZoneIdle — слово кончилось, следующая пилюля ещё не коснулась шкалы: ответ сейчас — зелёная зона; зону принятого слова не трогает.
 // Правила «трофеи на кону» — bossTrophies.js (зелёная — всё, жёлтая — половину, красная — почти ничего). Общее состояние на страницу: игра одна.
 import { wordTrophies } from './bossTrophies.js'
-let zone = null, won = null
-export const setBossZoneNow = z => { zone = z; won = null }
+let zone = null, won = null, probe = null, seen = null
+/** Шкала даёт «зону в этот миг», fn(commit) → зона или null: слово уже принято (data-lock), пилюля доезжает заливку и встаёт В ЭТОМ кадре. commit — начисление трофеев (bossXp): шкала фиксирует линию, треугольник и зону там, где пилюля сейчас,
+ *  и тем же вызовом шлёт зону Мии; без commit (peekBossZone — журнал) — только ответ, без действий: журнал зовётся изнутри обработки события Мии, вложенное событие зоны там затёрлось бы */
+export const setBossZoneProbe = fn => { probe = fn }
+/** Для журнала `[exam]`: где линия встала на принятом слове — { pct: % длины шкалы } */
+export const setBossSeen = x => { seen = x }
+export const peekBossSeen = () => seen
+export const setBossZoneNow = z => { zone = z; won = null; seen = null }
 export const setBossWonZone = z => { won = z }
-export const setBossZoneIdle = () => { zone = 'fast' }
+export const setBossZoneIdle = () => { zone = 'fast'; seen = null }
 export const getBossZoneNow = () => zone
 /** Зона, по которой счётчик в углу получит трофеи, если слово принято сейчас (не забирая её): для журнала */
-export const peekBossZone = () => won ?? zone ?? 'fast'
+export const peekBossZone = () => won ?? probe?.(false) ?? zone ?? 'fast'
 /** Сколько получает счётчик в углу за принятое слово экзамена: трофеи слова по зоне, в которой оно принято (зона отдаётся один раз) */
-export const bossXp = () => { const z = peekBossZone(); won = null; return wordTrophies({ ok: true, zone: z }) }
+export const bossXp = () => { const z = won ?? probe?.(true) ?? zone ?? 'fast'; won = null; return wordTrophies({ ok: true, zone: z }) } // probe(true): шкала в этом же вызове фиксирует слово (линия, треугольник, рамка, зона для Мии) — ту же зону и получает угол
 /** «Не успел» без реплики, текста сверху и подсказки слова: «Разгон» (quiet) и финал «Шкала памяти» (silent) */
 export const failMute = st => !!(st?.step?.quiet || st?.silent)

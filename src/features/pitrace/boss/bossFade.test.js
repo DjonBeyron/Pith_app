@@ -63,8 +63,8 @@ describe('финал: трофеи слова по зоне (было: XP не �
     setBossZoneNow(null); expect(bossXp()).toBe(TROPHY_PER_WORD) // слово принято раньше, чем пилюля коснулась шкалы — зелёная
     const flow = read2('../../player/modules/rotate-phone/useWordLaneFlow.js')
     expect(flow).toContain('if (rep.last && !rep.res?.noXp) { xpApi.current?.add(stages[sRef.current.idx]?.silent ? bossXp() : XP_PER_PILL * rep.count, rect, XP_ARRIVE_MS); return true }')
-    expect(read2('./RaceBossScale.jsx')).toContain("else if (pills.some(p => !p.locked && !p.failed && p.bottom <= 0)) setBossZoneIdle()") // зона прошлого слова не остаётся следующему
-    expect(read2('./RaceBossScale.jsx')).toContain('setBossZoneNow(zoneAt(')
+    expect(read2('./bossScaleDrive.js')).toContain("else if (pills.some(p => !p.locked && !p.failed && p.bottom <= 0)) setBossZoneIdle()") // зона прошлого слова не остаётся следующему
+    expect(read2('./bossScaleDrive.js')).toContain('setBossZoneNow(zoneAt(')
   })
   it('«не успел» в финале (silent): ни реплики, ни текста сверху, ни подсказки слова над дорожками', () => {
     const flow = read2('../../player/modules/rotate-phone/useWordLaneFlow.js')
@@ -119,7 +119,7 @@ describe('финал: колкость после ошибки, порог «х�
     const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')
     expect(src).toContain("if (kind === 'fail' && running.act === 'boss') redAlarm()"); expect(src).toContain("if (kind === 'miss' && running.act === 'boss') redAlarm()"); expect(src).not.toContain('sayCorrect') // верное слово теперь ставит в очередь машина Мии (один раз на слово: dug), после колкости
     expect(readFileSync(new URL('./bossMia.js', import.meta.url), 'utf8')).toContain("const dig = t === 'fail' && !m.dug?.[gi]") // круг экзамена вынесен из машины Мии в boss/bossMia.js
-    expect(readFileSync(new URL('./RaceBossScale.jsx', import.meta.url), 'utf8')).toContain("setProperty('--bl'")
+    expect(readFileSync(new URL('./bossScaleDrive.js', import.meta.url), 'utf8')).toContain("setProperty('--bl'")
     expect(readFileSync(new URL('../../../styles/player/modules/race-boss.css', import.meta.url), 'utf8')).toMatch(/\.wlBossLine \{[^}]*left: var\(--bl, 0px\)/)
   })
 })

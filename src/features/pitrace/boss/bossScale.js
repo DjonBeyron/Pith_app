@@ -33,7 +33,8 @@ export function trackStep(tr, pills, H, now) {
   let cur = tr
   if (cur && !cur.done) {
     const p = pills.find(x => x.el === cur.el)
-    if (!p || p.locked || p.failed || p.top > H * 1.25) cur = { ...cur, done: true, at: now }
+    if (p?.locked) cur = { ...cur, y: Math.max(cur.y, p.bottom), done: true, at: now } // встала (принята и взлетает): линия — там, где пилюля встала, а не кадром раньше
+    else if (!p || p.failed || p.top > H * 1.25) cur = { ...cur, done: true, at: now }
     else cur = { ...cur, y: p.bottom }
   }
   if (!cur || cur.done) {

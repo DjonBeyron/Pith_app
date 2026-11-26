@@ -88,7 +88,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
   const miaDropped = useMiaDrop(f.rh.mia?.mia) // финал: дорожки желтеют с момента, когда коробка падает на Пита
   const miaTint = useMiaTint(miaColorOn(f.rh.mia?.mia, f.stageObj, miaDropped, f.rh.miaPlate?.started)) // выключение цвета — с выдержкой 0,2 с: на стыке стадий он не мигает (mia/miaTint.js)
   useLagTrace(f.dbg.enabled, f.paused, f.stageObj?.type === 'summary'); useLagMarkOn(miaTint, 'цвет дорожек → Мия', 'цвет дорожек → обычный', lite ? 0 : 900) // трассер лагов «[lag] …» (только отладочный интерфейс) и метка перекраски поля (race-mia.css)
-  const bossSid = f.rh.on && ['boss-ann', 'boss', 'boss-sw', 'boss2'].includes(f.stageObj?.sid) // стадии экзамена «Шкала памяти» (пауза стадию не меняет)
+  const bossSid = f.rh.on && ['boss-ann', 'boss', 'boss-sw', 'boss2', 'boss-fast-ann', 'boss-fast'].includes(f.stageObj?.sid) // стадии экзамена «Шкала памяти» (пауза стадию не меняет)
   const bossLive = bossSid && f.stage === 'run' // шкала живёт на церемонии Мии и в круге
   const bossReveal = useBossReveal(f.rh.miaTalk, bossSid) // шкала на церемонии появляется на слове «шкала» и больше не гаснет до конца экзамена (boss/useBossReveal.js)
   const race = cfg.plan?.game === 'race' // гонка: подсказки «Тап вместо речи» над дорожкой нет (тап выбирается плашкой «Говорю / Тапаю» до старта), фон с узором, верхняя панель вместо крестика
@@ -103,7 +103,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
         <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} speed={speed} paused={f.paused} speedKey={f.stage === 'run' ? f.idx : -1} trio={trio} dodge={dodge} watch={f.dbg.enabled} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || ((tapMode || f.stageObj?.step?.tapOnly) && (phase === 'student' || f.stageObj?.speak)) ? laneTap : null} />
         <WordLaneXp apiRef={f.xpApi} />
         {race && <RaceBossScale live={bossLive} show={f.stageObj?.type === 'student' || bossReveal || f.stageObj?.sid === 'boss-sw'} flash={flashOf(f.rh.miaTalk)} demo={f.stageObj?.sid === 'boss-ann' ? f.rh.miaDemo : null} word={f.stages?.find(x => x.sid === 'boss')?.words?.[0]?.translation ?? ''} paused={f.paused} onZone={f.rh.boss?.zone} />}
-        {race && f.rh.mia && <RaceBossLoot m={f.rh.mia.mia} talk={f.rh.miaTalk} on={f.stage === 'run' && ['boss', 'boss-sw', 'boss2', 'boss-end'].includes(f.stageObj?.sid)} />}
+        {race && f.rh.mia && <RaceBossLoot m={f.rh.mia.mia} talk={f.rh.miaTalk} on={f.stage === 'run' && ['boss', 'boss-sw', 'boss2', 'boss-fast-ann', 'boss-fast', 'boss-end'].includes(f.stageObj?.sid)} />}
         {race && f.rh.mia && <RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap} talk={f.rh.miaTalk} alarm={f.rh.miaAlarm} stageKind={f.stageObj?.mia} paused={f.paused} onStuck={f.rh.miaStuck} onTry={f.rh.miaTry} onBoxHit={f.rh.miaBoxHit} />}
         {single
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>
