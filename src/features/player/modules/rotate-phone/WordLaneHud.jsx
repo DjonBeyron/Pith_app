@@ -21,6 +21,7 @@ import { isIOS, isStandalone, MIC_TIP_LABELS } from '../../../pitrace/raceMicHel
 import {
   readPillSafe, writePillSafe, applyPillSafe, readWeakStored, writeWeakStored, applyAudioSessionMode, describeHud, readTapMode, writeTapMode,
 } from './wordLaneHudSettings.js'
+import { readLaneStill, writeLaneStill } from './wordLaneLaneStill.js'
 
 // Мини-HUD быстрой смены настроек в игре «Повтори за диктором» (по аналогии с «Лог и версия» в шапке урока): маленькая кнопка в правом верхнем углу, панель поверх игры. Виден только при включённом
 // отладочном интерфейсе (dbg.enabled — тумблер админки, pithy_wl_debug_v1 или тест-запуск из админки). Своё состояние (открыта ли панель, значения переключателей) — здесь, а не в useWordLaneFlow;
@@ -66,7 +67,7 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
 
   const info = describeHud({ mic: describeGameMic, vosk: () => voskRuntime.snapshot(), weak: isWeakDevice, whiskers: getWhiskerMode, version: APP_VERSION })
   const gainId = readMicGainId(), procOn = isMicProcessingOn(), session = readAudioSessionMode(), hold = readMicHoldMode()
-  const reward = getRewardSound(), volume = getRewardVolume(), safe = readPillSafe(), rate = getVoiceRate(), lite = readWeakStored() ?? isWeakDevice(), tap = readTapMode(), whisk = getWhiskerMode()
+  const reward = getRewardSound(), volume = getRewardVolume(), safe = readPillSafe(), rate = getVoiceRate(), lite = readWeakStored() ?? isWeakDevice(), tap = readTapMode(), whisk = getWhiskerMode(), still = readLaneStill()
   const act = fn => () => { fn(); refresh() }
   const close = () => setOpen(false)
   const toggleTap = () => { writeTapMode(!tap); setTapMode?.(!tap); refresh() } // игра узнаёт сразу: в очереди ученика появляются кнопки дорожек (как в «Порядке») и подсказка
@@ -126,6 +127,10 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
       </Row>
       <Row label="Безопасные слои пилюль (iOS)" when="now" testid="wl-hud-safe">
         <Chip on={safe} onClick={toggleSafe} testid="wl-hud-safe-toggle">{safe ? 'Вкл' : 'Выкл'}</Chip>
+      </Row>
+      <Row label="Узор дорожек (бегущий пунктир)" when="restart" testid="wl-hud-lane">
+        <Chip on={!still} onClick={() => { writeLaneStill(false); refresh() }} testid="wl-hud-lane-move">Едет</Chip>
+        <Chip on={still} onClick={() => { writeLaneStill(true); refresh() }} testid="wl-hud-lane-still">Стоит</Chip>
       </Row>
       <Row label="Тап вместо речи (проверка механики)" when="now" testid="wl-hud-tap">
         <Chip on={tap} onClick={toggleTap} testid="wl-hud-tap-toggle">{tap ? 'Вкл' : 'Выкл'}</Chip>

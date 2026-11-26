@@ -10,6 +10,7 @@ import { VoskError, diagnoseFetchFailure } from './voskErrors.js'
 import { saveModel } from './voskStorage.js'
 import { downloadModel, archiveKind } from './voskDownload.js'
 import { RangeUnsupported, chunkCount, chunkRange, parseContentRange, CHUNK_BYTES } from './voskBgPolicy.js'
+import { sizeChanged, validatorsDiffer, headerInfo } from './voskBgChanged.js'
 import { readMeta, writeMeta, putPart, scanParts, assembleParts, clearParts } from './voskParts.js'
 
 export const CHUNK_STALL_MS = 60000
@@ -35,7 +36,7 @@ async function fetchChunk(url, start, end, ctx) {
       if (/text\/html/i.test(res.headers.get('content-type') || '')) throw new VoskError('html')
       if (res.headers.get('content-encoding')) throw new RangeUnsupported('ответ сжат (Content-Encoding)')
       const blob = await res.blob()
-      return { blob, range: parseContentRange(res.headers.get('content-range')), lastModified: res.headers.get('last-modified') }
+      return { blob, range: parseContentRange(res.headers.get('content-range')), lastModified: res.headers.get('last-modified'), etag: res.headers.get('etag'), info: headerInfo(res) }
     } catch (e) {
       if (ctx.signal?.aborted) throw cancelled()
       if (why === 'busy') continue
@@ -66,7 +67,7 @@ async function probe(url, ctx, chunk) {
   const total = await totalSize(url, first, ctx)
   if (!total) { ctx.log?.('полный размер неизвестен (нет Content-Range и Content-Length) — качаем целиком'); return null }
   if (first.blob.size !== Math.min(chunk, total)) throw new VoskError('incomplete', { detail: 'первый кусок неполный' })
-  return { meta: { total, chunk, lastModified: first.lastModified }, first: first.blob }
+  return { meta: { total, chunk, lastModified: first.lastModified, etag: first.etag }, first: first.blob }
 }
 
 async function rangeLoop(url, meta, from, ctx) {
@@ -77,8 +78,12 @@ async function rangeLoop(url, meta, from, ctx) {
     const { start, end, size } = chunkRange(i, meta.total, meta.chunk)
     const r = await fetchChunk(url, start, end, ctx)
     // Файл на сервере подменили между кусками — прежние куски негодны
-    const changed = (r.range?.total && r.range.total !== meta.total) || (meta.lastModified && r.lastModified && meta.lastModified !== r.lastModified)
-    if (changed) { await clearParts(cachesApi); throw new VoskError('changed') }
+    // Решает только размер; различие Last-Modified / ETag между запросами (CDN) — в журнал, но не повод качать заново
+    if (validatorsDiffer(meta, r)) ctx.log?.(`кусок ${i + 1}: validators отличаются от первого ответа (изменением не считаем). Первый: etag ${meta.etag || '—'}, last-modified ${meta.lastModified || '—'}; сейчас: ${r.info}`)
+    if (sizeChanged(meta.total, r.range?.total)) {
+      ctx.log?.(`кусок ${i + 1}: размер файла ${meta.total} → ${r.range.total}. ${r.info}`)
+      await clearParts(cachesApi); throw new VoskError('changed')
+    }
     if (r.blob.size !== size) throw new VoskError('incomplete', { detail: `кусок ${i + 1} из ${count}` })
     await putPart(url, i, r.blob, cachesApi)
     loaded += size

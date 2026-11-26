@@ -70,10 +70,18 @@
 @keyframes wlCatTrail { 0% { opacity: 0; transform: scale(0.2, 0.6); } 22% { opacity: 1; transform: scale(0.9, 1); } 100% { opacity: 0; transform: scale(1.3, 1.35); } }
 @keyframes wlCatTrail1 { 0% { opacity: 0; transform: scale(0.2, 0.6); } 22% { opacity: 1; transform: scale(0.9, 1); } 100% { opacity: 0; transform: scale(1.3, 1.35); } }
 
-/* слабое устройство (scn--lite) и reduced-motion — переходы мгновенные, без пружины, наклона и шлейфа; порядок событий тот же */
-.wlCat--track.scn--lite[data-dodge] .wlCatSvg { transition: none; animation: none; }
+/* слабое устройство (scn--lite): Пит ЕДЕТ, а не телепортируется (журнал слабого Android 2026-11-27: «Пит исчезает на мгновенье»). Один дешёвый переход композитора на одном узле (svg головы): x — transform 0,18 с ease-out,
+   нырок / выныривание — translate 0,17 / 0,22 с ease-out. Без пружины и перелёта, без наклона и сжатия (keyframes rotate / scale), без шлейфа (::before), без теней и свечений; --wl-dx / --wl-dy по-прежнему читают
+   только svg и шлейф (inherits: false), пересчёта ≈150 узлов кота нет. Длительности те же, что у JS-таймеров (raceDodge.js DIVE_DOWN_MS / DIVE_UP_MS / JUMP_MS), порядок событий не меняется. */
+.wlCat--track.scn--lite[data-dodge] .wlCatSvg { animation: none !important; } /* !important: правила прыжка с data-hop / data-dir сильнее по специфичности */
+.wlCat--track.scn--lite[data-dodge='dive-down'] .wlCatSvg { transition: translate 0.17s ease-in; }
+.wlCat--track.scn--lite[data-dodge='dive-up'] .wlCatSvg { transition: translate 0.22s ease-out; }
+.wlCat--track.scn--lite[data-dodge='hide'] .wlCatSvg { transition: translate 0.3s ease-in-out; }
+.wlCat--track.scn--lite[data-dodge='rise'] .wlCatSvg { transition: translate 0.3s ease-out; }
+.wlCat--track.scn--lite[data-dodge='jump'] .wlCatSvg { transition: transform 0.18s ease-out; }
 .wlCat--track.scn--lite::before { content: none; }
+/* reduced-motion — переходы мгновенные, без пружины, наклона и шлейфа; порядок событий тот же */
 @media (prefers-reduced-motion: reduce) {
-  .wlCat--track .wlCatSvg, .wlCat--track[data-dodge] .wlCatSvg { transition: none; animation: none; }
+  .wlCat--track .wlCatSvg, .wlCat--track[data-dodge] .wlCatSvg, .wlCat--track.scn--lite[data-dodge] .wlCatSvg { transition: none !important; animation: none !important; }
   .wlCat--track::before { content: none; }
 }

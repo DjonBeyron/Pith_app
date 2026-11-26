@@ -98,6 +98,17 @@ describe('raceDodgeDrive', () => {
     c.go(0)
     expect(seen).toEqual(['set', 'dive-down', 'dive-up'])
   })
+  it('слабое устройство (scn--lite) НЕ мгновенное: Пит ныряет и едет за те же JS-сроки, что и на остальных (журнал слабого Android 2026-11-27: «мгновенно» = телепорт)', () => {
+    const c = clock(), f = fakeCat({ lite: true }), log = vi.fn()
+    const d = createDodgeDrive({ cat: f.cat, lanes: [0, 2, 2], log, peek: vi.fn(), now: c.now, setTimer: c.setTimer, clearTimer: c.clearTimer })
+    expect(d.left()).toBe(DIVE_MS)
+    expect(log.mock.calls[0][0]).not.toMatch(/мгновенно/)
+    c.go(DIVE_MS)
+    d.step([pill(atJump + 3)], 500, [])
+    expect(f.seen.at(-1)).toBe('jump')
+    expect(d.left()).toBe(JUMP_MS)
+    expect(log.mock.calls.at(-1)[0]).not.toMatch(/мгновенно/)
+  })
   it('stop: нырок в центр доигрывает таймер и после остановки; следующая ступень выныривает сразу к своей дорожке', () => {
     const { c, d, seen, cat, vars, log } = make({ lanes: [0] })
     c.go(500)
@@ -172,12 +183,12 @@ describe('word-lane-cat-dodge.css', () => {
   })
   it('без filter; анимируются только transform / translate / rotate / scale / opacity; x без перехода нигде, кроме прыжка', () => {
     expect(rules).not.toMatch(/filter\s*:/)
-    for (const m of rules.matchAll(/transition:\s*([^;]+);/g)) if (m[1].trim() !== 'none') expect(m[1]).toMatch(/^(transform|translate) /)
+    for (const m of rules.matchAll(/transition:\s*([^;]+);/g)) if (!/^none\b/.test(m[1].trim())) expect(m[1]).toMatch(/^(transform|translate) /)
     for (const kf of rules.matchAll(/@keyframes\s+\w+\s*\{([\s\S]*?)\}\s*\}/g)) {
       const props = [...kf[1].matchAll(/([a-z-]+)\s*:/g)].map(x => x[1])
       expect(props.every(p => ['rotate', 'scale', 'transform', 'opacity'].includes(p))).toBe(true)
     }
-    expect([...rules.matchAll(/transition:\s*transform[^;]*;/g)]).toHaveLength(1)
+    expect([...rules.matchAll(/transition:\s*transform[^;]*;/g)]).toHaveLength(2) // обычный прыжок и прыжок слабого устройства
     expect(rules).toMatch(/\[data-dodge='jump'\] \.wlCatSvg \{ transition: transform/)
     for (const m of ['dive-down', 'dive-up', 'hide', 'rise']) expect(rules).toMatch(new RegExp(`\\[data-dodge='${m}'\\] \\.wlCatSvg \\{ transition: translate`))
   })
@@ -201,7 +212,17 @@ describe('word-lane-cat-dodge.css', () => {
     expect(rules).toMatch(/prefers-reduced-motion: reduce\) \{[\s\S]*\.wlCat--track::before \{ content: none; \}/)
   })
   it('слабое устройство и reduced-motion — без пружины', () => {
-    expect(rules).toMatch(/scn--lite\[data-dodge\] \.wlCatSvg \{ transition: none; animation: none; \}/)
+    expect(rules).toMatch(/scn--lite\[data-dodge\] \.wlCatSvg \{ transition: none !important; animation: none !important; \}/)
     expect(rules).toMatch(/prefers-reduced-motion: reduce/)
+  })
+  it('слабое устройство: ОДИН короткий переход композитора (x — transform 0,18 с, нырок — translate), без анимаций и шлейфа, ни одного таймера дольше JS-сроков', () => {
+    expect(rules).toMatch(/scn--lite\[data-dodge='jump'\] \.wlCatSvg \{ transition: transform 0\.18s ease-out; \}/)
+    expect(rules).toMatch(/scn--lite\[data-dodge='dive-down'\] \.wlCatSvg \{ transition: translate 0\.17s ease-in; \}/)
+    expect(rules).toMatch(/scn--lite\[data-dodge='dive-up'\] \.wlCatSvg \{ transition: translate 0\.22s ease-out; \}/)
+    expect(rules).toMatch(/scn--lite\[data-dodge\] \.wlCatSvg \{ animation: none !important; \}/)
+    const lite = rules.split('\n').filter(l => /^\.wlCat--track\.scn--lite\[data-dodge='/.test(l)).join('\n')
+    expect(lite).not.toMatch(/cubic-bezier|filter|shadow|keyframes/)
+    const ms = [...lite.matchAll(/transition: \w+ ([\d.]+)s/g)].map(m => Number(m[1]) * 1000)
+    expect(ms.every(x => x >= 140 && x <= 300)).toBe(true)
   })
 })

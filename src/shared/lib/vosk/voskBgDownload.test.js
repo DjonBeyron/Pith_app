@@ -131,11 +131,24 @@ describe('фоновая загрузка кусками Range', () => {
     await expect(backgroundDownload(URL1, ctx)).rejects.toMatchObject({ code: 'cancelled' })
     expect((await readMeta(URL1, cachesApi))?.total).toBe(100)
   })
-  it('файл на сервере подменили между кусками — куски выбрасываем, ошибка changed (повторяемая)', async () => {
+  it('файл на сервере подменили между кусками (другой полный размер) — куски выбрасываем, ошибка changed (повторяемая), в журнале заголовки', async () => {
     const cachesApi = fakeCaches()
-    const ctx = mkCtx({ cachesApi, fetchFn: rangeServer(bytes, { lastModified: n => (n < 2 ? 'Mon, 01 Jan 2026 00:00:00 GMT' : 'Tue, 02 Feb 2027 00:00:00 GMT') }) })
+    const server = rangeServer(bytes)
+    const fetchFn = async (u, i) => {
+      const r = await server(u, i)
+      return server.calls.length < 2 ? r : new Response(await r.arrayBuffer(), { status: 206, headers: { ...Object.fromEntries(r.headers), 'content-range': r.headers.get('content-range').replace('/100', '/120') } })
+    }
+    const ctx = mkCtx({ cachesApi, fetchFn })
     await expect(backgroundDownload(URL1, ctx)).rejects.toMatchObject({ code: 'changed' })
     expect(cachesApi.has(PARTS_CACHE)).toBe(false)
+    expect(ctx.log.mock.calls.map(c => c[0]).join('\n')).toMatch(/размер файла 100 → 120.*content-range bytes 30-59\/120/)
+  })
+  it('Last-Modified меняется от запроса к запросу (CDN) — это НЕ «изменился»: модель докачивается и собирается (журнал 2026-11-27)', async () => {
+    const ctx = mkCtx({ fetchFn: rangeServer(bytes, { lastModified: n => `Mon, 0${1 + (n % 5)} Jan 2026 00:00:00 GMT` }) })
+    const r = await backgroundDownload(URL1, ctx)
+    expect(r).toMatchObject({ size: 100, mode: 'range' })
+    expect(await cachedBytes(ctx.cachesApi)).toEqual(bytes)
+    expect(ctx.log.mock.calls.map(c => c[0]).join('\n')).toMatch(/validators отличаются/)
   })
   it('сервер отдал веб-страницу, 404, не архив — понятные ошибки; в кэш ничего не попадает', async () => {
     const html = new TextEncoder().encode('<!DOCTYPE html><html>'.padEnd(100, ' '))

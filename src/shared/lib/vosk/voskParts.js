@@ -23,7 +23,7 @@ export async function readMeta(url, c = globalThis.caches) {
     const r = cache && await cache.match(keyOf(url, 'meta'))
     if (!r) return null
     const m = await r.json()
-    return m?.total > 0 && m?.chunk > 0 ? { total: m.total, chunk: m.chunk, lastModified: m.lastModified ?? null } : null
+    return m?.total > 0 && m?.chunk > 0 ? { total: m.total, chunk: m.chunk, lastModified: m.lastModified ?? null, etag: m.etag ?? null } : null
   } catch { return null }
 }
 

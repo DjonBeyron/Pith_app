@@ -3,7 +3,7 @@
 //  • Глубину и x головы ведёт ОДИН владелец — raceHeadDepth.js (класс wlCat--track; --wl-dx / --wl-dy на .wlCat, translate / transform у <svg class="wlCatSvg">, data-dodge: set / dive-down / dive-up / hide / rise / jump).
 //    Здесь только решение «что делать»: нырок → depth.dive(x), прыжок → depth.jump(x, dir). Начатый переход доигрывает, новая цель встаёт в очередь (там же пауза: нырок, выныривание после «Продолжить»).
 //  • Пока ступень идёт, голова НЕ прячется между пилюлями: привод продлевает показ каждые PEEK_EVERY_MS (раньше — только когда пилюля «подходит», и после прыжка голова уходила и тут же поднималась для речи).
-//  • Слабое устройство (scn--lite) и reduced-motion — переходы мгновенные (CSS), речь их не ждёт; порядок тот же. Шлейф прыжка — word-lane-cat-dodge.css (::before головы, data-hop / data-dir).
+//  • reduced-motion — переходы мгновенные (CSS), речь их не ждёт; слабое устройство (scn--lite) едет ОДНИМ коротким переходом композитора без пружины и шлейфа (с v3.3.382), таймеры те же, что у остальных; порядок тот же. Шлейф прыжка — word-lane-cat-dodge.css (::before головы, data-hop / data-dir).
 //  • left() — сколько мс ещё до того, как Пит встанет на место (нырок, прыжок, возврат из стороны): речь перед выездом пилюли ждёт этого (useRaceActs.pre, raceDiveWait.js).
 //  • x головы между ступенями хранится в data-dodge-x (и в цели raceHeadDepth): следующая ступень вынырнет сразу к своей дорожке.
 //  • Журнал: одна строка «[dodge] …» на переход (pLog); у каждого зачёта — «[dodge] зачёт N: голова …, следующая …, прыжок начат/нет → решение (почему)» (claimLine); переход не нужен — «[dodge] нырок подавлен — …»;
@@ -43,7 +43,8 @@ export function claimLine(p) {
   return `[dodge] зачёт ${c.i + 1}: голова ${where(c.at)}, ${next}, прыжок ${c.jumped ? 'начат' : 'нет'}${c.late ? ', пилюля у головы' : ''} → ${decision(p)} (${p.why})`
 }
 
-const fastOf = cat => cat.classList.contains('scn--lite') || !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
+/** Мгновенные переходы — только при reduced-motion. Слабое устройство (scn--lite) едет ОДНИМ коротким переходом композитора (word-lane-cat-dodge.css), поэтому таймеры нужны те же, что у остальных (журнал слабого Android 2026-11-27: мгновенный телепорт читался как «Пит исчез») */
+export const fastOf = () => !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
 /** Голова в слежении по центру с начала гонки «Голосом» (WordLaneGame): общие фразы и плашки до первой ступени — тоже по центру, глубину ведёт raceHeadDepth.js */
 export const trackHead = cat => (cat?.querySelector?.('.wlCatSvg') ? headDepth(cat, { headW: measureHead(cat).headW, fast: fastOf(cat) }) : null)
 
