@@ -1,0 +1,1312 @@
+Pithy — журнал игры, v3.3.374
+выгружен: 26.11.2026, 14:27:04
+устройство: Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Mobile/15E148 Safari/604.1
+режим: голосом (микрофон)
+русская модель Vosk: готова (скачана); английская: не в памяти (idle)
+сейчас: ctx=running, audioSession=playback/—, микрофон=нет потока
+режим запуска звука: default, тип сессии игры: playback; audioSession сейчас: playback/—; Последний старт: режим default, тип после старта playback, микрофон granted — live muted=нет enabled=нет (эхо нет, шум —, AGC —, 48000 Гц) (снимок «через 4000 мс после ответа микрофона»)
+метка строки: мс от загрузки страницы, время дня; «Скопировать» — без строк [perf]/[suspects]/[салют]/mic-hold; группы: [start] старт Пита, [page] свернули/вернули, [pause] пауза, [audio] звук, [warm] прогрев, [race] гонка, [cat] Пит, [ru] русский, [speech] речь, [lag] длинный кадр и что в этот момент шло в игре (в конце игры — «[lag] итог»), [lag-mark] началась названная анимация
+строк в журнале: 1302
+
+   1542.0 14:24:39.185 [perf] probe start (всё приложение)
+   2544.0 14:24:40.186 [perf] fps=56 worst=68ms drops=1 anim=7 inf=7(ratingSkeletonPulse:6,feedSkelShine:1) waves=0 audio=0/0 video=0/0 bubbles=-1 frozen=0 dom=-1 skel=feedSlide raf=114(c:57,frame:56,anon:1) canvas=0 snd=нет ses=auto/— mic=нет потока
+   3048.0 14:24:40.690 [suspects] (start) elements=198 willChange=2(lrEdgeBottom:1,shellV2Nav:1) backdropFilter=0 filter=8(svg:4,shellV2NavBtn:4) transform3d=0 blend=0 canvas=0 video=0
+   3588.0 14:24:41.231 [perf] fps=53 worst=97ms drops=2 anim=19 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=121(frame:53,c:53,anon:11,y:4) canvas=1 snd=нет ses=auto/— mic=нет потока
+   3853.0 14:24:41.496 [page] журнал страницы включён, visibilityState=visible; ctx=нет, audioSession=auto/—, микрофон=нет потока
+   3854.0 14:24:41.496 [say-vosk] прогрев: проверяем кэш модели — прогрев запущен при входе в урок
+   3859.0 14:24:41.501 [plan] источник: фикстура · 0 слов памяти, добор 5 · 0 фраз (свои 0 / дежурные 0)
+   3897.0 14:24:41.540 [page] устройства звука при запуске: ввод 1, вывод 0 (вх:?); ctx=нет, audioSession=auto/—, микрофон=нет потока
+   3955.0 14:24:41.598 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.45 для «reward:notes:0» (peak −12.3 dBFS, RMS −21.8 dBFS)
+   3955.0 14:24:41.598 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.45 для «reward:notes:1» (peak −12.3 dBFS, RMS −21.8 dBFS)
+   3955.0 14:24:41.598 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×4.83 для «plate» (peak −18.2 dBFS, RMS −27.7 dBFS)
+   3956.0 14:24:41.598 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.02 для «reward:notes:2» (peak −7.3 dBFS, RMS −20.1 dBFS)
+   4130.0 14:24:41.772 [say-vosk] прогрев: загружаем библиотеку
+   4174.0 14:24:41.816 [race] проход B на тапе (три пилюли): выбрано «Тапаю», русская модель не нужна
+   4371.0 14:24:42.014 [say-vosk] прогрев: загружаем модель в память
+   4588.0 14:24:42.230 [perf] fps=56 worst=57ms drops=1 anim=5 inf=4(feedSpin:1,feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=168(frame:56,c:56,y:56) canvas=1 snd=нет ses=auto/— mic=нет потока
+   4847.0 14:24:42.490 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.37 для «e4fd1079-cba5-4a23-bba8-1ec003e970b0.mp3» (peak −8.7 dBFS, RMS −21.5 dBFS)
+   5248.0 14:24:42.891 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.59 для «f6d81a27-b486-4a97-bdb0-f67aa6d16cd0.mp3» (peak −5.0 dBFS, RMS −21.3 dBFS)
+   5405.0 14:24:43.048 [say-vosk] прогрев: готово — модель в памяти за 1276 мс (библиотека 241 мс, модель 1018 мс)
+   5407.0 14:24:43.050 [say-vosk] прогрев распознавателя отправлен за 2 мс (yes, no)
+   5419.0 14:24:43.062 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.40 для «ebca4c27-8f34-4eef-91b6-e830a7c2f52d.mp3» (peak −8.6 dBFS, RMS −22.7 dBFS)
+   5420.0 14:24:43.062 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.46 для «5edc17d3-b174-4416-8a91-f08d454fa022.mp3» (peak −4.3 dBFS, RMS −19.4 dBFS)
+   5463.0 14:24:43.105 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.21 для «47483a38-016b-41b3-b49c-44d106d8f356.mp3» (peak −7.9 dBFS, RMS −23.8 dBFS)
+   5496.0 14:24:43.138 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.83 для «ba46d977-e7a5-4c08-8e6f-527f9a39bac3.mp3» (peak −6.2 dBFS, RMS −21.2 dBFS)
+   5507.0 14:24:43.149 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.48 для «9eb74f9b-5043-4c03-b351-0297119c70f8.mp3» (peak −5.9 dBFS, RMS −17.4 dBFS)
+   5542.0 14:24:43.184 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.55 для «a031c87f-3368-4b53-917c-557ca4c098a2.mp3» (peak −4.8 dBFS, RMS −21.8 dBFS)
+   5588.0 14:24:43.230 [perf] fps=53 worst=38ms drops=0 anim=6 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=160(frame:53,c:53,y:53,anon:1) canvas=1 snd=нет ses=auto/— mic=нет потока
+   5684.0 14:24:43.326 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.55 для «5b263d8e-b29a-4e96-8794-2682629979da.mp3» (peak −4.8 dBFS, RMS −21.8 dBFS)
+   5706.0 14:24:43.348 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.45 для «275e9e56-cfef-42a4-8777-cc767466dd2b.mp3» (peak −8.8 dBFS, RMS −26.3 dBFS)
+   5739.0 14:24:43.381 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.87 для «81027aef-1eeb-45c0-9531-266ba1021a8f.mp3» (peak −10.2 dBFS, RMS −23.7 dBFS)
+   5785.0 14:24:43.427 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.88 для «e645d3c4-0cae-4e80-b276-b7b4c5f73543.mp3» (peak −6.5 dBFS, RMS −22.5 dBFS)
+   5791.0 14:24:43.434 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.59 для «a4c07079-9107-4bb8-a762-719039c937b1.mp3» (peak −12.0 dBFS, RMS −22.3 dBFS)
+   5792.0 14:24:43.435 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.93 для «a0af1f99-d779-4868-9ce8-dc8795bb028c.mp3» (peak −6.7 dBFS, RMS −20.8 dBFS)
+   5924.0 14:24:43.566 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.56 для «6740584e-0593-4e52-8f3c-24c6b9975b9a.mp3» (peak −9.6 dBFS, RMS −22.1 dBFS)
+   6055.0 14:24:43.697 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.66 для «f4c2693d-0864-4e59-bcc9-7a9e13edacd0.mp3» (peak −7.2 dBFS, RMS −18.4 dBFS)
+   6056.0 14:24:43.698 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.08 для «f4dee731-0781-45c0-9ebf-ed1af1c2ae5d.mp3» (peak −7.4 dBFS, RMS −20.5 dBFS)
+   6056.0 14:24:43.698 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.99 для «a0f74cf3-d926-432b-98da-7bf5c416cd50.mp3» (peak −7.0 dBFS, RMS −20.9 dBFS)
+   6060.0 14:24:43.703 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.30 для «f398dcee-94f5-401c-90f0-538318a59394.mp3» (peak −8.2 dBFS, RMS −26.8 dBFS)
+   6063.0 14:24:43.705 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.76 для «3d7fcf9d-7b30-4bfa-bc29-da4f8aa249d6.mp3» (peak −7.3 dBFS, RMS −18.9 dBFS)
+   6288.0 14:24:43.931 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.96 для «307d9102-2df8-489c-8176-baffcfe52e07.mp3» (peak −6.8 dBFS, RMS −20.2 dBFS)
+   6323.0 14:24:43.966 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.91 для «40f4c00b-75de-4e7b-ba78-5d2c1615efe0.mp3» (peak −11.8 dBFS, RMS −23.3 dBFS)
+   6328.0 14:24:43.971 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.58 для «66956466-6f45-4ec0-9bd9-b7e97962edbe.mp3» (peak −4.9 dBFS, RMS −19.8 dBFS)
+   6344.0 14:24:43.987 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.02 для «a4948c9f-479a-4568-b867-28d30416471b.mp3» (peak −7.6 dBFS, RMS −20.1 dBFS)
+   6413.0 14:24:44.055 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.00 для «829c8f59-eb56-4e7a-b45b-94a3ac2899b4.mp3» (peak −7.0 dBFS, RMS −22.0 dBFS)
+   6424.0 14:24:44.067 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.43 для «f80a5cde-8a5c-43c4-aed8-fc3cb3a849a0.mp3» (peak −9.9 dBFS, RMS −21.7 dBFS)
+   6523.0 14:24:44.166 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.72 для «05efbeac-95de-4e2d-a705-583ac371727a.mp3» (peak −9.7 dBFS, RMS −23.2 dBFS)
+   6589.0 14:24:44.231 [perf] fps=57 worst=50ms drops=0 anim=4 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=171(frame:57,c:57,y:57) canvas=1 snd=нет ses=auto/— mic=нет потока
+   6601.0 14:24:44.243 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.33 для «3338e63a-4719-4c9c-998b-bbac15e8ce67.mp3» (peak −3.5 dBFS, RMS −20.8 dBFS)
+   6607.0 14:24:44.250 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.42 для «d48abadc-bcad-46d5-a3b4-8f7399332e12.mp3» (peak −8.9 dBFS, RMS −21.7 dBFS)
+   6777.0 14:24:44.419 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.89 для «d8b0c90d-741d-49fb-b3d0-e6e39a212772.mp3» (peak −6.5 dBFS, RMS −23.3 dBFS)
+   6785.0 14:24:44.427 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.78 для «6c8e2a3d-7397-4451-b2c7-be90cc5bd4e0.mp3» (peak −6.0 dBFS, RMS −20.8 dBFS)
+   6790.0 14:24:44.432 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.11 для «20a2bed5-31a8-46d1-819e-b5f718fe4f8a.mp3» (peak −1.9 dBFS, RMS −20.7 dBFS)
+   6857.0 14:24:44.499 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.11 для «lab:race_start» (peak −1.9 dBFS, RMS −20.7 dBFS)
+   6882.0 14:24:44.524 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.61 для «89274351-6772-4bb8-a185-eff045794a14.mp3» (peak −5.1 dBFS, RMS −20.1 dBFS)
+   6962.0 14:24:44.605 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.05 для «bbf0decb-6234-4ce7-a094-5032bd51e5cb.mp3» (peak −7.2 dBFS, RMS −22.2 dBFS)
+   7011.0 14:24:44.653 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.27 для «44fe546a-ad43-4eb9-9fff-eb3a10f4db61.mp3» (peak −8.1 dBFS, RMS −22.1 dBFS)
+   7051.0 14:24:44.693 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.29 для «adc032a5-a852-47e0-9e17-d73c41816342.mp3» (peak −3.2 dBFS, RMS −20.3 dBFS)
+   7068.0 14:24:44.710 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.74 для «d9a657f9-0b41-49f1-8ffa-24bc3a20022c.mp3» (peak −9.8 dBFS, RMS −22.8 dBFS)
+   7151.0 14:24:44.794 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.24 для «65962297-d940-4845-867f-18a76a2d7e27.mp3» (peak −2.8 dBFS, RMS −21.6 dBFS)
+   7249.0 14:24:44.891 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.39 для «7d5ea052-473a-499a-b299-855c17f52f2c.mp3» (peak −3.9 dBFS, RMS −21.5 dBFS)
+   7303.0 14:24:44.946 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.09 для «8045a706-9a56-4b24-9c0d-985914ae3137.mp3» (peak −1.8 dBFS, RMS −21.7 dBFS)
+   7304.0 14:24:44.946 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.91 для «d43cf175-357d-4b1a-8b62-72ddaa5da6c7.mp3» (peak −6.6 dBFS, RMS −21.8 dBFS)
+   7357.0 14:24:45.000 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.60 для «dbd1c143-ae89-4ab1-8dfc-55b6a3c4e278.mp3» (peak −5.1 dBFS, RMS −21.7 dBFS)
+   7443.0 14:24:45.085 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.55 для «03d55bc2-0513-4851-ba1e-4c294b4bd9c4.mp3» (peak −4.8 dBFS, RMS −20.9 dBFS)
+   7518.0 14:24:45.160 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.63 для «9e89f8e5-cfe3-4f7f-8373-84b6e17e5cc0.mp3» (peak −5.2 dBFS, RMS −21.6 dBFS)
+   7536.0 14:24:45.179 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.39 для «9a8a4b17-952e-4e0a-bba4-7229caa8f354.mp3» (peak −3.9 dBFS, RMS −20.8 dBFS)
+   7573.0 14:24:45.215 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.32 для «925ca894-66c9-4493-833e-7b384e69f405.mp3» (peak −3.4 dBFS, RMS −20.6 dBFS)
+   7574.0 14:24:45.216 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.90 для «bd1561cf-bfd4-4473-b2d0-bd56a0872b43.mp3» (peak −6.6 dBFS, RMS −21.6 dBFS)
+   7589.0 14:24:45.232 [perf] fps=60 worst=18ms drops=0 anim=7 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=173(c:60,y:60,frame:53) canvas=1 snd=нет ses=auto/— mic=нет потока
+   7771.0 14:24:45.413 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.91 для «e8c97a2a-d190-4bcc-8fd9-f16fd1879be0.mp3» (peak −6.6 dBFS, RMS −22.0 dBFS)
+   7801.0 14:24:45.443 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.33 для «39473896-a634-4e40-aaa4-2b392f8356e7.mp3» (peak −3.5 dBFS, RMS −21.9 dBFS)
+   7839.0 14:24:45.481 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.15 для «c0765283-41bd-48eb-a67f-8109985384b6.mp3» (peak −2.2 dBFS, RMS −18.1 dBFS)
+   7842.0 14:24:45.485 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.75 для «8f58bac7-9f3e-4178-8f2a-c738db56eeea.mp3» (peak −5.9 dBFS, RMS −21.6 dBFS)
+   7874.0 14:24:45.516 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.57 для «fc062cdd-e741-4085-84c1-a3f450f301b6.mp3» (peak −4.9 dBFS, RMS −19.4 dBFS)
+   7991.0 14:24:45.634 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.77 для «19600290-00cb-4cb4-a66b-0e790bc73548.mp3» (peak −5.9 dBFS, RMS −21.5 dBFS)
+   8062.0 14:24:45.705 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.47 для «ef49cdf3-260a-4007-b558-452b97be0f7c.mp3» (peak −4.4 dBFS, RMS −22.4 dBFS)
+   8092.0 14:24:45.734 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.99 для «231d00de-b327-4eee-b220-149ae6328570.mp3» (peak −7.0 dBFS, RMS −22.2 dBFS)
+   8126.0 14:24:45.769 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.77 для «7b6a3bb5-f1e3-486e-aebe-c3b29d58af73.mp3» (peak −6.0 dBFS, RMS −21.1 dBFS)
+   8142.0 14:24:45.784 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.34 для «a7ef6490-fd2f-41e8-a0fd-330414817925.mp3» (peak −8.4 dBFS, RMS −22.9 dBFS)
+   8224.0 14:24:45.866 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.08 для «876bda2e-71f8-416e-97f3-6021bf2e09d8.mp3» (peak −7.4 dBFS, RMS −22.0 dBFS)
+   8241.0 14:24:45.883 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.76 для «3bb53b17-f77d-4635-aa90-78a86789ed1f.mp3» (peak −5.9 dBFS, RMS −21.8 dBFS)
+   8343.0 14:24:45.985 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.80 для «a090656e-98e7-4333-a434-4d244dd372af.mp3» (peak −6.1 dBFS, RMS −22.6 dBFS)
+   8368.0 14:24:46.011 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.11 для «400209f5-abd1-4ab8-ac1b-a6d80237fa65.mp3» (peak −1.9 dBFS, RMS −22.0 dBFS)
+   8408.0 14:24:46.050 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.93 для «627836c4-b568-4127-b44b-db55125001f7.mp3» (peak −6.7 dBFS, RMS −21.6 dBFS)
+   8479.0 14:24:46.121 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.16 для «7fae620a-b660-48d8-9340-3bf1dd266b07.mp3» (peak −7.7 dBFS, RMS −22.7 dBFS)
+   8488.0 14:24:46.131 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.56 для «12506306-ecc5-4f37-a853-51fa76c3b8fd.mp3» (peak −4.9 dBFS, RMS −21.3 dBFS)
+   8593.0 14:24:46.236 [perf] fps=60 worst=18ms drops=0 anim=7 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=120(c:60,y:60) canvas=1 snd=нет ses=auto/— mic=нет потока
+   8623.0 14:24:46.265 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.09 для «e6d3104d-69d9-44ae-ad5d-f0ef218952cb.mp3» (peak −7.4 dBFS, RMS −21.9 dBFS)
+   8670.0 14:24:46.312 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.45 для «d2c82af1-f471-45d3-a3ab-17d5e00eb939.mp3» (peak −4.2 dBFS, RMS −20.9 dBFS)
+   8698.0 14:24:46.340 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.77 для «1a9ce155-4a4c-4cdc-bd7f-e022c14ae1a3.mp3» (peak −6.0 dBFS, RMS −21.2 dBFS)
+   8723.0 14:24:46.365 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.67 для «b57eb8a1-8732-49e8-865a-834182542ced.mp3» (peak −5.4 dBFS, RMS −21.5 dBFS)
+   8801.0 14:24:46.443 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.89 для «97c2253d-1895-4450-9318-1b110a3b1b21.mp3» (peak −6.5 dBFS, RMS −22.8 dBFS)
+   8859.0 14:24:46.501 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.84 для «327062ec-4c7e-42db-92bf-14febde5edfa.mp3» (peak −6.3 dBFS, RMS −21.1 dBFS)
+   8904.0 14:24:46.546 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.79 для «86085c00-e918-4a41-8da8-7ea618812497.mp3» (peak −6.0 dBFS, RMS −21.5 dBFS)
+   8926.0 14:24:46.568 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.68 для «6a9f9838-412d-433c-9863-a4c5c92e6e69.mp3» (peak −5.5 dBFS, RMS −21.7 dBFS)
+   8963.0 14:24:46.606 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.19 для «79e5049a-7db4-42fb-846c-d68a3ed67743.mp3» (peak −2.5 dBFS, RMS −20.9 dBFS)
+   9002.0 14:24:46.645 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.41 для «9fd5406d-946e-4d11-a83b-bcc48186e9c4.mp3» (peak −4.0 dBFS, RMS −20.6 dBFS)
+   9087.0 14:24:46.730 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.38 для «3c2c7374-5a0c-411d-8443-74b6a64d4253.mp3» (peak −3.8 dBFS, RMS −21.2 dBFS)
+   9155.0 14:24:46.798 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.54 для «45e4537d-c552-43ac-bdfc-dea7579a8869.mp3» (peak −4.7 dBFS, RMS −20.9 dBFS)
+   9191.0 14:24:46.833 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.36 для «0ea09682-4239-4570-808b-59b61d7324ff.mp3» (peak −3.7 dBFS, RMS −21.4 dBFS)
+   9231.0 14:24:46.874 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.64 для «932ccea5-5c7c-4070-9dc6-e8191c00e4af.mp3» (peak −5.3 dBFS, RMS −20.3 dBFS)
+   9298.0 14:24:46.940 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.89 для «7e23159f-29c1-47e7-8ade-a45eb9fdfae0.mp3» (peak −6.5 dBFS, RMS −20.5 dBFS)
+   9339.0 14:24:46.982 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.59 для «e3ef40af-9e86-40ab-8a1c-63e4c45f9fc5.mp3» (peak −5.0 dBFS, RMS −19.0 dBFS)
+   9374.0 14:24:47.016 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.00 для «7e0872dc-ea53-482d-8a0e-edfa68bbd5e5.mp3» (peak −1.0 dBFS, RMS −18.5 dBFS)
+   9440.0 14:24:47.082 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.32 для «e57cd143-6a55-41f2-87f0-cdd678f6ac5b.mp3» (peak −3.4 dBFS, RMS −20.3 dBFS)
+   9443.0 14:24:47.086 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.37 для «69c1b7d5-e0ce-4b22-8b37-adfa5f14834d.mp3» (peak −3.7 dBFS, RMS −19.8 dBFS)
+   9597.0 14:24:47.239 [perf] fps=60 worst=18ms drops=0 anim=7 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=120(c:60,y:60) canvas=1 snd=нет ses=auto/— mic=нет потока
+   9622.0 14:24:47.265 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.34 для «a916eaa2-b7a4-46ab-bd7d-9005be711eb6.mp3» (peak −3.5 dBFS, RMS −19.7 dBFS)
+   9674.0 14:24:47.316 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.26 для «c5f900b2-f191-4fda-9ce8-0e5abaa88f8b.mp3» (peak −3.0 dBFS, RMS −21.8 dBFS)
+   9678.0 14:24:47.320 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.93 для «df99845e-431c-4759-9a04-16e92bbfe71a.mp3» (peak −6.7 dBFS, RMS −20.5 dBFS)
+   9679.0 14:24:47.321 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.76 для «599a47b7-98ed-467f-8e53-e6391afac3f1.mp3» (peak −5.9 dBFS, RMS −21.6 dBFS)
+   9710.0 14:24:47.352 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.50 для «aec93924-fc6a-40f8-a4e6-b5c4560b9965.mp3» (peak −4.5 dBFS, RMS −20.2 dBFS)
+   9711.0 14:24:47.353 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.49 для «188a7fb7-d134-4ab3-ad0a-2eda996958a9.mp3» (peak −4.5 dBFS, RMS −21.4 dBFS)
+   9883.0 14:24:47.525 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.66 для «66586b04-cfaa-4118-95e1-ee298b8b8f4b.mp3» (peak −5.4 dBFS, RMS −20.4 dBFS)
+   9930.0 14:24:47.573 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.63 для «974ce249-6090-4d97-9432-65dd0be6010c.mp3» (peak −5.3 dBFS, RMS −21.6 dBFS)
+   9934.0 14:24:47.577 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.23 для «69f9176b-d9ef-4a3a-8e68-705556645373.mp3» (peak −2.8 dBFS, RMS −19.1 dBFS)
+   9969.0 14:24:47.612 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.33 для «d723b202-6680-49f8-864f-4ddcf6a5935e.mp3» (peak −3.5 dBFS, RMS −21.1 dBFS)
+  10063.0 14:24:47.706 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.07 для «b4bf2837-edbe-4448-aa2f-46d4381f82b7.mp3» (peak −7.3 dBFS, RMS −20.8 dBFS)
+  10104.0 14:24:47.747 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.63 для «7b5b9ace-a5cb-4949-a0b6-e32aad56f2fb.mp3» (peak −9.4 dBFS, RMS −23.1 dBFS)
+  10139.0 14:24:47.781 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.42 для «0b006c22-4d92-4c12-a688-9bb20e9ce724.mp3» (peak −4.1 dBFS, RMS −21.4 dBFS)
+  10172.0 14:24:47.815 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.49 для «7365f9ce-4868-45ff-baac-c1ce2d77a175.mp3» (peak −4.5 dBFS, RMS −18.6 dBFS)
+  10196.0 14:24:47.839 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.84 для «149d1836-eb69-41be-b2b3-60724521000e.mp3» (peak −6.3 dBFS, RMS −21.3 dBFS)
+  10214.0 14:24:47.857 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.78 для «1a0f20d3-68a7-4626-a9e3-a57444202c7e.mp3» (peak −6.0 dBFS, RMS −21.1 dBFS)
+  10321.0 14:24:47.964 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.91 для «1ef93016-6147-4b05-b234-92e454927e77.mp3» (peak −6.6 dBFS, RMS −22.3 dBFS)
+  10355.0 14:24:47.998 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.72 для «bcb8fd68-bd2e-4fd8-b724-551594c8079f.mp3» (peak −5.7 dBFS, RMS −21.9 dBFS)
+  10386.0 14:24:48.029 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.54 для «d8489315-f9d8-473e-b88e-dcd4fc76e8a4.mp3» (peak −4.8 dBFS, RMS −21.3 dBFS)
+  10423.0 14:24:48.065 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.23 для «7df123c8-331c-4974-a79f-38f20750961e.mp3» (peak −8.0 dBFS, RMS −22.1 dBFS)
+  10455.0 14:24:48.097 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.48 для «8565f862-c160-469c-bb56-3cead44e19c0.mp3» (peak −4.4 dBFS, RMS −19.7 dBFS)
+  10480.0 14:24:48.123 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.23 для «3cd02fb6-9e60-4ceb-8d3d-d63505c08a94.mp3» (peak −2.8 dBFS, RMS −20.9 dBFS)
+  10589.0 14:24:48.231 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.83 для «23a9a16a-b092-4871-ae55-d165c85682a4.mp3» (peak −6.3 dBFS, RMS −22.3 dBFS)
+  10590.0 14:24:48.233 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.74 для «c86e5a49-74a6-4d6a-9a5e-1520aa11c05d.mp3» (peak −5.8 dBFS, RMS −19.9 dBFS)
+  10601.0 14:24:48.243 [perf] fps=61 worst=18ms drops=0 anim=7 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=122(c:61,y:61) canvas=1 snd=нет ses=auto/— mic=нет потока
+  10715.0 14:24:48.357 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.59 для «57473e54-b14d-4fc5-acc9-2973270c5b4b.mp3» (peak −5.0 dBFS, RMS −20.6 dBFS)
+  10715.0 14:24:48.358 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.48 для «d076b8d7-4c0c-47ca-9360-82d895ed2bc8.mp3» (peak −4.4 dBFS, RMS −21.1 dBFS)
+  10718.0 14:24:48.361 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.97 для «233ec720-d921-458f-a304-2b347dae5749.mp3» (peak −6.9 dBFS, RMS −21.5 dBFS)
+  10763.0 14:24:48.405 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.04 для «2d91d049-95e0-4cb0-b781-04268207431e.mp3» (peak −1.3 dBFS, RMS −20.5 dBFS)
+  10843.0 14:24:48.486 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.80 для «ed000c89-2ae2-41ab-9355-d9516aba9173.mp3» (peak −6.1 dBFS, RMS −21.6 dBFS)
+  10904.0 14:24:48.546 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.64 для «f12dc63d-a637-4a04-9eb3-a21382498677.mp3» (peak −5.3 dBFS, RMS −21.2 dBFS)
+  10959.0 14:24:48.602 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.02 для «b8835e62-d73c-4f9f-bf76-5da15eec03dc.mp3» (peak −1.2 dBFS, RMS −19.7 dBFS)
+  10994.0 14:24:48.637 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.39 для «de18256e-03a6-4227-9721-2cb6447aed27.mp3» (peak −3.8 dBFS, RMS −21.5 dBFS)
+  11013.0 14:24:48.655 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.25 для «9df9e950-671e-4da4-aaef-6b383742aaf8.mp3» (peak −2.9 dBFS, RMS −20.8 dBFS)
+  11018.0 14:24:48.661 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.63 для «1302151a-e9f5-4ef0-9c31-dcc15dadec85.mp3» (peak −5.2 dBFS, RMS −22.2 dBFS)
+  11135.0 14:24:48.777 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.31 для «7ed96f89-02cf-41db-9475-6a658ad50e7f.mp3» (peak −3.3 dBFS, RMS −20.8 dBFS)
+  11182.0 14:24:48.825 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.43 для «13d0a540-6ffc-4cfd-8d34-a39d5ded8d60.mp3» (peak −4.1 dBFS, RMS −20.4 dBFS)
+  11247.0 14:24:48.889 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.51 для «b9afe0d2-c4be-4d34-a893-d9f40aa439f3.mp3» (peak −4.6 dBFS, RMS −20.5 dBFS)
+  11314.0 14:24:48.957 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.29 для «aa3db115-1db8-423b-b705-46ae7f65747e.mp3» (peak −3.2 dBFS, RMS −19.1 dBFS)
+  11326.0 14:24:48.969 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.40 для «e6b8e1f1-c002-438d-8748-03b682cbaea2.mp3» (peak −4.1 dBFS, RMS −16.9 dBFS)
+  11351.0 14:24:48.993 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.33 для «cb0162e4-a92d-4feb-be85-9599fa3fec03.mp3» (peak −3.5 dBFS, RMS −20.8 dBFS)
+  11414.0 14:24:49.056 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.26 для «b9a8c915-16f5-4380-9fbd-39e3892d3832.mp3» (peak −8.1 dBFS, RMS −22.9 dBFS)
+  11504.0 14:24:49.147 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.52 для «54358d98-7bdf-46f2-b29a-b281f4e062e3.mp3» (peak −4.6 dBFS, RMS −20.5 dBFS)
+  11547.0 14:24:49.189 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.24 для «a72a09dd-a8d6-491f-846d-20f752cef196.mp3» (peak −2.9 dBFS, RMS −21.4 dBFS)
+  11591.0 14:24:49.233 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.86 для «fb9a3aca-c1dd-44a1-aa61-990d202b5a52.mp3» (peak −6.4 dBFS, RMS −21.4 dBFS)
+  11601.0 14:24:49.243 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.42 для «ca58780b-f354-4179-892c-00cd24efb450.mp3» (peak −4.0 dBFS, RMS −20.3 dBFS)
+  11605.0 14:24:49.247 [perf] fps=60 worst=18ms drops=0 anim=7 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=120(c:60,y:60) canvas=1 snd=нет ses=auto/— mic=нет потока
+  11703.0 14:24:49.345 [suspects] (tick) elements=2162 willChange=13(memOrbitX:3,memOrbitY:3,memRing:3) backdropFilter=0 filter=23(svg:9,shellV2NavBtn:5,rect:3) transform3d=0 blend=0 canvas=1(phraseBubbleCanvas:1) video=4(slideVideoRoot:2,slideVideoRoot:playing:1,div:1)
+  11712.0 14:24:49.354 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.35 для «6b4dd2de-f2ce-4aa2-84d4-38a9ae96a2be.mp3» (peak −3.6 dBFS, RMS −20.9 dBFS)
+  11759.0 14:24:49.401 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.72 для «2892b15e-ec32-4511-b57a-be37ce01d1f3.mp3» (peak −5.7 dBFS, RMS −22.5 dBFS)
+  11802.0 14:24:49.445 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.12 для «089e99a9-87b1-4a11-8cc9-ec2b6e6cdee0.mp3» (peak −1.9 dBFS, RMS −19.9 dBFS)
+  11834.0 14:24:49.477 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.39 для «18b73111-9b61-4dfe-b284-4701932ab1b8.mp3» (peak −3.8 dBFS, RMS −21.0 dBFS)
+  11892.0 14:24:49.535 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.43 для «9daabe0b-5ae9-46b1-862c-40e1d20a99b7.mp3» (peak −4.1 dBFS, RMS −21.6 dBFS)
+  11944.0 14:24:49.586 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.00 для «429eb91d-ccae-4792-95e3-44756cc58d05.mp3» (peak −0.7 dBFS, RMS −20.8 dBFS)
+  11996.0 14:24:49.639 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.40 для «31d9ed63-371f-4764-810e-b76fcb1f9767.mp3» (peak −3.9 dBFS, RMS −20.4 dBFS)
+  12063.0 14:24:49.705 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.14 для «1aeceff2-70a9-4ab0-ac3f-63508334c742.mp3» (peak −2.1 dBFS, RMS −20.0 dBFS)
+  12067.0 14:24:49.709 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.30 для «a4e1512b-baa5-4879-9d32-ac39f365ad02.mp3» (peak −3.2 dBFS, RMS −20.9 dBFS)
+  12076.0 14:24:49.719 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.60 для «8800103a-3c43-4396-91ec-031e70f76fd4.mp3» (peak −5.1 dBFS, RMS −19.5 dBFS)
+  12145.0 14:24:49.788 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.23 для «348c76e6-198a-4f21-b9c2-1030d61b1264.mp3» (peak −2.8 dBFS, RMS −19.8 dBFS)
+  12214.0 14:24:49.856 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.00 для «4cddf4e0-0917-43d5-adfb-254d124a1662.mp3» (peak −0.7 dBFS, RMS −19.1 dBFS)
+  12349.0 14:24:49.992 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.21 для «885618dc-a9e7-430f-a96f-5ad991d15389.mp3» (peak −2.6 dBFS, RMS −22.2 dBFS)
+  12350.0 14:24:49.993 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.69 для «e09761af-db86-41e4-bd36-3d1f548290e8.mp3» (peak −5.6 dBFS, RMS −21.2 dBFS)
+  12368.0 14:24:50.011 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.21 для «6853f63d-3ef3-47db-b901-ccd3464e57bd.mp3» (peak −2.6 dBFS, RMS −21.5 dBFS)
+  12447.0 14:24:50.089 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.60 для «635b69e3-f6ee-4c9a-ba92-2620a42fa5ae.mp3» (peak −5.1 dBFS, RMS −22.2 dBFS)
+  12460.0 14:24:50.102 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.09 для «96114690-60b4-462c-8e50-40d6ef34a053.mp3» (peak −1.8 dBFS, RMS −21.0 dBFS)
+  12463.0 14:24:50.105 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.14 для «c66bf7f3-df55-47f5-852f-bb0bacd060ce.mp3» (peak −2.1 dBFS, RMS −19.8 dBFS)
+  12609.0 14:24:50.252 [perf] fps=56 worst=104ms drops=1 anim=7 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=112(c:56,y:56) canvas=1 snd=нет ses=auto/— mic=нет потока
+  12616.0 14:24:50.259 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.07 для «e8e5d465-1715-44d6-9362-106d75447bf0.mp3» (peak −1.6 dBFS, RMS −20.3 dBFS)
+  12701.0 14:24:50.344 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.23 для «8537483c-b0cf-4078-a22a-cfb66b73304f.mp3» (peak −2.8 dBFS, RMS −22.1 dBFS)
+  12711.0 14:24:50.354 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.89 для «4272ebf2-fbff-4bd7-8f0f-8c6e301b051e.mp3» (peak −6.5 dBFS, RMS −20.7 dBFS)
+  12737.0 14:24:50.379 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.78 для «8408779f-9b64-41f4-8beb-31fbac394e62.mp3» (peak −6.0 dBFS, RMS −21.1 dBFS)
+  12767.0 14:24:50.409 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.83 для «2ade9fd3-e0f0-4b36-bb6b-0e3ea4ee3975.mp3» (peak −6.2 dBFS, RMS −21.1 dBFS)
+  12854.0 14:24:50.496 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.76 для «3c99bf89-5d6a-48f5-a8f3-6f33c3d48b72.mp3» (peak −5.9 dBFS, RMS −21.5 dBFS)
+  12886.0 14:24:50.528 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.21 для «334b0aa2-9cb5-4a5b-afee-0a3a6aaed4b8.mp3» (peak −7.9 dBFS, RMS −23.9 dBFS)
+  13615.0 14:24:51.258 [perf] fps=60 worst=18ms drops=0 anim=3 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=120(c:60,y:60) canvas=1 snd=нет ses=auto/— mic=нет потока
+  14617.0 14:24:52.259 [perf] fps=60 worst=25ms drops=0 anim=3 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=120(c:60,y:60) canvas=1 snd=нет ses=auto/— mic=нет потока
+  15622.0 14:24:53.264 [perf] fps=61 worst=17ms drops=0 anim=3 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=122(c:61,y:61) canvas=1 snd=нет ses=auto/— mic=нет потока
+  16626.0 14:24:54.268 [perf] fps=60 worst=17ms drops=0 anim=3 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=120(c:60,y:60) canvas=1 snd=нет ses=auto/— mic=нет потока
+  17630.0 14:24:55.272 [perf] fps=60 worst=17ms drops=0 anim=3 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=120(c:60,y:60) canvas=1 snd=нет ses=auto/— mic=нет потока
+  18634.0 14:24:56.277 [perf] fps=60 worst=17ms drops=0 anim=3 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=120(c:60,y:60) canvas=1 snd=нет ses=auto/— mic=нет потока
+  19637.0 14:24:57.280 [perf] fps=61 worst=19ms drops=0 anim=3 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=122(c:61,y:61) canvas=1 snd=нет ses=auto/— mic=нет потока
+  20642.0 14:24:58.284 [perf] fps=60 worst=17ms drops=0 anim=3 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=120(c:60,y:60) canvas=1 snd=нет ses=auto/— mic=нет потока
+  21646.0 14:24:59.288 [perf] fps=60 worst=17ms drops=0 anim=3 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=120(c:60,y:60) canvas=1 snd=нет ses=auto/— mic=нет потока
+  21757.0 14:24:59.400 [suspects] (tick) elements=2150 willChange=13(memOrbitX:3,memOrbitY:3,memRing:3) backdropFilter=0 filter=23(svg:9,shellV2NavBtn:5,rect:3) transform3d=0 blend=0 canvas=1(phraseBubbleCanvas:1) video=4(slideVideoRoot:2,slideVideoRoot:playing:1,div:1)
+  22649.0 14:25:00.292 [perf] fps=55 worst=122ms drops=1 anim=3 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=110(c:55,y:55) canvas=1 snd=нет ses=auto/— mic=нет потока
+  23155.0 14:25:00.798 [motion] разрешение не получено: NotAllowedError
+  23155.0 14:25:00.798 [motion] датчик движения: denied
+  23285.0 14:25:00.927 [sound] вкладка «Голос» на экране — полная тишина приложения
+  23654.0 14:25:01.296 [perf] fps=58 worst=51ms drops=1 anim=3 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=94(c:58,y:36) canvas=0 snd=нет ses=auto/— mic=нет потока
+  24658.0 14:25:02.300 [perf] fps=60 worst=36ms drops=0 anim=3 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=60(c:60) canvas=0 snd=нет ses=auto/— mic=нет потока
+  25662.0 14:25:03.304 [perf] fps=60 worst=40ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=60(c:60) canvas=0 snd=нет ses=auto/— mic=нет потока
+  26109.0 14:25:03.751 [start] +0 мс тап «Начать» (жест): сцена с попапом, тихий прогрев
+  26113.0 14:25:03.755 [game-audio] AudioContext игры создан, state=suspended, rate=48000
+  26225.0 14:25:03.868 [warm] гонка: прогрев начат в «Начать» (без звука и микрофона), ctx=suspended; первыми декодирую 8: race_start, race_good_1, race_good_2, race_good_3, race_good_4, ru:учиться, ru:пытаюсь, ru:я
+  26225.0 14:25:03.868 [start] +116 мс AudioContext игры создан в жесте, state=suspended; декодирую 8 файлов
+  26227.0 14:25:03.869 [warm] гонка: декодировано 8/8 за 118 мс
+  26227.0 14:25:03.869 [start] +118 мс декодировано 8/8 файлов
+  26232.0 14:25:03.874 [warm] гонка: AudioContext открыт в жесте «Начать»: running через 123 мс
+  26232.0 14:25:03.874 [start] +123 мс AudioContext running
+  26232.0 14:25:03.874 [page] audioSession: смена состояния; ctx=running, audioSession=auto/—, микрофон=нет потока
+  26232.0 14:25:03.874 [game-audio] AudioContext игры → running
+  26666.0 14:25:04.308 [perf] fps=50 worst=141ms drops=1 anim=3 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=50(c:50) canvas=0 snd=game:running ses=auto/— mic=нет потока
+  27205.0 14:25:04.847 [start] +1096 мс тап «Голосом»
+  27205.0 14:25:04.848 [note] start-mark {"name":"tap","sinceTap":0}
+  27206.0 14:25:04.848 [start-mode] тап (до смены типа): режим=default, тип сессии игры=playback; audioSession=auto/—; ctx игры=running 48000 Гц задержка 3/15 мс; ctx звуков=нет; другие ctx=нет; микрофон=нет потока; вкладка=visible; +1 мс с тапа
+  27207.0 14:25:04.849 [note] audio-warm {"step":"begin","ctx":"running","session":null,"activation":true}
+  27207.0 14:25:04.849 [note] audio-session {"mode":"playback","why":"begin","requested":"play-and-record","ok":true,"as":"play-and-record","prev":"auto","supported":true}
+  27207.0 14:25:04.849 [start-mode] после begin (тип поставлен): режим=default, тип сессии игры=playback; audioSession=play-and-record/—; ctx игры=running 48000 Гц задержка 3/15 мс; ctx звуков=нет; другие ctx=нет; микрофон=нет потока; вкладка=visible; +2 мс с тапа; изменилось: audioSession
+  27207.0 14:25:04.849 [audio] микрофон: запрос getUserMedia (blur/focus за это время не пауза)
+  27211.0 14:25:04.853 [start-mode] getUserMedia вызван: режим=default, тип сессии игры=playback; audioSession=play-and-record/—; ctx игры=running 48000 Гц задержка 3/15 мс; ctx звуков=нет; другие ctx=нет; микрофон=нет потока; вкладка=visible; +6 мс с тапа
+  27212.0 14:25:04.854 [start] +1103 мс getUserMedia вызван (в жесте, после типа сессии)
+  27214.0 14:25:04.856 [word-audio] слова прогреты заново: 0
+  27214.0 14:25:04.857 [sound] AudioContext created state=suspended
+  27215.0 14:25:04.857 [sound] preload message-in
+  27215.0 14:25:04.857 [sound] preload answer-correct
+  27215.0 14:25:04.857 [sound] preload answer-wrong
+  27215.0 14:25:04.857 [sound] preload pin-message
+  27215.0 14:25:04.857 [sound] preload typing-1
+  27215.0 14:25:04.857 [sound] preload typing-2
+  27215.0 14:25:04.857 [sound] preload xp-gain
+  27215.0 14:25:04.857 [sound] preload level-up
+  27215.0 14:25:04.858 [sound] preload lesson-locked
+  27216.0 14:25:04.859 [note] start-mark {"name":"wake","sinceTap":11,"ok":true,"ctx":"running","early":true}
+  27217.0 14:25:04.859 [warm] готово 152/152 за 1 мс, ворота открыты по: все
+  27218.0 14:25:04.860 [audio] состояние ctx=running (быстрый старт гонки)
+  27218.0 14:25:04.860 [note] start-mark {"name":"ctx","sinceTap":13,"state":"running","recreated":false,"afterBg":null,"ms":5,"early":true}
+  27218.0 14:25:04.860 [note] start-mark {"name":"ready","sinceTap":13,"words":"ready","gate":"all","done":152,"total":152,"firstN":1,"ms":1,"ctx":"running","early":true}
+  27218.0 14:25:04.860 [race] старт: звук реплик готов через 13 мс с тапа, микрофон ещё открывается, ctx=running
+  27218.0 14:25:04.860 [start] +1109 мс звук реплик готов (ворота: all, 152/152), ctx=running
+  27218.0 14:25:04.860 [start-mode] первая реплика разрешена (onLineReady): режим=default, тип сессии игры=playback; audioSession=play-and-record/—; ctx игры=running 48000 Гц задержка 3/15 мс; ctx звуков=suspended 48000 Гц; другие ctx=нет; микрофон=нет потока; вкладка=visible; +13 мс с тапа; изменилось: ctx звуков
+  27735.0 14:25:05.378 [jank] кадр 533 мс; перед ним: [race] старт: звук реплик готов через 13 мс с тапа, микрофон ещё открывается, ctx=running ‖ [start] +1109 мс звук реплик готов (ворота: all, 152/152), ctx=running ‖ [start-mode] первая реплика разрешена (onLineReady): режим=default, тип сессии игры=playback; audioSession=pla
+  27738.0 14:25:05.380 [perf] fps=34 worst=533ms drops=1 anim=3 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=34(c:34) canvas=0 snd=game:running×0.51,sounds:running ses=play-and-record/— mic=нет потока
+  27739.0 14:25:05.381 [sound] AudioContext state → running
+  27791.0 14:25:05.433 [audio] громкость: сессия play-and-record, мастер-gain 1, нормализация ×8.00 для «typing-2» (peak −25.2 dBFS, RMS −38.4 dBFS)
+  27791.0 14:25:05.434 [audio] громкость: сессия play-and-record, мастер-gain 1, нормализация ×1.00 для «lesson-locked» (peak −0.0 dBFS, RMS −16.5 dBFS)
+  27792.0 14:25:05.434 [audio] громкость: сессия play-and-record, мастер-gain 1, нормализация ×1.95 для «xp-gain» (peak −6.8 dBFS, RMS −22.6 dBFS)
+  27792.0 14:25:05.434 [audio] громкость: сессия play-and-record, мастер-gain 1, нормализация ×5.76 для «typing-1» (peak −16.2 dBFS, RMS −32.6 dBFS)
+  28737.0 14:25:06.379 [perf] fps=59 worst=56ms drops=1 anim=3 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=59(c:59) canvas=0 snd=game:running×0.95,sounds:running×0.95 ses=play-and-record/— mic=нет потока
+  29032.0 14:25:06.674 [page] devicechange: ввод 2, вывод 4 (вх:iPhone Microphone, вх:AirPods, вых:Default - Speaker, вых:Speaker, вых:Receiver, вых:AirPods); ctx=running, audioSession=play-and-record/—, микрофон=нет потока
+  29032.0 14:25:06.674 [audio] микрофон: ответ granted через 1825 мс (blur/focus ещё 1,5 с не пауза)
+  29032.0 14:25:06.674 [mic] игровой поток открыт (один на сеанс страницы): эхо выкл, шумодав выкл
+  29032.0 14:25:06.674 [mic] усиление ×2 (высокая ×2; перед Vosk: GainNode + мягкий ограничитель)
+  29032.0 14:25:06.674 [mic] дорожка применила: эхо false, шумодав —, автоусиление —, устройство «iPhone Microphone», частота 48000
+  29032.0 14:25:06.674 [start-mode] getUserMedia ответил: granted (до afterMic): режим=default, тип сессии игры=playback; audioSession=play-and-record/—; ctx игры=running 48000 Гц задержка 3/15 мс; ctx звуков=running 48000 Гц; другие ctx=нет; микрофон=live muted=нет enabled=да (эхо нет, шум —, AGC —, 48000 Гц); вкладка=visible; +1827 мс с тапа; изменилось: ctx звуков, микрофон
+  29032.0 14:25:06.674 [note] audio-session {"mode":"playback","why":"mic-ready","requested":"playback","ok":true,"as":"playback","prev":"auto","supported":true}
+  29032.0 14:25:06.674 [start-mode] после afterMic (микрофон: granted): режим=default, тип сессии игры=playback; audioSession=playback/—; ctx игры=running 48000 Гц задержка 3/15 мс; ctx звуков=running 48000 Гц; другие ctx=нет; микрофон=live muted=нет enabled=да (эхо нет, шум —, AGC —, 48000 Гц); вкладка=visible; +1827 мс с тапа; изменилось: audioSession
+  29032.0 14:25:06.674 [note] start-mark {"name":"mic","sinceTap":1827,"mic":"granted"}
+  29032.0 14:25:06.674 [start] +2923 мс getUserMedia ответил: granted — попап «Готовлю звук…»
+  29032.0 14:25:06.674 [start] +2923 мс «Готовлю звук»: жду, пока аудиосессия уляжется после смены на запись (iOS может прервать AudioContext): тишина 120 мс без прерываний, потолок 900 мс
+  29158.0 14:25:06.800 [note] audio-warm {"step":"settled","interrupts":0,"waitedMs":126,"ctx":"running","session":null,"timedOut":false,"activation":true}
+  29158.0 14:25:06.800 [audio-warm] аудиосессия улеглась через 126 мс: прерываний 0, контекст running, жест жив
+  29158.0 14:25:06.800 [start-mode] сессия улеглась (settle): 126 мс, прерываний 0: режим=default, тип сессии игры=playback; audioSession=playback/—; ctx игры=running 48000 Гц задержка 3/15 мс; ctx звуков=running 48000 Гц; другие ctx=нет; микрофон=live muted=нет enabled=да (эхо нет, шум —, AGC —, 48000 Гц); вкладка=visible; +1953 мс с тапа
+  29158.0 14:25:06.800 [start] +3049 мс аудиосессия улеглась за 126 мс: прерываний 0, ctx=running
+  29158.0 14:25:06.800 [note] start-mark {"name":"settle","sinceTap":1953,"waitedMs":126,"interrupts":0,"ctx":"running","activation":true}
+  29158.0 14:25:06.800 [note] start-mark {"name":"ctx","sinceTap":1953,"state":"running","recreated":false,"afterBg":null,"ms":0}
+  29158.0 14:25:06.800 [word-audio] слова прогреты заново: 0
+  29158.0 14:25:06.800 [note] start-mark {"name":"wake","sinceTap":1953,"ok":true,"ctx":"running"}
+  29158.0 14:25:06.800 [start] +3049 мс вход в игру: setPhase('game')
+  29158.0 14:25:06.801 [warm] гонка: вход в игру — в памяти 8/8, race_start декодирован, ctx=running, прогрев начат 3049 мс назад
+  29158.0 14:25:06.801 [rotate] игра «I'm trying to learn»: микрофон granted
+  29180.0 14:25:06.822 [mouth] источник рта (запуск сцены): только озвучка Пита — визмы реплики/слова/фразы и уровень диктора по клипу; микрофон рот не двигает (уровень голоса игрока → только выглядывание головы)
+  29183.0 14:25:06.825 [pill] слои пилюль: обычные (will-change; клип заливки и свет линии — постоянные слои)
+  29187.0 14:25:06.829 [word-lane] диктор: без озвучки автора — куски из библиотеки слов (голоса системы нет)
+  29198.0 14:25:06.840 [pauses] все по умолчанию
+  29198.0 14:25:06.840 [scene] {"t":29198,"k":"run","run":1,"game":"race","only":"stages","seed":"2026-11-26|I'm | trying | to learn","stages":23,"ask":"mixed"}
+  29216.0 14:25:06.858 [start] +3107 мс сцена игры смонтирована
+  29216.0 14:25:06.858 [start] +3107 мс первый кадр сцены
+  29219.0 14:25:06.861 [start] +3110 мс sayLine(«race_start») вызван — буфер готов, звук сразу
+  29220.0 14:25:06.862 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  29221.0 14:25:06.863 [audio] громкость: сессия playback, мастер-gain 1, режим «loud»: сжатие -28 дБ 4:1 колено 18, лимитер -3 дБ, срез низов 500 Гц, нормализация до -1 dBFS (≤ ×4, RMS ≤ -18) — игра
+  29222.0 14:25:06.864 [cat] cat-speak {"id":"race_start","ms":5799,"trackLen":27,"empty":false,"up":true}
+  29222.0 14:25:06.865 [scene] {"t":29222,"k":"line-start","who":"pit","id":"race_start","text":"Встряхнём память, я говорю слова, а ты переводишь вслух, запускаю конвейер слов","ms":5799}
+  29222.0 14:25:06.865 [cat] очередь: +реплика «race_start» 5799 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  29223.0 14:25:06.865 [start] +3114 мс Пит выскакивает вместе с голосом (голова поднимается со звуком, noRise)
+  29223.0 14:25:06.865 [start] +3114 мс голос Пита: источник звука стартовал («race_start»)
+  29223.0 14:25:06.865 [start] итог: от входа в игру до голоса Пита 65 мс (цель ≤ 400), от тапа «Голосом» до голоса 2018 мс; самый долгий шаг — «getUserMedia ответил: granted — попап «Готовлю звук…»» (1814 мс после «звук реплик готов (ворота: all, 152/152), ctx=running»)
+  29223.0 14:25:06.865 [race] старт: реплика через 65 мс после входа в игру, Пит через 65 мс; от ответа на попап до входа 1953 мс
+  29223.0 14:25:06.865 [cat-voice] реплика race_start: источник=буфер Web Audio; буфер: 5799 мс, ctx=running; start() → started at +3 мс; userActivation=жив; audioSession.type=playback; с тапа 2015 мс; с settle 62 мс; прерываний с тапа 0
+  29285.0 14:25:06.927 [start-mode] через 250 мс после ответа микрофона: режим=default, тип сессии игры=playback; audioSession=playback/—; ctx игры=running 48000 Гц задержка 3/15 мс; ctx звуков=running 48000 Гц; другие ctx=нет; микрофон=live muted=нет enabled=нет (эхо нет, шум —, AGC —, 48000 Гц); вкладка=visible; +2080 мс с тапа; изменилось: микрофон
+  29534.0 14:25:07.176 [start-mode] через 500 мс после ответа микрофона: режим=default, тип сессии игры=playback; audioSession=playback/—; ctx игры=running 48000 Гц задержка 3/15 мс; ctx звуков=running 48000 Гц; другие ctx=нет; микрофон=live muted=нет enabled=нет (эхо нет, шум —, AGC —, 48000 Гц); вкладка=visible; +2329 мс с тапа
+  29742.0 14:25:07.385 [perf] fps=55 worst=66ms drops=1 anim=74 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=88(c:55,Fu:32,anon:1) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=playback/— mic=live/off
+  29767.0 14:25:07.409 [lag] кадр 35 мс · стадия — · что шло: реплика race_start старт (+6 мс)
+  30036.0 14:25:07.679 [start-mode] через 1000 мс после ответа микрофона: режим=default, тип сессии игры=playback; audioSession=playback/—; ctx игры=running 48000 Гц задержка 3/15 мс; ctx звуков=running 48000 Гц; другие ctx=нет; микрофон=live muted=нет enabled=нет (эхо нет, шум —, AGC —, 48000 Гц); вкладка=visible; +2831 мс с тапа
+  30746.0 14:25:08.388 [perf] fps=60 worst=23ms drops=0 anim=70 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=playback/— mic=live/off
+  31037.0 14:25:08.679 [start-mode] через 2000 мс после ответа микрофона: режим=default, тип сессии игры=playback; audioSession=playback/—; ctx игры=running 48000 Гц задержка 3/15 мс; ctx звуков=running 48000 Гц; другие ctx=нет; микрофон=live muted=нет enabled=нет (эхо нет, шум —, AGC —, 48000 Гц); вкладка=visible; +3832 мс с тапа
+  31123.0 14:25:08.765 [scene] {"t":31123,"k":"stage-in","idx":0,"sid":"sprint-ann","act":"sprint","type":"announce","title":"Конвейер слов","line":null,"pauses":[{"key":"race.announce","ms":1700,"as":"ms"},{"key":"plate.hold","ms":1200,"as":"pause"},{"key":"line.at","ms":250,"as":"lead"}]}
+  31127.0 14:25:08.769 [word-ear] ловушки «learn» по звуку (9, все есть в словаре модели): lurch, lurk, la, le, lao, lie, leh, lear, lea
+  31127.0 14:25:08.769 [word-ear] ловушки «trying» по звуку (6, все есть в словаре модели): try, tray, tree, trow, troy, true
+  31127.0 14:25:08.769 [word-ear] ловушки «meet» по звуку (10, все есть в словаре модели): me, meal, meme, mean, mease, ma, maw, mao, my, myrrh
+  31127.0 14:25:08.769 [word-ear] ловушки «nice» по звуку (9, все есть в словаре модели): nigh, niall, nine, knight, na, gnaw, now, nay, knee
+  31127.0 14:25:08.769 [word-ear] ловушки «remember» по звуку (3, все есть в словаре модели): rim, rim em, rim eh
+  31127.0 14:25:08.769 [word-ear] ловушки «earn» по звуку (6, все есть в словаре модели): awry, herb, array, urge, irk, ear
+  31127.0 14:25:08.769 [word-ear] ловушки «lean» по звуку (5, все есть в словаре модели): leach, lead, leaf, league, liege
+  31127.0 14:25:08.769 [word-ear] ловушки «remind» по звуку (5, все есть в словаре модели): ream, reamer, re mine, ream eye, re my
+  31146.0 14:25:08.788 [race] раунд: Конвейер слов
+  31373.0 14:25:09.015 [cat] реплика «round_sprint» пропущена: такой реплики нет в настройках
+  31649.0 14:25:09.291 [lag] кадр 40 мс · стадия sprint-ann · что шло: стадия → sprint-ann (+24 мс)
+  31749.0 14:25:09.391 [perf] fps=59 worst=40ms drops=0 anim=66 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=118(c:59,Fu:59) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running ses=playback/— mic=live/off
+  32755.0 14:25:10.397 [perf] fps=61 worst=17ms drops=0 anim=64 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=122(c:61,Fu:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  33037.0 14:25:10.679 [start-mode] через 4000 мс после ответа микрофона: режим=default, тип сессии игры=playback; audioSession=playback/—; ctx игры=running 48000 Гц задержка 3/15 мс; ctx звуков=running 48000 Гц; другие ctx=capture running 48000 Гц; микрофон=live muted=нет enabled=нет (эхо нет, шум —, AGC —, 48000 Гц); вкладка=visible; +5832 мс с тапа; изменилось: другие ctx
+  33758.0 14:25:11.400 [perf] fps=60 worst=22ms drops=0 anim=63 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  34761.0 14:25:12.404 [perf] fps=60 worst=26ms drops=0 anim=63 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  35021.0 14:25:12.663 [start] +8912 мс первая реплика доиграла (ended источника): «race_start»
+  35022.0 14:25:12.664 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  35022.0 14:25:12.664 [cat] очередь: пуста, голова уйдёт через 900 мс
+  35034.0 14:25:12.676 [cat] cat-speak-end {"id":"race_start","ms":5799,"played":5812,"shapes":40,"micBlocked":0,"why":"done"}
+  35034.0 14:25:12.676 [scene] {"t":35034,"k":"line-end","id":"race_start","played":5812,"why":"done"}
+  35173.0 14:25:12.815 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  35200.0 14:25:12.842 [lag] кадр 26 мс · стадия sprint-ann · что шло: меток нет
+  35767.0 14:25:13.409 [perf] fps=60 worst=17ms drops=0 anim=62 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  36469.0 14:25:14.111 [scene] {"t":36469,"k":"count","what":"«sprint» (плашка Конвейер слов)","ms":2500}
+  36469.0 14:25:14.111 [scene] {"t":36469,"k":"knob","key":"count.tail","ms":200,"from":"count","until":"«sprint» (плашка Конвейер слов)"}
+  36469.0 14:25:14.111 [countdown] отсчёт начат перед «sprint» (плашка Конвейер слов) (контекст running)
+  36470.0 14:25:14.112 [dance] танец на трёх нотах: x 27 % → угол → угол → угол → назад, 2500 мс, с остановками в углах; только глаза закрыты
+  36471.0 14:25:14.113 [countdown] нота 1/3 сыграна (контекст running, старт за 0 мс, громкость 1)
+  36593.0 14:25:14.236 [word-ear] голос начался: rms 0.0036 ≥ порог 0.0029 (шум 0.0007)
+  36769.0 14:25:14.411 [perf] fps=61 worst=26ms drops=0 anim=67 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=122(c:61,Fu:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  36966.0 14:25:14.609 [lag] кадр 26 мс · стадия sprint-ann · что шло: меток нет
+  37070.0 14:25:14.712 [countdown] нота 2/3 сыграна (контекст running, старт за 1 мс, громкость 1)
+  37469.0 14:25:15.111 [start] +11360 мс конвейер зажёгся: дорожки поехали (222h)
+  37672.0 14:25:15.314 [countdown] нота 3/3 сыграна (контекст running, старт за 0 мс, громкость 1)
+  37773.0 14:25:15.416 [perf] fps=60 worst=17ms drops=0 anim=67 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  38778.0 14:25:16.420 [perf] fps=60 worst=17ms drops=0 anim=67 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  38940.0 14:25:16.582 [word-ear] голос кончился: шёл 2093 мс, тишина 254 мс ≥ 220 (порог голоса 0.0029 (шум 0.0011, пик речи 0.0093), тихие куски от 0.0012) — прошу итог, не дожидаясь черновика
+  38969.0 14:25:16.611 [countdown] отсчёт перед «sprint» (плашка Конвейер слов): сыграно 3 из 3
+  38969.0 14:25:16.611 [scene] {"t":38969,"k":"count-end"}
+  38972.0 14:25:16.614 [dodge] нырок из центра на 1 (старт) → x 26.9 %
+  38972.0 14:25:16.614 [scene] {"t":38972,"k":"stage-in","idx":1,"sid":"sprint","act":"sprint","type":"student","title":"","line":null}
+  38973.0 14:25:16.615 [race] проход A: 6 пилюль
+  38984.0 14:25:16.626 [scene] {"t":38984,"k":"ask","idx":0,"word":"учиться"}
+  38984.0 14:25:16.626 [race] голос: повтор 1/6 слово «learn», перевод «учиться», на пилюле «учиться», дорожка 0, скорость 1
+  38992.0 14:25:16.634 [word-ear] итог «» — не засчитано: цель не услышана; в Vosk ушло: голос 2133 мс, усиление до ×11.7, тишины не отдано 4907 мс
+  38992.0 14:25:16.634 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  39393.0 14:25:17.035 [dodge] речь ждала выныривания 409 мс
+  39393.0 14:25:17.035 [scene] {"t":39393,"k":"wait","why":"Пит выныривает к дорожке","ms":409}
+  39394.0 14:25:17.036 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  39395.0 14:25:17.037 [speech] — перевод пошёл, оценка 1071 мс
+  39395.0 14:25:17.038 [cat] cat-speak {"id":"учиться","ms":1071,"trackLen":3,"empty":false,"up":true}
+  39395.0 14:25:17.038 [scene] {"t":39395,"k":"line-start","who":"dictor","id":"учиться","text":"учиться","ms":1071}
+  39396.0 14:25:17.038 [cat] очередь: +перевод «учиться» 1071 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  39782.0 14:25:17.424 [perf] fps=60 worst=18ms drops=0 anim=7 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=169(c:60,Fu:60,a:49) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  39935.0 14:25:17.577 [start] переход старт → Пинг-понг A: плашка через 0 мс, реплика через 25 мс («race_start»), первая пилюля через 10737 мс; плашки: «Конвейер слов» +0
+  39935.0 14:25:17.577 [scene] {"t":39935,"k":"pill","idx":0,"word":"учиться","lane":0,"speed":1}
+  40465.0 14:25:18.108 [speech] — speech-end: перевод доиграл
+  40466.0 14:25:18.108 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  40467.0 14:25:18.109 [cat] очередь: пуста, голова уйдёт через 900 мс
+  40468.0 14:25:18.110 [cat] cat-speak-end {"id":"учиться","ms":1071,"played":1073,"shapes":6,"micBlocked":0,"why":"done"}
+  40468.0 14:25:18.110 [scene] {"t":40468,"k":"line-end","id":"учиться","played":1073,"why":"done"}
+  40484.0 14:25:18.126 [lag] кадр 46 мс · стадия sprint · что шло: пилюля №0 выезд (+2 мс)
+  40617.0 14:25:18.259 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  40793.0 14:25:18.435 [perf] fps=60 worst=46ms drops=0 anim=7 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  41794.0 14:25:19.436 [perf] fps=60 worst=17ms drops=0 anim=7 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  41807.0 14:25:19.449 [word-ear] голос начался: rms 0.0046 ≥ порог 0.0029 (шум 0.0007)
+  42193.0 14:25:19.835 [word-ear] черновик «lean»: «lean» — последнее слово, может быть не договорено (голос 383 мс, слогов 1) — жду конец голоса и итог
+  42220.0 14:25:19.862 [pill] №0 «учиться» дорожка 0: +live +ring; узлов +1 −0; спустя 250 мс видна
+  42532.0 14:25:20.174 [word-ear] голос кончился: шёл 469 мс, тишина 256 мс ≥ 220 (порог голоса 0.0025 (шум 0.001, пик речи 0.0439), тихие куски от 0.0012) — прошу итог
+  42588.0 14:25:20.231 [word-ear] итог «learn»: learn conf 1, по Vosk 540 мс, голос 469 мс (ожидаю ≥ 120) — зачёт; в Vosk ушло: голос 512 мс, усиление до ×17, тишины не отдано 2261 мс
+  42589.0 14:25:20.231 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  42601.0 14:25:20.243 [speech] +0 мс idle → claimed: зачёт, похвала «race_good_4» ждёт взлёта
+  42601.0 14:25:20.243 [scene] {"t":42601,"k":"claim","idx":0,"ms":2667}
+  42601.0 14:25:20.243 [dodge] зачёт 1: голова на дорожке 1, следующая на 2, прыжок нет, пилюля у головы → прыжок (зачёт в последний момент)
+  42601.0 14:25:20.243 [dodge] прыжок с 1 на 2 (зачёт в последний момент) → x 50.0 %
+  42704.0 14:25:20.346 [scene] {"t":42704,"k":"answer","res":"win","idx":0,"word":"","final":true}
+  42704.0 14:25:20.346 [scene] {"t":42704,"k":"knob","key":"good.delay","ms":500,"from":"rise","until":"praise"}
+  42704.0 14:25:20.346 [speech] +103 мс claimed → praise-wait: взлёт, похвала через 500 мс
+  42704.0 14:25:20.346 [race] взлёт: звук через 380 мс (нота награды 380 мс)
+  42704.0 14:25:20.346 [race] проход A: «learn» верно за 2667 мс, серия 1
+  42704.0 14:25:20.346 [scene] {"t":42704,"k":"note","order":0}
+  42798.0 14:25:20.440 [perf] fps=60 worst=17ms drops=0 anim=33 inf=8(wlBubA:3,wlBubB:3,wlBubC:2) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  42844.0 14:25:20.486 [word-ear] голос начался: rms 0.0058 ≥ порог 0.0034 (шум 0.0008)
+  42855.0 14:25:20.497 [pill] №0 «учиться» дорожка 0: +lock ‖ +full +rise; узлов +2 −0; спустя 250 мс видна
+  43205.0 14:25:20.847 [speech] +604 мс praise-wait → praise: похвала «race_good_4» — через 500 мс после взлёта
+  43205.0 14:25:20.847 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  43205.0 14:25:20.848 [cat] cat-speak {"id":"race_good_4","ms":1907,"trackLen":7,"empty":false,"up":true}
+  43205.0 14:25:20.848 [scene] {"t":43205,"k":"line-start","who":"pit","id":"race_good_4","text":"как носитель, ну почти","ms":1907}
+  43205.0 14:25:20.848 [cat] очередь: +реплика «race_good_4» 1907 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  43206.0 14:25:20.848 [speech] +605 мс похвала пошла, оценка 1907 мс
+  43228.0 14:25:20.870 [word-ear] пауза внутри речи 128 мс (самый тихий кусок 0.0015, короче 220 мс) — жду дальше
+  43426.0 14:25:21.068 [lag] кадр 33 мс · стадия sprint · что шло: меток нет
+  43484.0 14:25:21.126 [word-ear] голос кончился: шёл 384 мс, тишина 256 мс ≥ 220 (порог голоса 0.0024 (шум 0.0009, пик речи 0.0058), тихие куски от 0) — прошу итог, не дожидаясь черновика
+  43557.0 14:25:21.199 [word-ear] итог «» — не засчитано: цель не услышана; в Vosk ушло: голос 341 мс, усиление до ×9.5, тишины не отдано 0 мс
+  43557.0 14:25:21.199 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  43595.0 14:25:21.237 [pill] №0 «учиться» дорожка 0: узлов +0 −1 ‖ узлов +0 −1; спустя 250 мс opacity 0.29
+  43802.0 14:25:21.444 [perf] fps=60 worst=33ms drops=0 anim=17 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  43878.0 14:25:21.520 [pill] №0 «учиться» дорожка 0: узлов +0 −1; уже в пуле
+  44806.0 14:25:22.448 [perf] fps=60 worst=17ms drops=0 anim=8 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  45116.0 14:25:22.758 [scene] {"t":45116,"k":"knob","key":"afterGood.gap","ms":350,"from":"praise","until":"say"}
+  45116.0 14:25:22.758 [speech] +2515 мс speech-end: похвала доиграла за 1910 мс (оценка 1907); перевод через 350 мс
+  45116.0 14:25:22.759 [speech] +2515 мс praise → gap: после похвалы отступ 350 мс
+  45117.0 14:25:22.759 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  45117.0 14:25:22.759 [cat] очередь: пуста, голова уйдёт через 900 мс
+  45127.0 14:25:22.769 [cat] cat-speak-end {"id":"race_good_4","ms":1907,"played":1922,"shapes":13,"micBlocked":0,"why":"done"}
+  45127.0 14:25:22.769 [scene] {"t":45127,"k":"line-end","id":"race_good_4","played":1922,"why":"done"}
+  45267.0 14:25:22.909 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  45467.0 14:25:23.109 [speech] +2866 мс gap → idle: перевод следующего слова разрешён (после похвалы)
+  45477.0 14:25:23.119 [scene] {"t":45477,"k":"ask","idx":1,"word":"пытаюсь"}
+  45477.0 14:25:23.119 [race] голос: повтор 2/6 слово «trying», перевод «пытаюсь», на пилюле «пытаюсь», дорожка 1, скорость 1.05
+  45477.0 14:25:23.119 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  45478.0 14:25:23.120 [speech] +2877 мс перевод пошёл, оценка 1019 мс
+  45478.0 14:25:23.120 [cat] cat-speak {"id":"пытаюсь","ms":1019,"trackLen":4,"empty":false,"up":true}
+  45478.0 14:25:23.120 [scene] {"t":45478,"k":"line-start","who":"dictor","id":"пытаюсь","text":"пытаюсь","ms":1019}
+  45478.0 14:25:23.120 [cat] очередь: +перевод «пытаюсь» 1019 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  45810.0 14:25:23.452 [perf] fps=60 worst=17ms drops=0 anim=13 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  45993.0 14:25:23.636 [scene] {"t":45993,"k":"pill","idx":1,"word":"пытаюсь","lane":1,"speed":1.05}
+  46036.0 14:25:23.679 [conveyor] ступень 1: скорость 26.0 → 27.3 dvh/с (×1.00 → ×1.05) за 800 мс
+  46500.0 14:25:24.142 [speech] +3899 мс speech-end: перевод доиграл
+  46500.0 14:25:24.142 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  46500.0 14:25:24.142 [cat] очередь: пуста, голова уйдёт через 900 мс
+  46510.0 14:25:24.152 [cat] cat-speak-end {"id":"пытаюсь","ms":1019,"played":1032,"shapes":7,"micBlocked":0,"why":"done"}
+  46510.0 14:25:24.152 [scene] {"t":46510,"k":"line-end","id":"пытаюсь","played":1032,"why":"done"}
+  46543.0 14:25:24.185 [lag] кадр 42 мс · стадия sprint · что шло: пилюля №1 выезд (+0 мс)
+  46650.0 14:25:24.292 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  46820.0 14:25:24.462 [perf] fps=60 worst=42ms drops=0 anim=8 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  47225.0 14:25:24.867 [word-ear] голос начался: rms 0.0037 ≥ порог 0.002 (шум 0.0005)
+  47627.0 14:25:25.269 [pill] №0 «пытаюсь» дорожка 1: +live +ring; узлов +1 −0; спустя 250 мс видна
+  47822.0 14:25:25.464 [perf] fps=60 worst=17ms drops=0 anim=9 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  47822.0 14:25:25.465 [word-ear] пауза внутри речи 85 мс (самый тихий кусок 0.0007, короче 220 мс) — жду дальше
+  47871.0 14:25:25.513 [word-ear] черновик «trying»: «trying» — последнее слово, может быть не договорено (голос 597 мс, слогов 1) — жду конец голоса и итог
+  48079.0 14:25:25.721 [word-ear] голос кончился: шёл 597 мс, тишина 257 мс ≥ 220 (порог голоса 0.0017 (шум 0.0006, пик речи 0.0342), тихие куски от 0.0006) — прошу итог
+  48126.0 14:25:25.768 [word-ear] итог «trying»: trying conf 1, по Vosk 630 мс, голос 597 мс (ожидаю ≥ 120) — зачёт; в Vosk ушло: голос 597 мс, усиление до ×27.7, тишины не отдано 3115 мс
+  48126.0 14:25:25.768 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  48143.0 14:25:25.785 [speech] +0 мс idle → claimed: зачёт, похвалы нет
+  48143.0 14:25:25.785 [scene] {"t":48143,"k":"claim","idx":1,"ms":2150}
+  48143.0 14:25:25.785 [dodge] зачёт 2: голова на дорожке 2, следующая на 3, прыжок нет, пилюля у головы → прыжок (зачёт в последний момент)
+  48143.0 14:25:25.785 [dodge] прыжок с 2 на 3 (зачёт в последний момент) → x 73.1 %
+  48245.0 14:25:25.887 [scene] {"t":48245,"k":"answer","res":"win","idx":1,"word":"","final":true}
+  48245.0 14:25:25.887 [scene] {"t":48245,"k":"knob","key":"preSay.gap","ms":450,"from":"rise","until":"say"}
+  48245.0 14:25:25.887 [speech] +102 мс claimed → gap: взлёт, без похвалы: перевод через 450 мс
+  48245.0 14:25:25.887 [race] взлёт: звук через 380 мс (нота награды 380 мс)
+  48245.0 14:25:25.887 [race] проход A: «trying» верно за 2150 мс, серия 2
+  48245.0 14:25:25.887 [scene] {"t":48245,"k":"note","order":1}
+  48382.0 14:25:26.024 [word-ear] голос начался: rms 0.0069 ≥ порог 0.002 (шум 0.0005)
+  48397.0 14:25:26.039 [pill] №0 «пытаюсь» дорожка 1: +lock ‖ +full +rise; узлов +2 −0; спустя 250 мс видна
+  48695.0 14:25:26.337 [speech] +552 мс gap → idle: перевод следующего слова разрешён (без похвалы)
+  48701.0 14:25:26.344 [scene] {"t":48701,"k":"ask","idx":2,"word":"я"}
+  48701.0 14:25:26.344 [race] голос: повтор 3/6 слово «I'm», перевод «я», на пилюле «я», дорожка 2, скорость 1.1025
+  48702.0 14:25:26.344 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  48702.0 14:25:26.344 [speech] +559 мс перевод пошёл, оценка 784 мс
+  48702.0 14:25:26.344 [cat] cat-speak {"id":"я","ms":784,"trackLen":1,"empty":false,"up":true}
+  48702.0 14:25:26.344 [scene] {"t":48702,"k":"line-start","who":"dictor","id":"я","text":"я","ms":784}
+  48702.0 14:25:26.344 [cat] очередь: +перевод «я» 784 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  48825.0 14:25:26.467 [perf] fps=60 worst=34ms drops=0 anim=36 inf=8(wlBubA:3,wlBubB:3,wlBubC:2) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  48937.0 14:25:26.579 [word-ear] голос кончился: шёл 299 мс, тишина 256 мс ≥ 220 (порог голоса 0.0013 (шум 0.0005, пик речи 0.0069), тихие куски от 0) — прошу итог, не дожидаясь черновика
+  48968.0 14:25:26.610 [lag] кадр 34 мс · стадия sprint · что шло: меток нет
+  48988.0 14:25:26.630 [word-ear] итог «» — не засчитано: цель не услышана; в Vosk ушло: голос 341 мс, усиление до ×15.9, тишины не отдано 0 мс
+  48988.0 14:25:26.630 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  49002.0 14:25:26.644 [scene] {"t":49002,"k":"pill","idx":2,"word":"я","lane":2,"speed":1.1025}
+  49019.0 14:25:26.661 [conveyor] ступень 1: скорость 27.3 → 28.7 dvh/с (×1.05 → ×1.10) за 800 мс
+  49135.0 14:25:26.777 [pill] №0 «пытаюсь» дорожка 1: узлов +0 −1 ‖ узлов +0 −1; спустя 250 мс opacity 0.31
+  49420.0 14:25:27.062 [pill] №0 «пытаюсь» дорожка 1: узлов +0 −1; уже в пуле
+  49484.0 14:25:27.126 [speech] +1341 мс speech-end: перевод доиграл
+  49488.0 14:25:27.130 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  49488.0 14:25:27.130 [cat] очередь: пуста, голова уйдёт через 900 мс
+  49502.0 14:25:27.144 [cat] cat-speak-end {"id":"я","ms":784,"played":800,"shapes":4,"micBlocked":0,"why":"done"}
+  49502.0 14:25:27.144 [scene] {"t":49502,"k":"line-end","id":"я","played":800,"why":"done"}
+  49639.0 14:25:27.281 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  49830.0 14:25:27.472 [perf] fps=60 worst=18ms drops=0 anim=9 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  50226.0 14:25:27.868 [word-ear] голос начался: rms 0.0025 ≥ порог 0.002 (шум 0.0005)
+  50636.0 14:25:28.278 [pill] №1 «я» дорожка 2: +live +ring; узлов +1 −0; спустя 250 мс видна
+  50834.0 14:25:28.476 [perf] fps=60 worst=17ms drops=0 anim=10 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  50865.0 14:25:28.507 [word-ear] пауза внутри речи 171 мс (самый тихий кусок 0.0006, короче 220 мс) — жду дальше
+  50874.0 14:25:28.516 [word-ear] черновик «i am»: после «I'm» идёт другое слово, значит оно договорено — зачёт
+  50885.0 14:25:28.527 [speech] +0 мс idle → claimed: зачёт, похвалы нет
+  50885.0 14:25:28.527 [scene] {"t":50885,"k":"claim","idx":2,"ms":1883}
+  50885.0 14:25:28.528 [dodge] зачёт 3: голова на дорожке 3, следующая на 1, прыжок нет, пилюля у головы → прыжок (зачёт в последний момент)
+  50885.0 14:25:28.528 [dodge] прыжок с 3 на 1 (зачёт в последний момент) → x 26.9 %
+  50989.0 14:25:28.631 [scene] {"t":50989,"k":"answer","res":"win","idx":2,"word":"","final":true}
+  50989.0 14:25:28.631 [scene] {"t":50989,"k":"knob","key":"preSay.gap","ms":450,"from":"rise","until":"say"}
+  50989.0 14:25:28.631 [speech] +104 мс claimed → gap: взлёт, без похвалы: перевод через 450 мс
+  50989.0 14:25:28.631 [race] взлёт: звук через 560 мс (нота награды 560 мс)
+  50989.0 14:25:28.631 [race] проход A: «I'm» верно за 1883 мс, серия 3
+  50989.0 14:25:28.631 [scene] {"t":50989,"k":"note","order":2}
+  51121.0 14:25:28.763 [word-ear] пауза внутри речи 256 мс (самый тихий кусок 0.0005, короче 220 мс) — жду дальше
+  51137.0 14:25:28.779 [pill] №1 «я» дорожка 2: +lock ‖ +full +rise; узлов +2 −0; спустя 250 мс видна
+  51440.0 14:25:29.082 [speech] +555 мс gap → idle: перевод следующего слова разрешён (без похвалы)
+  51444.0 14:25:29.086 [scene] {"t":51444,"k":"ask","idx":3,"word":"встретить"}
+  51444.0 14:25:29.086 [race] голос: повтор 4/6 слово «meet», перевод «встретить», на пилюле «встретить», дорожка 0, скорость 1.1576
+  51444.0 14:25:29.086 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  51444.0 14:25:29.086 [speech] +559 мс перевод пошёл, оценка 1019 мс
+  51445.0 14:25:29.087 [cat] cat-speak {"id":"встретить","ms":1019,"trackLen":3,"empty":false,"up":true}
+  51445.0 14:25:29.087 [scene] {"t":51445,"k":"line-start","who":"dictor","id":"встретить","text":"встретить","ms":1019}
+  51445.0 14:25:29.087 [cat] очередь: +перевод «встретить» 1019 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  51584.0 14:25:29.226 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  51711.0 14:25:29.353 [lag] кадр 34 мс · стадия sprint · что шло: меток нет
+  51837.0 14:25:29.479 [perf] fps=60 worst=34ms drops=0 anim=25 inf=8(wlBubA:3,wlBubB:3,wlBubC:2) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  51881.0 14:25:29.523 [pill] №1 «я» дорожка 2: узлов +0 −1 ‖ узлов +0 −1; спустя 250 мс opacity 0.28
+  52011.0 14:25:29.653 [scene] {"t":52011,"k":"pill","idx":3,"word":"встретить","lane":0,"speed":1.1576}
+  52028.0 14:25:29.670 [conveyor] ступень 1: скорость 28.7 → 30.1 dvh/с (×1.10 → ×1.16) за 800 мс
+  52163.0 14:25:29.805 [pill] №1 «я» дорожка 2: узлов +0 −1; спустя 250 мс видна
+  52469.0 14:25:30.111 [speech] +1584 мс speech-end: перевод доиграл
+  52469.0 14:25:30.111 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  52469.0 14:25:30.111 [cat] очередь: пуста, голова уйдёт через 900 мс
+  52479.0 14:25:30.121 [cat] cat-speak-end {"id":"встретить","ms":1019,"played":1034,"shapes":6,"micBlocked":0,"why":"done"}
+  52479.0 14:25:30.121 [scene] {"t":52479,"k":"line-end","id":"встретить","played":1034,"why":"done"}
+  52619.0 14:25:30.261 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  52719.0 14:25:30.361 [word-ear] голос начался: rms 0.0029 ≥ порог 0.0025 (шум 0.0006)
+  52841.0 14:25:30.483 [perf] fps=60 worst=19ms drops=0 anim=9 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  53270.0 14:25:30.912 [word-ear] пауза внутри речи 170 мс (самый тихий кусок 0.0011, короче 220 мс) — жду дальше
+  53412.0 14:25:31.054 [pill] №1 «встретить» дорожка 0: +live +ring; узлов +1 −0; спустя 250 мс видна
+  53526.0 14:25:31.168 [word-ear] голос кончился: шёл 551 мс, тишина 256 мс ≥ 220 (порог голоса 0.0022 (шум 0.0009, пик речи 0.0348), тихие куски от 0.0008) — прошу итог, не дожидаясь черновика
+  53577.0 14:25:31.219 [word-ear] черновик «meet»: «meet» — последнее слово, может быть не договорено (голос 551 мс, слогов 1) — жду конец голоса и итог
+  53624.0 14:25:31.266 [word-ear] итог «meet»: meet conf 1, по Vosk 690 мс, голос 551 мс (ожидаю ≥ 120) — зачёт; в Vosk ушло: голос 469 мс, усиление до ×14.6, тишины не отдано 427 мс
+  53624.0 14:25:31.266 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  53627.0 14:25:31.269 [speech] +0 мс idle → claimed: зачёт, похвала «race_good_2» ждёт взлёта
+  53627.0 14:25:31.269 [scene] {"t":53627,"k":"claim","idx":3,"ms":1617}
+  53628.0 14:25:31.270 [dodge] зачёт 4: голова на дорожке 1, следующая на 2, прыжок нет → нырок (зачёт)
+  53628.0 14:25:31.270 [dodge] нырок с дорожки 1 на 2 (зачёт) → x 50.0 %
+  53730.0 14:25:31.372 [scene] {"t":53730,"k":"answer","res":"win","idx":3,"word":"","final":true}
+  53730.0 14:25:31.372 [scene] {"t":53730,"k":"knob","key":"good.delay","ms":500,"from":"rise","until":"praise"}
+  53730.0 14:25:31.372 [speech] +103 мс claimed → praise-wait: взлёт, похвала через 500 мс
+  53730.0 14:25:31.372 [race] взлёт: звук через 380 мс (нота награды 380 мс)
+  53730.0 14:25:31.372 [race] проход A: «meet» верно за 1617 мс, серия 4
+  53730.0 14:25:31.372 [scene] {"t":53730,"k":"note","order":0}
+  53846.0 14:25:31.488 [perf] fps=61 worst=17ms drops=0 anim=33 inf=8(wlBubA:3,wlBubB:3,wlBubC:2) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:61,Fu:61,a:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  53880.0 14:25:31.522 [word-ear] голос начался: rms 0.006 ≥ порог 0.0033 (шум 0.0008)
+  53880.0 14:25:31.522 [pill] №1 «встретить» дорожка 0: +lock ‖ +full +rise; узлов +2 −0; спустя 250 мс видна
+  54220.0 14:25:31.862 [word-ear] пауза внутри речи 127 мс (самый тихий кусок 0.001, короче 220 мс) — жду дальше
+  54230.0 14:25:31.872 [speech] +603 мс praise-wait → praise: похвала «race_good_2» — через 500 мс после взлёта
+  54230.0 14:25:31.872 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  54231.0 14:25:31.873 [cat] cat-speak {"id":"race_good_2","ms":1515,"trackLen":6,"empty":false,"up":true}
+  54231.0 14:25:31.873 [scene] {"t":54231,"k":"line-start","who":"pit","id":"race_good_2","text":"звучит очень хорошо","ms":1515}
+  54231.0 14:25:31.873 [cat] очередь: +реплика «race_good_2» 1515 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  54231.0 14:25:31.873 [speech] +604 мс похвала пошла, оценка 1515 мс
+  54518.0 14:25:32.160 [word-ear] голос кончился: шёл 429 мс, тишина 254 мс ≥ 220 (порог голоса 0.0023 (шум 0.0009, пик речи 0.006), тихие куски от 0) — прошу итог, не дожидаясь черновика
+  54594.0 14:25:32.236 [word-ear] итог «» — не засчитано: цель не услышана; в Vosk ушло: голос 341 мс, усиление до ×10, тишины не отдано 0 мс
+  54594.0 14:25:32.236 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  54629.0 14:25:32.271 [pill] №1 «встретить» дорожка 0: узлов +0 −1 ‖ узлов +0 −1; спустя 250 мс opacity 0.23
+  54850.0 14:25:32.492 [perf] fps=60 worst=17ms drops=0 anim=16 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  54896.0 14:25:32.538 [pill] №1 «встретить» дорожка 0: узлов +0 −1; уже в пуле
+  55751.0 14:25:33.393 [scene] {"t":55751,"k":"knob","key":"afterGood.gap","ms":350,"from":"praise","until":"say"}
+  55751.0 14:25:33.393 [speech] +2124 мс speech-end: похвала доиграла за 1520 мс (оценка 1515); перевод через 350 мс
+  55751.0 14:25:33.393 [speech] +2124 мс praise → gap: после похвалы отступ 350 мс
+  55752.0 14:25:33.394 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  55752.0 14:25:33.394 [cat] очередь: пуста, голова уйдёт через 900 мс
+  55762.0 14:25:33.404 [cat] cat-speak-end {"id":"race_good_2","ms":1515,"played":1531,"shapes":11,"micBlocked":0,"why":"done"}
+  55762.0 14:25:33.404 [scene] {"t":55762,"k":"line-end","id":"race_good_2","played":1531,"why":"done"}
+  55853.0 14:25:33.495 [perf] fps=60 worst=17ms drops=0 anim=7 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  55902.0 14:25:33.544 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  56101.0 14:25:33.743 [speech] +2474 мс gap → idle: перевод следующего слова разрешён (после похвалы)
+  56112.0 14:25:33.754 [scene] {"t":56112,"k":"ask","idx":4,"word":"приятно"}
+  56112.0 14:25:33.754 [race] голос: повтор 5/6 слово «nice», перевод «приятно», на пилюле «приятно», дорожка 1, скорость 1.2155
+  56112.0 14:25:33.754 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  56112.0 14:25:33.754 [speech] +2485 мс перевод пошёл, оценка 1071 мс
+  56113.0 14:25:33.755 [cat] cat-speak {"id":"приятно","ms":1071,"trackLen":4,"empty":false,"up":true}
+  56113.0 14:25:33.755 [scene] {"t":56113,"k":"line-start","who":"dictor","id":"приятно","text":"приятно","ms":1071}
+  56113.0 14:25:33.755 [cat] очередь: +перевод «приятно» 1071 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  56745.0 14:25:34.387 [scene] {"t":56745,"k":"pill","idx":4,"word":"приятно","lane":1,"speed":1.2155}
+  56783.0 14:25:34.425 [conveyor] ступень 1: скорость 30.1 → 31.6 dvh/с (×1.16 → ×1.22) за 800 мс
+  56858.0 14:25:34.500 [perf] fps=60 worst=36ms drops=0 anim=14 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  57185.0 14:25:34.827 [speech] +3558 мс speech-end: перевод доиграл
+  57185.0 14:25:34.827 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  57185.0 14:25:34.827 [cat] очередь: пуста, голова уйдёт через 900 мс
+  57196.0 14:25:34.838 [cat] cat-speak-end {"id":"приятно","ms":1071,"played":1083,"shapes":7,"micBlocked":0,"why":"done"}
+  57196.0 14:25:34.838 [scene] {"t":57196,"k":"line-end","id":"приятно","played":1083,"why":"done"}
+  57295.0 14:25:34.937 [lag] кадр 36 мс · стадия sprint · что шло: пилюля №4 выезд (+0 мс)
+  57335.0 14:25:34.977 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  57409.0 14:25:35.051 [word-ear] голос начался: rms 0.0076 ≥ порог 0.002 (шум 0.0004)
+  57861.0 14:25:35.503 [perf] fps=60 worst=19ms drops=0 anim=7 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  58146.0 14:25:35.788 [pill] №1 «приятно» дорожка 1: +live +ring; узлов +1 −0; спустя 250 мс видна
+  58266.0 14:25:35.908 [word-ear] черновик «nice»: «nice» — последнее слово, может быть не договорено (голос 939 мс, слогов 1) — жду конец голоса и итог
+  58348.0 14:25:35.990 [word-ear] пауза внутри речи 85 мс (самый тихий кусок 0.0013, короче 220 мс) — жду дальше
+  58647.0 14:25:36.289 [word-ear] голос кончился: шёл 1066 мс, тишина 257 мс ≥ 220 (порог голоса 0.0013 (шум 0.0004, пик речи 0.0262), тихие куски от 0.0004) — прошу итог
+  58708.0 14:25:36.349 [word-ear] итог «nice»: nice conf 1, по Vosk 840 мс, голос 1066 мс (ожидаю ≥ 120) — зачёт; в Vosk ушло: голос 981 мс, усиление до ×23, тишины не отдано 2261 мс
+  58708.0 14:25:36.350 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  58712.0 14:25:36.354 [speech] +0 мс idle → claimed: зачёт, похвалы нет
+  58712.0 14:25:36.354 [scene] {"t":58712,"k":"claim","idx":4,"ms":1966}
+  58712.0 14:25:36.354 [dodge] зачёт 5: голова на дорожке 2, следующая на 3, прыжок нет, пилюля у головы → прыжок (зачёт в последний момент)
+  58712.0 14:25:36.354 [dodge] прыжок с 2 на 3 (зачёт в последний момент) → x 73.1 %
+  58813.0 14:25:36.455 [scene] {"t":58813,"k":"answer","res":"win","idx":4,"word":"","final":true}
+  58813.0 14:25:36.455 [scene] {"t":58813,"k":"knob","key":"preSay.gap","ms":450,"from":"rise","until":"say"}
+  58813.0 14:25:36.455 [speech] +101 мс claimed → gap: взлёт, без похвалы: перевод через 450 мс
+  58813.0 14:25:36.455 [race] взлёт: звук через 380 мс (нота награды 380 мс)
+  58813.0 14:25:36.455 [race] проход A: «nice» верно за 1966 мс, серия 5
+  58813.0 14:25:36.455 [scene] {"t":58813,"k":"note","order":1}
+  58865.0 14:25:36.507 [perf] fps=61 worst=17ms drops=0 anim=37 inf=8(wlBubA:3,wlBubB:3,wlBubC:2) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:61,Fu:61,a:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  58921.0 14:25:36.563 [word-ear] голос начался: rms 0.0033 ≥ порог 0.002 (шум 0.0003)
+  58964.0 14:25:36.606 [pill] №1 «приятно» дорожка 1: +lock ‖ +full +rise; узлов +2 −0; спустя 250 мс видна
+  59263.0 14:25:36.905 [speech] +551 мс gap → idle: перевод следующего слова разрешён (без похвалы)
+  59270.0 14:25:36.912 [scene] {"t":59270,"k":"ask","idx":5,"word":"помнить"}
+  59270.0 14:25:36.912 [race] голос: повтор 6/6 слово «remember», перевод «помнить», на пилюле «помнить», дорожка 2, скорость 1.2763
+  59270.0 14:25:36.912 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  59270.0 14:25:36.912 [speech] +558 мс перевод пошёл, оценка 967 мс
+  59270.0 14:25:36.912 [cat] cat-speak {"id":"помнить","ms":967,"trackLen":2,"empty":false,"up":true}
+  59271.0 14:25:36.912 [scene] {"t":59271,"k":"line-start","who":"dictor","id":"помнить","text":"помнить","ms":967}
+  59271.0 14:25:36.912 [cat] очередь: +перевод «помнить» 967 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  59518.0 14:25:37.160 [word-ear] голос кончился: шёл 341 мс, тишина 256 мс ≥ 220 (порог голоса 0.0008 (шум 0.0003, пик речи 0.0073), тихие куски от 0) — прошу итог, не дожидаясь черновика
+  59537.0 14:25:37.179 [lag] кадр 37 мс · стадия sprint · что шло: меток нет
+  59572.0 14:25:37.214 [word-ear] итог «» — не засчитано: цель не услышана; в Vosk ушло: голос 384 мс, усиление до ×26.4, тишины не отдано 0 мс
+  59572.0 14:25:37.214 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  59705.0 14:25:37.347 [pill] №1 «приятно» дорожка 1: узлов +0 −1 ‖ узлов +0 −1; спустя 250 мс opacity 0.30
+  59820.0 14:25:37.462 [scene] {"t":59820,"k":"pill","idx":5,"word":"помнить","lane":2,"speed":1.2763}
+  59838.0 14:25:37.479 [conveyor] ступень 1: скорость 31.6 → 33.2 dvh/с (×1.22 → ×1.28) за 800 мс
+  59870.0 14:25:37.512 [perf] fps=58 worst=37ms drops=0 anim=17 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=174(c:58,Fu:58,a:58) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  59989.0 14:25:37.631 [pill] №1 «приятно» дорожка 1: узлов +0 −1; спустя 250 мс видна
+  60238.0 14:25:37.880 [cat] cat-speak-end {"id":"помнить","ms":967,"played":968,"shapes":5,"micBlocked":0,"why":"done"}
+  60238.0 14:25:37.880 [scene] {"t":60238,"k":"line-end","id":"помнить","played":968,"why":"done"}
+  60245.0 14:25:37.887 [speech] +1533 мс speech-end: перевод доиграл
+  60245.0 14:25:37.887 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  60245.0 14:25:37.887 [cat] очередь: пуста, голова уйдёт через 900 мс
+  60396.0 14:25:38.038 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  60428.0 14:25:38.070 [word-ear] голос начался: rms 0.0033 ≥ порог 0.002 (шум 0.0003)
+  60873.0 14:25:38.515 [perf] fps=61 worst=17ms drops=0 anim=9 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:61,Fu:61,a:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  61189.0 14:25:38.831 [pill] №1 «помнить» дорожка 2: +live +ring; узлов +1 −0; спустя 250 мс видна
+  61270.0 14:25:38.912 [word-ear] черновик «remember»: «remember» — последнее слово, может быть не договорено (голос 853 мс, слогов 3) — жду конец голоса и итог
+  61577.0 14:25:39.219 [word-ear] голос кончился: шёл 939 мс, тишина 256 мс ≥ 220 (порог голоса 0.0018 (шум 0.0005, пик речи 0.0359), тихие куски от 0.0007) — прошу итог
+  61630.0 14:25:39.272 [word-ear] итог «remember»: remember conf 1, по Vosk 990 мс, голос 939 мс (ожидаю ≥ 360) — зачёт; в Vosk ушло: голос 939 мс, усиление до ×26.4, тишины не отдано 299 мс
+  61630.0 14:25:39.272 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  61637.0 14:25:39.279 [speech] +0 мс idle → claimed: зачёт, похвалы нет
+  61637.0 14:25:39.279 [scene] {"t":61637,"k":"claim","idx":5,"ms":1817}
+  61637.0 14:25:39.279 [dodge] зачёт 6: голова на дорожке 3, следующей нет, прыжок нет, пилюля у головы → стоять (зачёт; стоим: следующей нет, в центр — в конце ступени)
+  61637.0 14:25:39.279 [dodge] нырок подавлен — стоим: следующей нет, в центр — в конце ступени
+  61738.0 14:25:39.380 [scene] {"t":61738,"k":"answer","res":"win","idx":5,"word":"","final":true}
+  61738.0 14:25:39.380 [scene] {"t":61738,"k":"knob","key":"preSay.gap","ms":450,"from":"rise","until":"say"}
+  61738.0 14:25:39.380 [speech] +101 мс claimed → gap: взлёт, без похвалы: перевод через 450 мс
+  61738.0 14:25:39.380 [race] взлёт: звук через 560 мс (нота награды 560 мс)
+  61738.0 14:25:39.380 [race] проход A: «remember» верно за 1817 мс, серия 6
+  61738.0 14:25:39.380 [scene] {"t":61738,"k":"note","order":2}
+  61739.0 14:25:39.381 [scene] {"t":61739,"k":"stage-out","idx":1,"sid":"sprint"}
+  61844.0 14:25:39.485 [word-ear] голос начался: rms 0.0038 ≥ порог 0.0022 (шум 0.0005)
+  61878.0 14:25:39.519 [perf] fps=60 worst=20ms drops=0 anim=32 inf=8(wlBubA:3,wlBubB:3,wlBubC:2) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  61890.0 14:25:39.532 [pill] №1 «помнить» дорожка 2: +lock ‖ +full +rise; узлов +2 −0; спустя 250 мс видна
+  61993.0 14:25:39.634 [dodge] нырок с дорожки 3 в центр (конец ступени) → x 50.0 %
+  61993.0 14:25:39.635 [conveyor] ступень кончилась: доезжают 1 пилюль
+  61993.0 14:25:39.635 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  61994.0 14:25:39.636 [scene] {"t":61994,"k":"stage-in","idx":6,"sid":"catch-rev","act":"catch","type":"announce","title":"","line":"race_reverse","pauses":[{"key":"line.at","ms":250,"as":"lead"}]}
+  61994.0 14:25:39.636 [say-vosk] прогрев: ждём — модель выгружена из памяти (игра: русский проход)
+  62002.0 14:25:39.644 [reverse] разворот: 3 пилюли со стрелками приезжают за 2471 мс
+  62189.0 14:25:39.831 [speech] +552 мс gap → idle: перевод следующего слова разрешён (без похвалы)
+  62245.0 14:25:39.887 [cat] реплика «round_switch» пропущена: такой реплики нет в настройках
+  62547.0 14:25:40.189 [lag] ×3 кадров за 0,1 с, худший 26 мс, лишних 26 мс · стадия catch-rev · что шло: уворот Пита, стадия → catch-rev
+  62615.0 14:25:40.256 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  62615.0 14:25:40.257 [cat] cat-speak {"id":"race_reverse","ms":3657,"trackLen":15,"empty":false,"up":true}
+  62615.0 14:25:40.257 [scene] {"t":62615,"k":"line-start","who":"pit","id":"race_reverse","text":"теперь наоборот, секунду, переключаюсь на русский","ms":3657}
+  62615.0 14:25:40.257 [cat] очередь: +реплика «race_reverse» 3657 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  62633.0 14:25:40.275 [pill] №1 «помнить» дорожка 2: узлов +0 −1 ‖ узлов +0 −1; спустя 250 мс opacity 0.28
+  62695.0 14:25:40.337 [say-vosk] прогрев: проверяем кэш модели — прогрев запущен race
+  62816.0 14:25:40.458 [say-vosk] прогрев: загружаем библиотеку
+  62816.0 14:25:40.458 [say-vosk] прогрев: загружаем модель в память
+  62882.0 14:25:40.524 [perf] fps=60 worst=26ms drops=0 anim=18 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=126(c:60,Fu:60,a:6) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  62914.0 14:25:40.556 [pill] №1 «помнить» дорожка 2: узлов +0 −1; уже в пуле
+  63112.0 14:25:40.754 [lag] кадр 25 мс · стадия catch-rev · что шло: меток нет
+  63773.0 14:25:41.415 [reverse] конвейер тормозит вместе с пилюлями
+  63885.0 14:25:41.527 [perf] fps=60 worst=18ms drops=0 anim=10 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  64049.0 14:25:41.691 [say-vosk] прогрев: готово — модель в памяти за 1233 мс (библиотека 0 мс, модель 1231 мс)
+  64050.0 14:25:41.692 [say-vosk] прогрев распознавателя отправлен за 1 мс (да, нет)
+  64050.0 14:25:41.692 [race] слух: русская модель в памяти за 2056 мс
+  64050.0 14:25:41.692 [scene] {"t":64050,"k":"wait","why":"русская модель слуха","ms":2056}
+  64674.0 14:25:42.316 [reverse] разворот на 180°
+  64877.0 14:25:42.519 [reverse] узор дорожек — вверх
+  64898.0 14:25:42.540 [perf] fps=60 worst=25ms drops=0 anim=15 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  65079.0 14:25:42.721 [reverse] пилюли уезжают вверх с ускорением, конвейер стартует в обратную сторону
+  65572.0 14:25:43.214 [lag] ×3 кадров за 0,3 с, худший 38 мс, лишних 42 мс · стадия catch-rev · что шло: меток нет
+  65897.0 14:25:43.539 [perf] fps=58 worst=38ms drops=0 anim=15 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=116(c:58,Fu:58) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  66272.0 14:25:43.914 [cat] cat-speak-end {"id":"race_reverse","ms":3657,"played":3657,"shapes":23,"micBlocked":0,"why":"done"}
+  66272.0 14:25:43.914 [scene] {"t":66272,"k":"line-end","id":"race_reverse","played":3657,"why":"done"}
+  66279.0 14:25:43.921 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  66279.0 14:25:43.921 [cat] очередь: пуста, голова уйдёт через 900 мс
+  66429.0 14:25:44.071 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  66902.0 14:25:44.544 [perf] fps=60 worst=19ms drops=0 anim=15 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  67830.0 14:25:45.472 [start] переход Пинг-понг A → catch-rev: плашка через —, реплика через 877 мс («race_reverse»), первая пилюля через —, дальше «Пинг-понг B» через 6092 мс
+  67831.0 14:25:45.472 [scene] {"t":67831,"k":"stage-in","idx":7,"sid":"catch-ann","act":"catch","type":"announce","title":"Конвейер слов","line":null,"pauses":[{"key":"race.announce","ms":1700,"as":"ms"},{"key":"plate.hold","ms":1200,"as":"pause"},{"key":"line.at","ms":250,"as":"lead"}]}
+  67832.0 14:25:45.474 [word-ear] ловушки «встретить» по буквам без проверки (таблица произношений ещё не загружена; 5): встрети, встрет, встре, встр, вст — которых нет в словаре модели, те она молча выбросит
+  67832.0 14:25:45.474 [word-ear] ловушки «приятно» по буквам без проверки (таблица произношений ещё не загружена; 3): прият, прия, при — которых нет в словаре модели, те она молча выбросит
+  67832.0 14:25:45.474 [word-ear] ловушки «помнить» по буквам без проверки (таблица произношений ещё не загружена; 3): помни, помн, пом — которых нет в словаре модели, те она молча выбросит
+  67832.0 14:25:45.474 [word-ear] ловушки «учиться» по буквам без проверки (таблица произношений ещё не загружена; 3): учить, учит, учи — которых нет в словаре модели, те она молча выбросит
+  67832.0 14:25:45.474 [word-ear] ловушки «пытаюсь» по буквам без проверки (таблица произношений ещё не загружена; 3): пытаю, пыта, пыт — которых нет в словаре модели, те она молча выбросит
+  67837.0 14:25:45.479 [conveyor] ступень 7: скорость 33.2 → 26.0 dvh/с (×1.28 → ×1.00) за 2000 мс (замедление под реплику, Пит говорит ещё 0 мс)
+  67841.0 14:25:45.483 [race] раунд: Конвейер слов
+  67905.0 14:25:45.547 [perf] fps=60 worst=32ms drops=0 anim=67 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  68081.0 14:25:45.723 [scene] {"t":68081,"k":"count","what":"«catch» (плашка Конвейер слов)","ms":2500}
+  68081.0 14:25:45.723 [scene] {"t":68081,"k":"knob","key":"count.tail","ms":200,"from":"count","until":"«catch» (плашка Конвейер слов)"}
+  68081.0 14:25:45.723 [countdown] отсчёт начат перед «catch» (плашка Конвейер слов) (контекст running)
+  68082.0 14:25:45.724 [dance] танец на трёх нотах: x 50 % → угол → угол → угол → назад, 2500 мс, с остановками в углах; только глаза закрыты
+  68082.0 14:25:45.724 [cat] реплика «round_catch» пропущена: такой реплики нет в настройках
+  68083.0 14:25:45.725 [countdown] нота 1/3 сыграна (контекст running, старт за 1 мс, громкость 1)
+  68217.0 14:25:45.859 [word-ear] голос начался: rms 0.0046 ≥ порог 0.0023 (шум 0.0006)
+  68338.0 14:25:45.980 [lag] кадр 32 мс · стадия catch-ann · что шло: стадия → catch-ann (+26 мс)
+  68683.0 14:25:46.324 [countdown] нота 2/3 сыграна (контекст running, старт за 0 мс, громкость 1)
+  68910.0 14:25:46.552 [perf] fps=61 worst=23ms drops=0 anim=72 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=122(c:61,Fu:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  69282.0 14:25:46.924 [countdown] нота 3/3 сыграна (контекст running, старт за 0 мс, громкость 1)
+  69913.0 14:25:47.555 [perf] fps=60 worst=17ms drops=0 anim=72 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  70582.0 14:25:48.223 [countdown] отсчёт перед «catch» (плашка Конвейер слов): сыграно 3 из 3
+  70582.0 14:25:48.223 [scene] {"t":70582,"k":"count-end"}
+  70585.0 14:25:48.227 [scene] {"t":70585,"k":"stage-in","idx":8,"sid":"catch","act":"catch","type":"student","title":"","line":null}
+  70585.0 14:25:48.227 [race] проход B: 6 пилюль
+  70589.0 14:25:48.231 [scene] {"t":70589,"k":"ask","idx":0,"word":"meet"}
+  70589.0 14:25:48.231 [race] голос: повтор 1/6 слово «meet», говорит слово «meet», на пилюле «meet», дорожка 0, скорость 1
+  70589.0 14:25:48.231 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  70589.0 14:25:48.231 [speech] +8952 мс перевод пошёл, оценка 679 мс
+  70589.0 14:25:48.231 [cat] cat-speak {"id":"meet","ms":679,"trackLen":1,"empty":false,"up":true}
+  70589.0 14:25:48.231 [scene] {"t":70589,"k":"line-start","who":"dictor","id":"meet","text":"meet","ms":679}
+  70589.0 14:25:48.231 [cat] очередь: +слово «meet» 679 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  70608.0 14:25:48.249 [word-ear] пауза внутри речи 214 мс (самый тихий кусок 0.0004, короче 220 мс) — жду дальше
+  70739.0 14:25:48.381 [start] переход catch-rev → Пинг-понг B: плашка через —, реплика через —, первая пилюля через 2909 мс
+  70739.0 14:25:48.381 [scene] {"t":70739,"k":"pill","idx":0,"word":"meet","lane":0,"speed":1}
+  70862.0 14:25:48.504 [word-ear] голос кончился: шёл 2390 мс, тишина 255 мс ≥ 220 (порог голоса 0.0013 (шум 0.0005, пик речи 0.0092), тихие куски от 0) — прошу итог, не дожидаясь черновика
+  70914.0 14:25:48.556 [word-ear] итог «» — не засчитано: цель не услышана; в Vosk ушло: голос 2261 мс, усиление до ×7.9, тишины не отдано 0 мс
+  70914.0 14:25:48.556 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  70917.0 14:25:48.558 [perf] fps=60 worst=17ms drops=0 anim=13 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=141(c:60,Fu:60,a:21) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  71268.0 14:25:48.909 [speech] +9631 мс speech-end: перевод доиграл
+  71269.0 14:25:48.911 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  71269.0 14:25:48.911 [cat] очередь: пуста, голова уйдёт через 900 мс
+  71272.0 14:25:48.914 [cat] cat-speak-end {"id":"meet","ms":679,"played":683,"shapes":4,"micBlocked":0,"why":"done"}
+  71272.0 14:25:48.914 [scene] {"t":71272,"k":"line-end","id":"meet","played":683,"why":"done"}
+  71419.0 14:25:49.061 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  71922.0 14:25:49.564 [perf] fps=60 worst=17ms drops=0 anim=7 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  72236.0 14:25:49.878 [word-ear] голос начался: rms 0.0037 ≥ порог 0.003 (шум 0.0008)
+  72364.0 14:25:50.005 [word-ear] пауза внутри речи 85 мс (самый тихий кусок 0.0008, короче 220 мс) — жду дальше
+  72609.0 14:25:50.250 [word-ear] черновик «встретить»: «встретить» — последнее слово, может быть не договорено (голос 342 мс, слогов 2) — жду конец голоса и итог
+  72775.0 14:25:50.417 [pill] №0 «meet» дорожка 0: +live +ring; узлов +1 −0; спустя 250 мс видна
+  72792.0 14:25:50.434 [word-ear] пауза внутри речи 87 мс (самый тихий кусок 0.0017, короче 220 мс) — жду дальше
+  72925.0 14:25:50.567 [perf] fps=61 worst=22ms drops=0 anim=16 inf=8(wlBubA:3,wlBubB:3,wlBubC:2) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:61,Fu:61,a:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  73089.0 14:25:50.731 [word-ear] голос кончился: шёл 598 мс, тишина 256 мс ≥ 220 (порог голоса 0.0018 (шум 0.0007, пик речи 0.0215), тихие куски от 0.0006) — прошу итог
+  73141.0 14:25:50.782 [word-ear] итог «встретить»: встретить conf 1, по Vosk 810 мс, голос 598 мс (ожидаю ≥ 240) — зачёт; в Vosk ушло: голос 555 мс, усиление до ×16.1, тишины не отдано 768 мс
+  73141.0 14:25:50.783 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  73156.0 14:25:50.798 [ru] слово: meet ожидал: встретить услышал partial: встретить final: встретить уровень: 0.96 итог: зачёт
+  73156.0 14:25:50.798 [speech] +0 мс idle → claimed: зачёт, похвала «race_good_ok» ждёт взлёта
+  73156.0 14:25:50.798 [scene] {"t":73156,"k":"claim","idx":0,"ms":2416}
+  73257.0 14:25:50.899 [scene] {"t":73257,"k":"answer","res":"win","idx":0,"word":"","final":true}
+  73257.0 14:25:50.899 [scene] {"t":73257,"k":"knob","key":"good.delay","ms":500,"from":"rise","until":"praise"}
+  73257.0 14:25:50.899 [speech] +101 мс claimed → praise-wait: взлёт, похвала через 500 мс
+  73257.0 14:25:50.899 [race] взлёт: звук через 380 мс (нота награды 380 мс)
+  73257.0 14:25:50.899 [race] проход B: «meet» верно за 2416 мс, серия 7
+  73258.0 14:25:50.899 [scene] {"t":73258,"k":"note","order":0}
+  73396.0 14:25:51.037 [word-ear] голос начался: rms 0.0057 ≥ порог 0.0023 (шум 0.0006)
+  73409.0 14:25:51.050 [pill] №0 «meet» дорожка 0: +lock ‖ +full +rise; узлов +2 −0; спустя 250 мс видна
+  73758.0 14:25:51.399 [speech] +602 мс praise-wait → praise: похвала «race_good_ok» — через 500 мс после взлёта
+  73758.0 14:25:51.400 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  73759.0 14:25:51.401 [cat] cat-speak {"id":"race_good_ok","ms":1071,"trackLen":3,"empty":false,"up":true}
+  73759.0 14:25:51.401 [scene] {"t":73759,"k":"line-start","who":"pit","id":"race_good_ok","text":"Отлично","ms":1071}
+  73759.0 14:25:51.401 [cat] очередь: +реплика «race_good_ok» 1071 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  73759.0 14:25:51.401 [speech] +603 мс похвала пошла, оценка 1071 мс
+  73930.0 14:25:51.571 [perf] fps=59 worst=25ms drops=0 anim=36 inf=8(wlBubA:3,wlBubB:3,wlBubC:2) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=177(c:59,Fu:59,a:59) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  73998.0 14:25:51.639 [lag] кадр 25 мс · стадия catch · что шло: меток нет
+  74036.0 14:25:51.677 [word-ear] голос кончился: шёл 384 мс, тишина 256 мс ≥ 220 (порог голоса 0.0015 (шум 0.0006, пик речи 0.0057), тихие куски от 0) — прошу итог, не дожидаясь черновика
+  74112.0 14:25:51.754 [word-ear] итог «» — не засчитано: цель не услышана; в Vosk ушло: голос 427 мс, усиление до ×13.6, тишины не отдано 0 мс
+  74112.0 14:25:51.754 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  74149.0 14:25:51.791 [pill] №0 «meet» дорожка 0: узлов +0 −1 ‖ узлов +0 −1; спустя 250 мс opacity 0.31
+  74433.0 14:25:52.075 [pill] №0 «meet» дорожка 0: узлов +0 −1; уже в пуле
+  74830.0 14:25:52.472 [scene] {"t":74830,"k":"knob","key":"afterGood.gap","ms":350,"from":"praise","until":"say"}
+  74830.0 14:25:52.472 [speech] +1674 мс speech-end: похвала доиграла за 1071 мс (оценка 1071); перевод через 350 мс
+  74830.0 14:25:52.472 [speech] +1674 мс praise → gap: после похвалы отступ 350 мс
+  74831.0 14:25:52.472 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  74831.0 14:25:52.473 [cat] очередь: пуста, голова уйдёт через 900 мс
+  74831.0 14:25:52.473 [cat] cat-speak-end {"id":"race_good_ok","ms":1071,"played":1072,"shapes":5,"micBlocked":0,"why":"done"}
+  74831.0 14:25:52.473 [scene] {"t":74831,"k":"line-end","id":"race_good_ok","played":1072,"why":"done"}
+  74939.0 14:25:52.581 [perf] fps=61 worst=18ms drops=0 anim=8 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:61,Fu:61,a:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  74981.0 14:25:52.623 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  75181.0 14:25:52.822 [speech] +2025 мс gap → idle: перевод следующего слова разрешён (после похвалы)
+  75182.0 14:25:52.823 [scene] {"t":75181,"k":"ask","idx":1,"word":"nice"}
+  75182.0 14:25:52.823 [race] голос: повтор 2/6 слово «nice», говорит слово «nice», на пилюле «nice», дорожка 1, скорость 1.05
+  75182.0 14:25:52.824 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  75182.0 14:25:52.824 [speech] +2026 мс перевод пошёл, оценка 836 мс
+  75187.0 14:25:52.828 [cat] cat-speak {"id":"nice","ms":836,"trackLen":3,"empty":false,"up":true}
+  75187.0 14:25:52.828 [scene] {"t":75187,"k":"line-start","who":"dictor","id":"nice","text":"nice","ms":836}
+  75187.0 14:25:52.828 [cat] очередь: +слово «nice» 836 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  75515.0 14:25:53.157 [scene] {"t":75515,"k":"pill","idx":1,"word":"nice","lane":1,"speed":1.05}
+  75518.0 14:25:53.159 [dodge] обратный конвейер: слово выезжает на 2, прыжок с x 50.0 на 85.6 %
+  75562.0 14:25:53.204 [conveyor] ступень 8: скорость 26.0 → 27.3 dvh/с (×1.00 → ×1.05) за 800 мс
+  75941.0 14:25:53.583 [perf] fps=59 worst=46ms drops=0 anim=15 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=177(c:59,Fu:59,a:59) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  76022.0 14:25:53.664 [speech] +2866 мс speech-end: перевод доиграл
+  76023.0 14:25:53.664 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  76023.0 14:25:53.665 [cat] очередь: пуста, голова уйдёт через 900 мс
+  76032.0 14:25:53.674 [cat] cat-speak-end {"id":"nice","ms":836,"played":845,"shapes":5,"micBlocked":0,"why":"done"}
+  76032.0 14:25:53.674 [scene] {"t":76032,"k":"line-end","id":"nice","played":845,"why":"done"}
+  76066.0 14:25:53.708 [lag] кадр 46 мс · стадия catch · что шло: пилюля №1 выезд (+1 мс)
+  76158.0 14:25:53.800 [word-ear] голос начался: rms 0.0025 ≥ порог 0.0023 (шум 0.0006)
+  76173.0 14:25:53.815 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  76789.0 14:25:54.431 [word-ear] черновик «приятно»: «приятно» — последнее слово, может быть не договорено (голос 682 мс, слогов 2) — жду конец голоса и итог
+  76946.0 14:25:54.588 [perf] fps=60 worst=28ms drops=0 anim=19 inf=3(wlBubA:1,wlBubB:1,wlBubC:1) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  76968.0 14:25:54.610 [pill] №0 «nice» дорожка 1: +live +ring; узлов +1 −0; спустя 250 мс видна
+  77183.0 14:25:54.825 [word-ear] пауза внутри речи 257 мс (самый тихий кусок 0.0005, короче 220 мс) — жду дальше
+  77248.0 14:25:54.890 [lag] кадр 28 мс · стадия catch · что шло: меток нет
+  77566.0 14:25:55.208 [word-ear] голос кончился: шёл 1237 мс, тишина 256 мс ≥ 220 (порог голоса 0.0017 (шум 0.0007, пик речи 0.0291), тихие куски от 0.0006) — прошу итог
+  77619.0 14:25:55.261 [word-ear] итог «приятно»: приятно conf 1, по Vosk 750 мс, голос 1237 мс (ожидаю ≥ 240) — зачёт; в Vosk ушло: голос 981 мс, усиление до ×15.1, тишины не отдано 1493 мс
+  77619.0 14:25:55.261 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  77631.0 14:25:55.273 [ru] слово: nice ожидал: приятно услышал partial: приятно final: приятно уровень: 0.96 итог: зачёт
+  77631.0 14:25:55.273 [speech] +0 мс idle → claimed: зачёт, похвалы нет
+  77631.0 14:25:55.273 [scene] {"t":77631,"k":"claim","idx":1,"ms":2117}
+  77733.0 14:25:55.375 [scene] {"t":77733,"k":"answer","res":"win","idx":1,"word":"","final":true}
+  77733.0 14:25:55.375 [scene] {"t":77733,"k":"knob","key":"preSay.gap","ms":450,"from":"rise","until":"say"}
+  77733.0 14:25:55.375 [speech] +102 мс claimed → gap: взлёт, без похвалы: перевод через 450 мс
+  77733.0 14:25:55.375 [race] взлёт: звук через 380 мс (нота награды 380 мс)
+  77733.0 14:25:55.375 [race] проход B: «nice» верно за 2117 мс, серия 8
+  77733.0 14:25:55.375 [scene] {"t":77733,"k":"note","order":1}
+  77833.0 14:25:55.475 [pill] №0 «nice» дорожка 1: −live ‖ +lock +live ‖ +full +rise; узлов +2 −0; спустя 250 мс видна
+  77876.0 14:25:55.517 [word-ear] голос начался: rms 0.0074 ≥ порог 0.0032 (шум 0.0008)
+  77949.0 14:25:55.591 [perf] fps=60 worst=17ms drops=0 anim=32 inf=8(wlBubA:3,wlBubB:3,wlBubC:2) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  78183.0 14:25:55.825 [speech] +552 мс gap → idle: перевод следующего слова разрешён (без похвалы)
+  78198.0 14:25:55.840 [scene] {"t":78198,"k":"ask","idx":2,"word":"remember"}
+  78198.0 14:25:55.840 [race] голос: повтор 3/6 слово «remember», говорит слово «remember», на пилюле «remember», дорожка 2, скорость 1.1025
+  78198.0 14:25:55.840 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  78198.0 14:25:55.840 [speech] +567 мс перевод пошёл, оценка 862 мс
+  78199.0 14:25:55.840 [cat] cat-speak {"id":"remember","ms":862,"trackLen":2,"empty":false,"up":true}
+  78199.0 14:25:55.840 [scene] {"t":78199,"k":"line-start","who":"dictor","id":"remember","text":"remember","ms":862}
+  78199.0 14:25:55.840 [cat] очередь: +слово «remember» 862 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  78388.0 14:25:56.029 [word-ear] голос кончился: шёл 300 мс, тишина 254 мс ≥ 220 (порог голоса 0.002 (шум 0.0008, пик речи 0.0074), тихие куски от 0) — прошу итог, не дожидаясь черновика
+  78437.0 14:25:56.079 [word-ear] итог «» — не засчитано: цель не услышана; в Vosk ушло: голос 299 мс, усиление до ×12.1, тишины не отдано 0 мс
+  78437.0 14:25:56.079 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  78482.0 14:25:56.123 [lag] кадр 34 мс · стадия catch · что шло: меток нет
+  78582.0 14:25:56.223 [scene] {"t":78582,"k":"pill","idx":2,"word":"remember","lane":2,"speed":1.1025}
+  78583.0 14:25:56.225 [dodge] обратный конвейер: слово выезжает на 3, прыжок с x 85.6 на 50.0 %
+  78601.0 14:25:56.243 [conveyor] ступень 8: скорость 27.3 → 28.7 dvh/с (×1.05 → ×1.10) за 800 мс
+  78633.0 14:25:56.275 [pill] №0 «nice» дорожка 1: узлов +0 −1 ‖ узлов +0 −1; спустя 250 мс opacity 0.23
+  78901.0 14:25:56.542 [pill] №0 «nice» дорожка 1: узлов +0 −1; уже в пуле
+  78953.0 14:25:56.595 [perf] fps=60 worst=34ms drops=0 anim=17 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  79062.0 14:25:56.703 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  79062.0 14:25:56.703 [cat] очередь: пуста, голова уйдёт через 900 мс
+  79062.0 14:25:56.704 [speech] +1431 мс speech-end: перевод доиграл
+  79065.0 14:25:56.707 [cat] cat-speak-end {"id":"remember","ms":862,"played":866,"shapes":5,"micBlocked":0,"why":"done"}
+  79065.0 14:25:56.707 [scene] {"t":79065,"k":"line-end","id":"remember","played":866,"why":"done"}
+  79161.0 14:25:56.803 [word-ear] голос начался: rms 0.0021 ≥ порог 0.002 (шум 0.0005)
+  79213.0 14:25:56.855 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  79886.0 14:25:57.528 [word-ear] пауза внутри речи 128 мс (самый тихий кусок 0.0016, короче 220 мс) — жду дальше
+  79957.0 14:25:57.599 [perf] fps=60 worst=17ms drops=0 anim=11 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  80017.0 14:25:57.659 [pill] №1 «remember» дорожка 2: +live +ring; узлов +1 −0; спустя 250 мс видна
+  80020.0 14:25:57.662 [word-ear] черновик «помнить»: «помнить» — последнее слово, может быть не договорено (голос 725 мс, слогов 2) — жду конец голоса и итог
+  80142.0 14:25:57.784 [word-ear] голос кончился: шёл 725 мс, тишина 256 мс ≥ 220 (порог голоса 0.0029 (шум 0.0007, пик речи 0.0578), тихие куски от 0.0008) — прошу итог
+  80202.0 14:25:57.844 [word-ear] итог «помнить»: помнить conf 1, по Vosk 720 мс, голос 725 мс (ожидаю ≥ 240) — зачёт; в Vosk ушло: голос 683 мс, усиление до ×16.4, тишины не отдано 171 мс
+  80202.0 14:25:57.844 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  80215.0 14:25:57.857 [ru] слово: remember ожидал: помнить услышал partial: помнить final: помнить уровень: 0.89 итог: зачёт
+  80215.0 14:25:57.857 [speech] +0 мс idle → claimed: зачёт, похвалы нет
+  80215.0 14:25:57.857 [scene] {"t":80215,"k":"claim","idx":2,"ms":1634}
+  80317.0 14:25:57.958 [scene] {"t":80317,"k":"answer","res":"win","idx":2,"word":"","final":true}
+  80317.0 14:25:57.958 [scene] {"t":80317,"k":"knob","key":"preSay.gap","ms":450,"from":"rise","until":"say"}
+  80317.0 14:25:57.959 [speech] +102 мс claimed → gap: взлёт, без похвалы: перевод через 450 мс
+  80317.0 14:25:57.959 [race] взлёт: звук через 560 мс (нота награды 560 мс)
+  80317.0 14:25:57.959 [race] проход B: «remember» верно за 1634 мс, серия 9
+  80317.0 14:25:57.959 [scene] {"t":80317,"k":"note","order":2}
+  80457.0 14:25:58.099 [word-ear] голос начался: rms 0.0097 ≥ порог 0.0035 (шум 0.0009)
+  80469.0 14:25:58.111 [pill] №1 «remember» дорожка 2: +lock ‖ +full +rise; узлов +2 −0; спустя 250 мс видна
+  80768.0 14:25:58.409 [speech] +553 мс gap → idle: перевод следующего слова разрешён (без похвалы)
+  80774.0 14:25:58.415 [scene] {"t":80774,"k":"ask","idx":3,"word":"learn"}
+  80774.0 14:25:58.415 [race] голос: повтор 4/6 слово «learn», говорит слово «learn», на пилюле «learn», дорожка 0, скорость 1.1576
+  80774.0 14:25:58.416 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  80774.0 14:25:58.416 [speech] +559 мс перевод пошёл, оценка 836 мс
+  80774.0 14:25:58.416 [cat] cat-speak {"id":"learn","ms":836,"trackLen":3,"empty":false,"up":true}
+  80774.0 14:25:58.416 [scene] {"t":80774,"k":"line-start","who":"dictor","id":"learn","text":"learn","ms":836}
+  80774.0 14:25:58.416 [cat] очередь: +слово «learn» 836 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  80961.0 14:25:58.603 [perf] fps=59 worst=38ms drops=0 anim=32 inf=8(wlBubA:3,wlBubB:3,wlBubC:2) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=177(c:59,Fu:59,a:59) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  81041.0 14:25:58.682 [lag] кадр 38 мс · стадия catch · что шло: меток нет
+  81054.0 14:25:58.696 [word-ear] голос кончился: шёл 427 мс, тишина 256 мс ≥ 220 (порог голоса 0.0023 (шум 0.0009, пик речи 0.0097), тихие куски от 0) — прошу итог, не дожидаясь черновика
+  81106.0 14:25:58.748 [word-ear] итог «» — не засчитано: цель не услышана; в Vosk ушло: голос 384 мс, усиление до ×10.8, тишины не отдано 0 мс
+  81106.0 14:25:58.748 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  81157.0 14:25:58.799 [scene] {"t":81157,"k":"pill","idx":3,"word":"learn","lane":0,"speed":1.1576}
+  81176.0 14:25:58.817 [conveyor] ступень 8: скорость 28.7 → 30.1 dvh/с (×1.10 → ×1.16) за 800 мс
+  81209.0 14:25:58.851 [pill] №1 «remember» дорожка 2: узлов +0 −1 ‖ узлов +0 −1; спустя 250 мс opacity 0.30
+  81492.0 14:25:59.134 [pill] №1 «remember» дорожка 2: узлов +0 −1; уже в пуле
+  81609.0 14:25:59.251 [speech] +1394 мс speech-end: перевод доиграл
+  81610.0 14:25:59.252 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  81610.0 14:25:59.252 [cat] очередь: пуста, голова уйдёт через 900 мс
+  81624.0 14:25:59.266 [cat] cat-speak-end {"id":"learn","ms":836,"played":850,"shapes":6,"micBlocked":0,"why":"done"}
+  81624.0 14:25:59.266 [scene] {"t":81624,"k":"line-end","id":"learn","played":850,"why":"done"}
+  81765.0 14:25:59.407 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  81916.0 14:25:59.557 [word-ear] голос начался: rms 0.0039 ≥ порог 0.0038 (шум 0.001)
+  81965.0 14:25:59.607 [perf] fps=60 worst=18ms drops=0 anim=10 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  82086.0 14:25:59.728 [word-ear] пауза внутри речи 171 мс (самый тихий кусок 0.0019, короче 220 мс) — жду дальше
+  82342.0 14:25:59.984 [word-ear] голос кончился: шёл 299 мс, тишина 256 мс ≥ 220 (порог голоса 0.0036 (шум 0.0014, пик речи 0.004), тихие куски от 0.0016) — прошу итог, не дожидаясь черновика
+  82392.0 14:26:00.033 [word-ear] итог «» — не засчитано: цель не услышана; в Vosk ушло: голос 85 мс, усиление до ×10, тишины не отдано 256 мс
+  82392.0 14:26:00.033 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  82865.0 14:26:00.507 [word-ear] голос начался: rms 0.0101 ≥ порог 0.0047 (шум 0.0012)
+  82970.0 14:26:00.611 [perf] fps=60 worst=17ms drops=0 anim=15 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  83276.0 14:26:00.917 [pill] №0 «learn» дорожка 0: +live +ring; узлов +1 −0; спустя 250 мс видна
+  83713.0 14:26:01.355 [word-ear] голос кончился: шёл 592 мс, тишина 256 мс ≥ 220 (порог голоса 0.0029 (шум 0.001, пик речи 0.0571), тихие куски от 0.0009) — прошу итог, не дожидаясь черновика
+  83771.0 14:26:01.413 [word-ear] итог «» — не засчитано: цель не услышана; в Vosk ушло: голос 640 мс, усиление до ×7.1, тишины не отдано 0 мс
+  83771.0 14:26:01.413 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  83974.0 14:26:01.616 [perf] fps=60 worst=18ms drops=0 anim=10 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  84098.0 14:26:01.740 [pill] №0 «learn» дорожка 0: −live; спустя 250 мс видна
+  84829.0 14:26:02.470 [ru] слово: learn ожидал: учиться услышал partial: — final: — уровень: 0.24 итог: не успел (голос был, слово не распознано)
+  84829.0 14:26:02.471 [scene] {"t":84829,"k":"knob","key":"preSay.gap","ms":450,"from":"missed","until":"say"}
+  84829.0 14:26:02.471 [speech] +0 мс idle → gap: не успел: перевод через 450 мс
+  84830.0 14:26:02.472 [race] проход B: «learn» не успел, серия 0, слово к повтору
+  84830.0 14:26:02.472 [scene] {"t":84830,"k":"answer","res":"fail","idx":3,"word":"learn","final":true}
+  84977.0 14:26:02.619 [perf] fps=61 worst=21ms drops=0 anim=10 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:61,Fu:61,a:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  85279.0 14:26:02.921 [speech] +450 мс gap → idle: перевод следующего слова разрешён (после «не успел»)
+  85287.0 14:26:02.929 [scene] {"t":85287,"k":"ask","idx":4,"word":"trying"}
+  85288.0 14:26:02.929 [race] голос: повтор 5/6 слово «trying», говорит слово «trying», на пилюле «trying», дорожка 1, скорость 1.2155
+  85288.0 14:26:02.930 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  85288.0 14:26:02.930 [speech] +459 мс перевод пошёл, оценка 967 мс
+  85289.0 14:26:02.931 [cat] cat-speak {"id":"trying","ms":967,"trackLen":3,"empty":false,"up":true}
+  85289.0 14:26:02.931 [scene] {"t":85289,"k":"line-start","who":"dictor","id":"trying","text":"trying","ms":967}
+  85289.0 14:26:02.931 [cat] очередь: +слово «trying» 967 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  85554.0 14:26:03.196 [lag] ×2 кадров за 0,1 с, худший 34 мс, лишних 30 мс · стадия catch · что шло: меток нет
+  85821.0 14:26:03.462 [scene] {"t":85821,"k":"pill","idx":4,"word":"trying","lane":1,"speed":1.2155}
+  85824.0 14:26:03.465 [dodge] обратный конвейер: слово выезжает на 2, прыжок с x 50.0 на 85.6 %
+  85859.0 14:26:03.500 [conveyor] ступень 8: скорость 30.1 → 31.6 dvh/с (×1.16 → ×1.22) за 800 мс
+  85982.0 14:26:03.623 [perf] fps=58 worst=36ms drops=0 anim=17 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=174(c:58,Fu:58,a:58) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  86258.0 14:26:03.899 [speech] +1428 мс speech-end: перевод доиграл
+  86258.0 14:26:03.900 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  86258.0 14:26:03.900 [cat] очередь: пуста, голова уйдёт через 900 мс
+  86267.0 14:26:03.909 [cat] cat-speak-end {"id":"trying","ms":967,"played":978,"shapes":7,"micBlocked":0,"why":"done"}
+  86267.0 14:26:03.909 [scene] {"t":86267,"k":"line-end","id":"trying","played":978,"why":"done"}
+  86409.0 14:26:04.050 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  86633.0 14:26:04.275 [lag] ×2 кадров за 0,3 с, худший 36 мс, лишних 28 мс · стадия catch · что шло: пилюля №4 выезд
+  86843.0 14:26:04.485 [word-ear] голос начался: rms 0.009 ≥ порог 0.0087 (шум 0.0022)
+  86985.0 14:26:04.626 [perf] fps=60 worst=25ms drops=0 anim=8 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  87334.0 14:26:04.976 [pill] №0 «trying» дорожка 1: +live +ring; узлов +1 −0; спустя 250 мс видна
+  87573.0 14:26:05.215 [word-ear] голос кончился: шёл 505 мс, тишина 261 мс ≥ 220 (порог голоса 0.0075 (шум 0.003, пик речи 0.0513), тихие куски от 0.0034) — прошу итог, не дожидаясь черновика
+  87645.0 14:26:05.287 [word-ear] итог «» — не засчитано: цель не услышана; в Vosk ушло: голос 512 мс, усиление до ×8.5, тишины не отдано 2475 мс
+  87645.0 14:26:05.287 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  87883.0 14:26:05.525 [pill] №0 «trying» дорожка 1: −live; спустя 250 мс видна
+  87989.0 14:26:05.631 [perf] fps=60 worst=17ms drops=0 anim=8 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  88993.0 14:26:06.635 [perf] fps=60 worst=17ms drops=0 anim=8 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  89318.0 14:26:06.960 [ru] слово: trying ожидал: пытаюсь услышал partial: — final: — уровень: 0.14 итог: не успел (голоса не было)
+  89318.0 14:26:06.960 [scene] {"t":89318,"k":"knob","key":"preSay.gap","ms":450,"from":"missed","until":"say"}
+  89318.0 14:26:06.960 [speech] +0 мс idle → gap: не успел: перевод через 450 мс
+  89319.0 14:26:06.960 [race] проход B: «trying» не успел, серия 0, слово к повтору
+  89319.0 14:26:06.960 [scene] {"t":89319,"k":"answer","res":"fail","idx":4,"word":"trying","final":true}
+  89475.0 14:26:07.117 [pill] №0 «trying» дорожка 1: узлов +0 −1; спустя 250 мс видна
+  89769.0 14:26:07.411 [speech] +451 мс gap → idle: перевод следующего слова разрешён (после «не успел»)
+  89781.0 14:26:07.423 [scene] {"t":89781,"k":"ask","idx":5,"word":"I'm"}
+  89781.0 14:26:07.423 [race] голос: повтор 6/6 слово «I'm», говорит слово «I'm», на пилюле «I'm», дорожка 2, скорость 1.2763
+  89781.0 14:26:07.423 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  89782.0 14:26:07.424 [speech] +464 мс перевод пошёл, оценка 549 мс
+  89782.0 14:26:07.424 [cat] cat-speak {"id":"I'm","ms":549,"trackLen":2,"empty":false,"up":true}
+  89782.0 14:26:07.424 [scene] {"t":89782,"k":"line-start","who":"dictor","id":"I'm","text":"I'm","ms":549}
+  89782.0 14:26:07.424 [cat] очередь: +слово «I'm» 549 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  89913.0 14:26:07.555 [scene] {"t":89913,"k":"pill","idx":5,"word":"I'm","lane":2,"speed":1.2763}
+  89916.0 14:26:07.558 [dodge] обратный конвейер: слово выезжает на 3, прыжок с x 85.6 на 50.0 %
+  89935.0 14:26:07.577 [conveyor] ступень 8: скорость 31.6 → 33.2 dvh/с (×1.22 → ×1.28) за 800 мс
+  90000.0 14:26:07.642 [perf] fps=59 worst=33ms drops=0 anim=18 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=177(c:59,Fu:59,a:59) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  90063.0 14:26:07.705 [lag] ×2 кадров за 0,1 с, худший 33 мс, лишних 29 мс · стадия catch · что шло: меток нет
+  90332.0 14:26:07.974 [speech] +1014 мс speech-end: перевод доиграл
+  90332.0 14:26:07.974 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  90332.0 14:26:07.974 [cat] очередь: пуста, голова уйдёт через 900 мс
+  90342.0 14:26:07.984 [cat] cat-speak-end {"id":"I'm","ms":549,"played":560,"shapes":4,"micBlocked":0,"why":"done"}
+  90342.0 14:26:07.984 [scene] {"t":90342,"k":"line-end","id":"I'm","played":560,"why":"done"}
+  90483.0 14:26:08.125 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  90709.0 14:26:08.351 [lag] кадр 25 мс · стадия catch · что шло: меток нет
+  90801.0 14:26:08.443 [word-ear] голос начался: rms 0.0122 ≥ порог 0.0117 (шум 0.0029)
+  91002.0 14:26:08.643 [perf] fps=59 worst=25ms drops=0 anim=8 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=177(c:59,Fu:59,a:59) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  91293.0 14:26:08.935 [pill] №1 «I'm» дорожка 2: +live +ring; узлов +1 −0; спустя 250 мс видна
+  91313.0 14:26:08.955 [word-ear] голос кончился: шёл 256 мс, тишина 257 мс ≥ 220 (порог голоса 0.007 (шум 0.0028, пик речи 0.054), тихие куски от 0.0025) — прошу итог, не дожидаясь черновика
+  91383.0 14:26:09.025 [word-ear] итог «» — не засчитано: цель не услышана; в Vosk ушло: голос 299 мс, усиление до ×4.2, тишины не отдано 2603 мс
+  91384.0 14:26:09.025 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  91732.0 14:26:09.374 [pill] №1 «I'm» дорожка 2: −live; спустя 250 мс видна
+  92006.0 14:26:09.648 [perf] fps=60 worst=19ms drops=0 anim=8 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  93010.0 14:26:10.652 [perf] fps=60 worst=17ms drops=0 anim=8 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  93183.0 14:26:10.824 [pill] №1 «I'm» дорожка 2: узлов +0 −1; спустя 250 мс видна
+  93244.0 14:26:10.886 [ru] слово: I'm ожидал: я услышал partial: — final: — уровень: 0.11 итог: не успел (голоса не было)
+  93244.0 14:26:10.886 [scene] {"t":93244,"k":"knob","key":"preSay.gap","ms":450,"from":"missed","until":"say"}
+  93244.0 14:26:10.886 [speech] +0 мс idle → gap: не успел: перевод через 450 мс
+  93244.0 14:26:10.886 [race] проход B: «I'm» не успел, серия 0, слово к повтору
+  93244.0 14:26:10.886 [scene] {"t":93244,"k":"answer","res":"fail","idx":5,"word":"I'm","final":true}
+  93245.0 14:26:10.886 [scene] {"t":93245,"k":"stage-out","idx":8,"sid":"catch"}
+  93499.0 14:26:11.141 [conveyor] ступень кончилась: доезжают 1 пилюль
+  93499.0 14:26:11.141 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  93500.0 14:26:11.142 [scene] {"t":93500,"k":"stage-in","idx":9,"sid":"catch3-intro-ann","act":"catch","type":"announce","title":"Допрос у Мии","line":null,"mia":"intro","pauses":[{"key":"mia.intro","ms":0,"as":"ms"}]}
+  93508.0 14:26:11.149 [conveyor] ступень 9: скорость 33.2 → 36.5 dvh/с (×1.28 → ×1.40) за 800 мс
+  93519.0 14:26:11.161 [mia] Мия пришла (catch), коробка падает через 3487 мс
+  93520.0 14:26:11.161 [start] переход Пинг-понг B → catch3-intro: плашка через 256 мс, реплика через —, первая пилюля через —, дальше «catch3» через 276 мс; плашки: «Допрос у Мии» +256
+  93520.0 14:26:11.161 [scene] {"t":93520,"k":"stage-in","idx":10,"sid":"catch3-ann","act":"catch","type":"announce","title":"","line":"pit_forgot","mia":"ann","pauses":[{"key":"line.at","ms":250,"as":"lead"}]}
+  93520.0 14:26:11.162 [word-ear] ловушки «пытаюсь» по буквам без проверки (таблица произношений ещё не загружена; 3): пытаю, пыта, пыт — которых нет в словаре модели, те она молча выбросит
+  93520.0 14:26:11.162 [word-ear] ловушки «приятно» по буквам без проверки (таблица произношений ещё не загружена; 3): прият, прия, при — которых нет в словаре модели, те она молча выбросит
+  93520.0 14:26:11.162 [word-ear] ловушки «учиться» по буквам без проверки (таблица произношений ещё не загружена; 3): учить, учит, учи — которых нет в словаре модели, те она молча выбросит
+  93520.0 14:26:11.162 [word-ear] ловушки «помнить» по буквам без проверки (таблица произношений ещё не загружена; 3): помни, помн, пом — которых нет в словаре модели, те она молча выбросит
+  93520.0 14:26:11.162 [word-ear] ловушки «встретить» по буквам без проверки (таблица произношений ещё не загружена; 5): встрети, встрет, встре, встр, вст — которых нет в словаре модели, те она молча выбросит
+  93694.0 14:26:11.336 [speech] +450 мс gap → idle: перевод следующего слова разрешён (после «не успел»)
+  93771.0 14:26:11.412 [cat] реплика «round_mia» пропущена: такой реплики нет в настройках
+  93902.0 14:26:11.543 [conveyor] доехала «I'm»
+  93973.0 14:26:11.614 [lag] ×2 кадров за 0,1 с, худший 37 мс, лишних 29 мс · стадия catch · что шло: меток нет
+  94017.0 14:26:11.658 [perf] fps=59 worst=37ms drops=0 anim=68 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=146(c:59,Fu:59,a:28) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  94145.0 14:26:11.787 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  94146.0 14:26:11.787 [cat] cat-speak {"id":"pit_forgot","ms":3187,"trackLen":12,"empty":false,"up":true}
+  94146.0 14:26:11.787 [scene] {"t":94146,"k":"line-start","who":"pit","id":"pit_forgot","text":"Некоторые слова забылись, давай их повторим","ms":3187}
+  94146.0 14:26:11.787 [cat] очередь: +реплика «pit_forgot» 3187 мс, в очереди 1, голова уже наверху (не перезапускаю)
+  95017.0 14:26:12.659 [perf] fps=60 worst=17ms drops=0 anim=71 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  96021.0 14:26:13.663 [perf] fps=60 worst=18ms drops=0 anim=66 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  97030.0 14:26:14.672 [perf] fps=60 worst=17ms drops=0 anim=70 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  97035.0 14:26:14.676 [lag-mark] цвет дорожек → Мия (900 мс)
+  97173.0 14:26:14.814 [lag-mark] Мия: коробка падает на Пита (1200 мс)
+  97333.0 14:26:14.975 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+  97333.0 14:26:14.975 [cat] очередь: пуста, голова уйдёт через 900 мс
+  97339.0 14:26:14.981 [cat] cat-speak-end {"id":"pit_forgot","ms":3187,"played":3193,"shapes":20,"micBlocked":0,"why":"done"}
+  97339.0 14:26:14.981 [scene] {"t":97339,"k":"line-end","id":"pit_forgot","played":3193,"why":"done"}
+  97484.0 14:26:15.126 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+  97539.0 14:26:15.181 [lag] кадр 26 мс · стадия catch3-ann · что шло: меток нет
+  97937.0 14:26:15.579 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+  97937.0 14:26:15.579 [mia] реплика mia_push: звук 3657 мс
+  97937.0 14:26:15.579 [scene] {"t":97937,"k":"line-start","who":"mia","id":"mia_push","text":"Посиди в коробке, пушистик, дальше командую я","ms":3657}
+  97938.0 14:26:15.579 [mia] звук mia_push стартовал: snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+  97948.0 14:26:15.589 [cat] cat-speak {"id":"mia_push","ms":3657,"trackLen":15,"empty":false,"up":true}
+  98033.0 14:26:15.675 [perf] fps=61 worst=26ms drops=0 anim=66 inf=3(wlMiaSrcWave:3) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=122(c:61,Fu:61) canvas=0 snd=game:running,sounds:running,capture:running ses=playback/— mic=live/off
+  99038.0 14:26:16.679 [perf] fps=60 worst=17ms drops=0 anim=72 inf=3(wlMiaSrcWave:3) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 100042.0 14:26:17.684 [perf] fps=61 worst=17ms drops=0 anim=66 inf=3(wlMiaSrcWave:3) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=122(c:61,Fu:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 101045.0 14:26:18.686 [perf] fps=60 worst=17ms drops=0 anim=66 inf=3(wlMiaSrcWave:3) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 101598.0 14:26:19.240 [scene] {"t":101598,"k":"line-end","who":"mia","id":"mia_push"}
+ 101599.0 14:26:19.240 [scene] {"t":101599,"k":"knob","key":"mia.gap","ms":350,"from":"mia_push","until":"pit_panic"}
+ 101599.0 14:26:19.241 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+ 101608.0 14:26:19.249 [cat] cat-speak-end {"id":"mia_push","ms":3657,"played":3660,"shapes":0,"micBlocked":0,"why":"done"}
+ 101753.0 14:26:19.394 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+ 101757.0 14:26:19.399 [lag-mark] Мия: прыжок на коробку (340 мс)
+ 102027.0 14:26:19.668 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+ 102028.0 14:26:19.669 [cat] cat-speak {"id":"pit_panic","ms":1149,"trackLen":2,"empty":false,"up":true}
+ 102028.0 14:26:19.669 [scene] {"t":102028,"k":"line-start","who":"pit","id":"pit_panic","text":"Мяяяу","ms":1149}
+ 102028.0 14:26:19.669 [cat] очередь: +реплика «pit_panic» 1149 мс, в очереди 1, голова уже наверху (не перезапускаю)
+ 102028.0 14:26:19.669 [mia] реплика pit_panic (Пит)
+ 102049.0 14:26:19.691 [perf] fps=60 worst=18ms drops=0 anim=89 inf=19(miaTailSlot:16,wlMiaSrcWave:3) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 102094.0 14:26:19.735 [lag-mark] Мия: посадка на коробку (600 мс)
+ 102623.0 14:26:20.265 [lag] кадр 25 мс · стадия catch3-ann · что шло: Мия: прыжок на коробку (идёт 336 мс), Мия: посадка на коробку (+1 мс)
+ 103054.0 14:26:20.696 [perf] fps=60 worst=25ms drops=0 anim=83 inf=19(miaTailSlot:16,wlMiaSrcWave:3) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 103176.0 14:26:20.818 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+ 103177.0 14:26:20.818 [scene] {"t":103177,"k":"knob","key":"mia.gap","ms":350,"from":"pit_panic","until":"pit_reply"}
+ 103177.0 14:26:20.818 [cat] очередь: пуста, голова уйдёт через 900 мс
+ 103190.0 14:26:20.832 [cat] cat-speak-end {"id":"pit_panic","ms":1149,"played":1162,"shapes":4,"micBlocked":0,"why":"done"}
+ 103190.0 14:26:20.832 [scene] {"t":103190,"k":"line-end","id":"pit_panic","played":1162,"why":"done"}
+ 103249.0 14:26:20.890 [word-ear] голос начался: rms 0.0038 ≥ порог 0.0033 (шум 0.0008)
+ 103326.0 14:26:20.968 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+ 103527.0 14:26:21.168 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+ 103527.0 14:26:21.169 [cat] cat-speak {"id":"pit_reply","ms":3109,"trackLen":13,"empty":false,"up":true}
+ 103527.0 14:26:21.169 [scene] {"t":103527,"k":"line-start","who":"pit","id":"pit_reply","text":"зря стараешься, я не буду молчать","ms":3109}
+ 103527.0 14:26:21.169 [cat] очередь: +реплика «pit_reply» 3109 мс, в очереди 1, голова уже наверху (не перезапускаю)
+ 103527.0 14:26:21.169 [mia] реплика pit_reply (Пит)
+ 104057.0 14:26:21.698 [perf] fps=60 worst=20ms drops=0 anim=95 inf=19(miaTailSlot:16,wlMiaSrcWave:3) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 105061.0 14:26:22.703 [perf] fps=61 worst=18ms drops=0 anim=84 inf=19(miaTailSlot:16,wlMiaSrcWave:3) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=122(c:61,Fu:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 106066.0 14:26:23.707 [perf] fps=60 worst=17ms drops=0 anim=83 inf=19(miaTailSlot:16,wlMiaSrcWave:3) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 106635.0 14:26:24.277 [scene] {"t":106635,"k":"knob","key":"mia.gap","ms":350,"from":"pit_reply","until":"mia_announce_2"}
+ 106636.0 14:26:24.278 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+ 106636.0 14:26:24.278 [cat] очередь: пуста, голова уйдёт через 900 мс
+ 106641.0 14:26:24.282 [cat] cat-speak-end {"id":"pit_reply","ms":3109,"played":3114,"shapes":20,"micBlocked":0,"why":"done"}
+ 106641.0 14:26:24.282 [scene] {"t":106641,"k":"line-end","id":"pit_reply","played":3114,"why":"done"}
+ 106787.0 14:26:24.429 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+ 106987.0 14:26:24.628 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+ 106987.0 14:26:24.628 [mia] реплика mia_announce_2: звук 4963 мс
+ 106987.0 14:26:24.628 [scene] {"t":106987,"k":"line-start","who":"mia","id":"mia_announce_2","text":"Это не важно, я ускоряю игру и проверю каждое забытое слово","ms":4963}
+ 106987.0 14:26:24.628 [mia] звук mia_announce_2 стартовал: snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 106989.0 14:26:24.630 [cat] cat-speak {"id":"mia_announce_2","ms":4963,"trackLen":26,"empty":false,"up":true}
+ 107008.0 14:26:24.649 [conveyor] ступень 10: скорость 36.5 → 42.0 dvh/с (×1.40 → ×1.61) за 800 мс
+ 107070.0 14:26:24.711 [perf] fps=60 worst=17ms drops=0 anim=83 inf=16(miaTailSlot:16) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running,sounds:running,capture:running ses=playback/— mic=live/off
+ 108073.0 14:26:25.714 [perf] fps=60 worst=19ms drops=0 anim=83 inf=16(miaTailSlot:16) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 109077.0 14:26:26.718 [perf] fps=61 worst=17ms drops=0 anim=83 inf=16(miaTailSlot:16) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=122(c:61,Fu:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 110081.0 14:26:27.722 [perf] fps=60 worst=17ms drops=0 anim=83 inf=16(miaTailSlot:16) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 111086.0 14:26:28.727 [perf] fps=60 worst=17ms drops=0 anim=83 inf=16(miaTailSlot:16) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 111950.0 14:26:29.591 [scene] {"t":111950,"k":"line-end","who":"mia","id":"mia_announce_2"}
+ 111950.0 14:26:29.592 [scene] {"t":111950,"k":"knob","key":"mia.gap","ms":350,"from":"mia_announce_2","until":"mia_announce_3"}
+ 111950.0 14:26:29.592 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+ 111959.0 14:26:29.600 [cat] cat-speak-end {"id":"mia_announce_2","ms":4963,"played":4969,"shapes":0,"micBlocked":0,"why":"done"}
+ 112089.0 14:26:29.730 [perf] fps=60 worst=17ms drops=0 anim=79 inf=16(miaTailSlot:16) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+ 112101.0 14:26:29.743 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+ 112380.0 14:26:30.022 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+ 112380.0 14:26:30.022 [mia] реплика mia_announce_3: звук 3422 мс
+ 112380.0 14:26:30.022 [scene] {"t":112380,"k":"line-start","who":"mia","id":"mia_announce_3","text":"Выйдешь, когда кое-кто ответит верно, три раза подряд","ms":3422}
+ 112380.0 14:26:30.022 [mia] звук mia_announce_3 стартовал: snd=game:running,sounds:running,capture:running ses=playback/— mic=live/off
+ 112382.0 14:26:30.023 [cat] cat-speak {"id":"mia_announce_3","ms":3422,"trackLen":19,"empty":false,"up":true}
+ 113094.0 14:26:30.735 [perf] fps=61 worst=17ms drops=0 anim=84 inf=16(miaTailSlot:16) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=122(c:61,Fu:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 113397.0 14:26:31.038 [reverse] разворот назад: 3 пилюли со стрелками приезжают за 2246 мс
+ 113670.0 14:26:31.311 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+ 113942.0 14:26:31.583 [lag] кадр 27 мс · стадия catch3-ann · что шло: меток нет
+ 114097.0 14:26:31.739 [perf] fps=60 worst=27ms drops=0 anim=86 inf=16(miaTailSlot:16) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 114945.0 14:26:32.586 [reverse] конвейер тормозит вместе с пилюлями
+ 115101.0 14:26:32.742 [perf] fps=60 worst=17ms drops=0 anim=93 inf=16(miaTailSlot:16) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 115803.0 14:26:33.444 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+ 115803.0 14:26:33.445 [scene] {"t":115803,"k":"line-end","who":"mia","id":"mia_announce_3"}
+ 115809.0 14:26:33.451 [cat] cat-speak-end {"id":"mia_announce_3","ms":3422,"played":3427,"shapes":0,"micBlocked":0,"why":"done"}
+ 115845.0 14:26:33.486 [reverse] разворот на 180°
+ 115953.0 14:26:33.595 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+ 116045.0 14:26:33.686 [reverse] узор дорожек — вниз
+ 116105.0 14:26:33.746 [perf] fps=59 worst=33ms drops=0 anim=92 inf=16(miaTailSlot:16) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=118(c:59,Fu:59) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+ 116245.0 14:26:33.886 [reverse] пилюли уезжают вниз с ускорением, конвейер стартует в обратную сторону
+ 116296.0 14:26:33.937 [scene] {"t":116296,"k":"count","what":"«catch3» (плашка catch3-ann)","ms":2500}
+ 116296.0 14:26:33.937 [scene] {"t":116296,"k":"knob","key":"count.tail","ms":200,"from":"count","until":"«catch3» (плашка catch3-ann)"}
+ 116296.0 14:26:33.937 [countdown] отсчёт начат перед «catch3» (плашка catch3-ann) (контекст running)
+ 116296.0 14:26:33.937 [dance] танца нет: Пит в коробке
+ 116301.0 14:26:33.942 [countdown] нота 1/3 сыграна (контекст running, старт за 0 мс, громкость 1)
+ 116422.0 14:26:34.063 [word-ear] голос начался: rms 0.0031 ≥ порог 0.0026 (шум 0.0007)
+ 116709.0 14:26:34.350 [lag] ×2 кадров за 0,3 с, худший 33 мс, лишних 33 мс · стадия catch3-ann · что шло: меток нет
+ 116897.0 14:26:34.538 [countdown] нота 2/3 сыграна (контекст running, старт за 0 мс, громкость 1)
+ 117109.0 14:26:34.750 [perf] fps=59 worst=33ms drops=0 anim=88 inf=16(miaTailSlot:16) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=118(c:59,Fu:59) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+ 117497.0 14:26:35.138 [countdown] нота 3/3 сыграна (контекст running, старт за 0 мс, громкость 1)
+ 118113.0 14:26:35.754 [perf] fps=61 worst=17ms drops=0 anim=88 inf=16(miaTailSlot:16) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=122(c:61,Fu:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+ 118797.0 14:26:36.438 [countdown] отсчёт перед «catch3» (плашка catch3-ann): сыграно 3 из 3
+ 118797.0 14:26:36.438 [scene] {"t":118797,"k":"count-end"}
+ 118800.0 14:26:36.441 [dodge] нырок из центра на 1 (старт) → x 26.9 %
+ 118800.0 14:26:36.441 [scene] {"t":118800,"k":"stage-in","idx":11,"sid":"catch3","act":"catch","type":"student","title":"","line":null,"mia":"round"}
+ 118810.0 14:26:36.451 [scene] {"t":118810,"k":"ask","idx":0,"word":"trying"}
+ 118810.0 14:26:36.451 [race] голос: повтор 1/6 слово «trying», говорит слово «trying», на пилюле «trying», дорожка 0, скорость 1.6145
+ 118812.0 14:26:36.453 [word-ear] голос кончился: шёл 2134 мс, тишина 256 мс ≥ 220 (порог голоса 0.0026 (шум 0.001, пик речи 0.0101), тихие куски от 0.001) — прошу итог, не дожидаясь черновика
+ 118862.0 14:26:36.503 [word-ear] итог «» — не засчитано: цель не услышана; в Vosk ушло: голос 2176 мс, усиление до ×16.5, тишины не отдано 2048 мс
+ 118862.0 14:26:36.503 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+ 119117.0 14:26:36.759 [perf] fps=60 worst=18ms drops=0 anim=32 inf=16(miaTailSlot:16) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=140(c:60,Fu:60,a:20) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+ 119220.0 14:26:36.861 [dodge] речь ждала выныривания 410 мс
+ 119220.0 14:26:36.861 [scene] {"t":119220,"k":"wait","why":"Пит выныривает к дорожке","ms":410}
+ 119220.0 14:26:36.861 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+ 119220.0 14:26:36.862 [speech] +25976 мс перевод пошёл, оценка 967 мс
+ 119220.0 14:26:36.862 [cat] cat-speak {"id":"trying","ms":967,"trackLen":3,"empty":false,"up":true}
+ 119220.0 14:26:36.862 [scene] {"t":119220,"k":"line-start","who":"dictor","id":"trying","text":"trying","ms":967}
+ 119220.0 14:26:36.862 [cat] очередь: +слово «trying» 967 мс, в очереди 1, голова уже наверху (не перезапускаю)
+ 119860.0 14:26:37.501 [start] переход catch3-intro → catch3: плашка через —, реплика через 626 мс («pit_forgot»), первая пилюля через 26340 мс
+ 119860.0 14:26:37.501 [scene] {"t":119860,"k":"pill","idx":0,"word":"trying","lane":0,"speed":1.6145}
+ 119882.0 14:26:37.524 [conveyor] ступень 11: скорость 42.0 → 42.0 dvh/с (×1.61 → ×1.61) за 800 мс
+ 120122.0 14:26:37.763 [perf] fps=60 worst=22ms drops=0 anim=8 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 120187.0 14:26:37.829 [speech] +26943 мс speech-end: перевод доиграл
+ 120188.0 14:26:37.830 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+ 120188.0 14:26:37.830 [cat] очередь: пуста, голова уйдёт через 900 мс
+ 120193.0 14:26:37.835 [cat] cat-speak-end {"id":"trying","ms":967,"played":973,"shapes":6,"micBlocked":0,"why":"done"}
+ 120193.0 14:26:37.835 [scene] {"t":120193,"k":"line-end","id":"trying","played":973,"why":"done"}
+ 120339.0 14:26:37.980 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+ 121126.0 14:26:38.767 [perf] fps=60 worst=17ms drops=0 anim=8 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+ 121337.0 14:26:38.978 [word-ear] голос начался: rms 0.034 ≥ порог 0.0033 (шум 0.0008)
+ 121702.0 14:26:39.343 [word-ear] черновик «пытаюсь»: «пытаюсь» — последнее слово, может быть не договорено (голос 384 мс, слогов 2) — жду конец голоса и итог
+ 121743.0 14:26:39.385 [dodge] прыжок с 1 на 2 (не успел): низ пилюли 75.1 %, скорость ×1.61 → x 50.0 %
+ 121746.0 14:26:39.387 [pill] №0 «trying» дорожка 0: +live +ring; узлов +1 −0; спустя 250 мс видна
+ 122105.0 14:26:39.746 [word-ear] голос кончился: шёл 554 мс, тишина 256 мс ≥ 220 (порог голоса 0.0024 (шум 0.0009, пик речи 0.0428), тихие куски от 0.0009) — прошу итог
+ 122129.0 14:26:39.770 [perf] fps=61 worst=17ms drops=0 anim=34 inf=24(miaTailSlot:16,wlBubA:3,wlBubB:3,wlBubC:2) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:61,Fu:61,a:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+ 122150.0 14:26:39.791 [word-ear] итог «пытаюсь»: пытаюсь conf 1, по Vosk 480 мс, голос 554 мс (ожидаю ≥ 240) — зачёт; в Vosk ушло: голос 555 мс, усиление до ×11.6, тишины не отдано 1920 мс
+ 122150.0 14:26:39.792 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+ 122161.0 14:26:39.802 [ru] слово: trying ожидал: пытаюсь услышал partial: пытаюсь final: пытаюсь уровень: 0.96 итог: зачёт
+ 122161.0 14:26:39.802 [speech] +0 мс idle → claimed: зачёт, похвалы нет
+ 122161.0 14:26:39.802 [scene] {"t":122161,"k":"claim","idx":0,"ms":2301}
+ 122161.0 14:26:39.802 [dodge] зачёт 1: голова на дорожке 2, следующая на 2, прыжок начат, пилюля у головы → стоять (зачёт после начала прыжка; стоим: уже под следующей)
+ 122161.0 14:26:39.802 [dodge] нырок подавлен — стоим: уже под следующей
+ 122262.0 14:26:39.903 [scene] {"t":122262,"k":"answer","res":"win","idx":0,"word":"","final":true}
+ 122262.0 14:26:39.903 [scene] {"t":122262,"k":"knob","key":"preSay.gap","ms":450,"from":"rise","until":"say"}
+ 122262.0 14:26:39.903 [speech] +101 мс claimed → gap: взлёт, без похвалы: перевод через 450 мс
+ 122262.0 14:26:39.903 [race] взлёт: звук через 380 мс (нота награды 380 мс)
+ 122262.0 14:26:39.903 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+ 122262.0 14:26:39.903 [mia] реплика mia_ok_1: звук 1071 мс
+ 122262.0 14:26:39.904 [scene] {"t":122262,"k":"line-start","who":"mia","id":"mia_ok_1","text":"Допустим","ms":1071}
+ 122262.0 14:26:39.904 [mia] звук mia_ok_1 стартовал: snd=game:running,sounds:running,capture:running ses=playback/— mic=live/off
+ 122262.0 14:26:39.904 [scene] {"t":122262,"k":"note","order":0}
+ 122267.0 14:26:39.908 [cat] cat-speak {"id":"mia_ok_1","ms":1071,"trackLen":3,"empty":false,"up":true}
+ 122413.0 14:26:40.054 [pill] №0 «trying» дорожка 0: +lock ‖ +full +rise; узлов +2 −0; спустя 250 мс видна
+ 122712.0 14:26:40.353 [speech] +551 мс gap → idle: перевод следующего слова разрешён (без похвалы)
+ 123002.0 14:26:40.643 [lag] кадр 42 мс · стадия catch3 · что шло: меток нет
+ 123133.0 14:26:40.775 [perf] fps=58 worst=42ms drops=0 anim=43 inf=24(miaTailSlot:16,wlBubA:3,wlBubB:3,wlBubC:2) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=174(c:58,Fu:58,a:58) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 123154.0 14:26:40.795 [pill] №0 «trying» дорожка 0: узлов +0 −1 ‖ узлов +0 −1; спустя 250 мс opacity 0.30
+ 123334.0 14:26:40.975 [scene] {"t":123334,"k":"line-end","who":"mia","id":"mia_ok_1"}
+ 123334.0 14:26:40.975 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+ 123352.0 14:26:40.993 [cat] cat-speak-end {"id":"mia_ok_1","ms":1071,"played":1085,"shapes":0,"micBlocked":0,"why":"done"}
+ 123437.0 14:26:41.078 [pill] №0 «trying» дорожка 0: узлов +0 −1; уже в пуле
+ 123484.0 14:26:41.126 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+ 123643.0 14:26:41.285 [word-ear] голос начался: rms 0.0021 ≥ порог 0.0021 (шум 0.0005)
+ 123769.0 14:26:41.410 [scene] {"t":123769,"k":"ask","idx":1,"word":"nice"}
+ 123769.0 14:26:41.410 [race] голос: повтор 2/6 слово «nice», говорит слово «nice», на пилюле «nice», дорожка 1, скорость 1.6952
+ 123769.0 14:26:41.410 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+ 123769.0 14:26:41.410 [speech] +1608 мс перевод пошёл, оценка 836 мс
+ 123769.0 14:26:41.410 [cat] cat-speak {"id":"nice","ms":836,"trackLen":3,"empty":false,"up":true}
+ 123769.0 14:26:41.410 [scene] {"t":123769,"k":"line-start","who":"dictor","id":"nice","text":"nice","ms":836}
+ 123769.0 14:26:41.410 [cat] очередь: +слово «nice» 836 мс, в очереди 1, голова уже наверху (не перезапускаю)
+ 123985.0 14:26:41.626 [word-ear] голос кончился: шёл 171 мс, тишина 256 мс ≥ 220 (порог голоса 0.0014 (шум 0.0006, пик речи 0.0021), тихие куски от 0) — прошу итог, не дожидаясь черновика
+ 124051.0 14:26:41.692 [word-ear] итог «» — не засчитано: цель не услышана; в Vosk ушло: голос 128 мс, усиление до ×20.2, тишины не отдано 939 мс
+ 124051.0 14:26:41.692 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+ 124137.0 14:26:41.778 [perf] fps=61 worst=17ms drops=0 anim=28 inf=16(miaTailSlot:16) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:61,Fu:61,a:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 124302.0 14:26:41.943 [scene] {"t":124302,"k":"pill","idx":1,"word":"nice","lane":1,"speed":1.6952}
+ 124323.0 14:26:41.964 [conveyor] ступень 11: скорость 42.0 → 44.1 dvh/с (×1.61 → ×1.70) за 800 мс
+ 124605.0 14:26:42.246 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+ 124605.0 14:26:42.246 [cat] очередь: пуста, голова уйдёт через 900 мс
+ 124606.0 14:26:42.247 [speech] +2445 мс speech-end: перевод доиграл
+ 124619.0 14:26:42.260 [cat] cat-speak-end {"id":"nice","ms":836,"played":850,"shapes":6,"micBlocked":0,"why":"done"}
+ 124619.0 14:26:42.260 [scene] {"t":124619,"k":"line-end","id":"nice","played":850,"why":"done"}
+ 124755.0 14:26:42.397 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+ 124859.0 14:26:42.501 [word-ear] голос начался: rms 0.0048 ≥ порог 0.0025 (шум 0.0006)
+ 125141.0 14:26:42.783 [perf] fps=60 worst=19ms drops=0 anim=10 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+ 125371.0 14:26:43.013 [word-ear] пауза внутри речи 128 мс (самый тихий кусок 0.0014, короче 220 мс) — жду дальше
+ 125480.0 14:26:43.121 [word-ear] черновик «приятно»: «приятно» — последнее слово, может быть не договорено (голос 597 мс, слогов 2) — жду конец голоса и итог
+ 125554.0 14:26:43.195 [pill] №0 «nice» дорожка 1: +live +ring; узлов +1 −0; спустя 250 мс видна
+ 125755.0 14:26:43.397 [word-ear] голос кончился: шёл 640 мс, тишина 256 мс ≥ 220 (порог голоса 0.0021 (шум 0.0008, пик речи 0.0363), тихие куски от 0.0008) — прошу итог
+ 125799.0 14:26:43.440 [word-ear] итог «приятно»: приятно conf 1, по Vosk 750 мс, голос 640 мс (ожидаю ≥ 240) — зачёт; в Vosk ушло: голос 597 мс, усиление до ×14.9, тишины не отдано 256 мс
+ 125799.0 14:26:43.440 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+ 125802.0 14:26:43.443 [ru] слово: nice ожидал: приятно услышал partial: приятно final: приятно уровень: 0.93 итог: зачёт
+ 125802.0 14:26:43.443 [speech] +0 мс idle → claimed: зачёт, похвалы нет
+ 125802.0 14:26:43.443 [scene] {"t":125802,"k":"claim","idx":1,"ms":1500}
+ 125802.0 14:26:43.443 [dodge] зачёт 2: голова на дорожке 2, следующая на 3, прыжок нет, пилюля у головы → прыжок (зачёт в последний момент)
+ 125802.0 14:26:43.443 [dodge] прыжок с 2 на 3 (зачёт в последний момент) → x 73.1 %
+ 125904.0 14:26:43.545 [scene] {"t":125904,"k":"answer","res":"win","idx":1,"word":"","final":true}
+ 125904.0 14:26:43.545 [scene] {"t":125904,"k":"knob","key":"preSay.gap","ms":450,"from":"rise","until":"say"}
+ 125904.0 14:26:43.545 [speech] +102 мс claimed → gap: взлёт, без похвалы: перевод через 450 мс
+ 125904.0 14:26:43.545 [race] взлёт: звук через 380 мс (нота награды 380 мс)
+ 125904.0 14:26:43.545 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+ 125904.0 14:26:43.545 [mia] реплика mia_streak2: звук 1567 мс
+ 125904.0 14:26:43.545 [scene] {"t":125904,"k":"line-start","who":"mia","id":"mia_streak2","text":"Подозрительно хорошо","ms":1567}
+ 125904.0 14:26:43.546 [mia] звук mia_streak2 стартовал: snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 125904.0 14:26:43.546 [scene] {"t":125904,"k":"note","order":1}
+ 125910.0 14:26:43.551 [cat] cat-speak {"id":"mia_streak2","ms":1567,"trackLen":6,"empty":false,"up":true}
+ 126055.0 14:26:43.696 [pill] №0 «nice» дорожка 1: +lock ‖ +full +rise; узлов +2 −0; спустя 250 мс видна
+ 126146.0 14:26:43.788 [perf] fps=60 worst=34ms drops=0 anim=35 inf=8(wlBubA:3,wlBubB:3,wlBubC:2) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running,sounds:running,capture:running ses=playback/— mic=live/off
+ 126355.0 14:26:43.996 [speech] +552 мс gap → idle: перевод следующего слова разрешён (без похвалы)
+ 126627.0 14:26:44.269 [lag] кадр 34 мс · стадия catch3 · что шло: меток нет
+ 126796.0 14:26:44.437 [pill] №0 «nice» дорожка 1: узлов +0 −1 ‖ узлов +0 −1; спустя 250 мс opacity 0.30
+ 127079.0 14:26:44.720 [pill] №0 «nice» дорожка 1: узлов +0 −1; уже в пуле
+ 127149.0 14:26:44.790 [perf] fps=60 worst=18ms drops=0 anim=10 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 127470.0 14:26:45.111 [scene] {"t":127470,"k":"line-end","who":"mia","id":"mia_streak2"}
+ 127473.0 14:26:45.114 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+ 127478.0 14:26:45.119 [cat] cat-speak-end {"id":"mia_streak2","ms":1567,"played":1567,"shapes":0,"micBlocked":0,"why":"done"}
+ 127623.0 14:26:45.265 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+ 127911.0 14:26:45.552 [scene] {"t":127911,"k":"ask","idx":2,"word":"I'm"}
+ 127911.0 14:26:45.552 [race] голос: повтор 3/6 слово «I'm», говорит слово «I'm», на пилюле «I'm», дорожка 2, скорость 1.78
+ 127911.0 14:26:45.552 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+ 127911.0 14:26:45.552 [speech] +2109 мс перевод пошёл, оценка 549 мс
+ 127911.0 14:26:45.552 [cat] cat-speak {"id":"I'm","ms":549,"trackLen":2,"empty":false,"up":true}
+ 127911.0 14:26:45.552 [scene] {"t":127911,"k":"line-start","who":"dictor","id":"I'm","text":"I'm","ms":549}
+ 127911.0 14:26:45.552 [cat] очередь: +слово «I'm» 549 мс, в очереди 1, голова уже наверху (не перезапускаю)
+ 128153.0 14:26:45.794 [perf] fps=60 worst=17ms drops=0 anim=15 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 128161.0 14:26:45.802 [scene] {"t":128161,"k":"pill","idx":2,"word":"I'm","lane":2,"speed":1.78}
+ 128184.0 14:26:45.825 [conveyor] ступень 11: скорость 44.1 → 46.3 dvh/с (×1.70 → ×1.78) за 800 мс
+ 128459.0 14:26:46.101 [speech] +2657 мс speech-end: перевод доиграл
+ 128460.0 14:26:46.102 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+ 128460.0 14:26:46.102 [cat] очередь: пуста, голова уйдёт через 900 мс
+ 128461.0 14:26:46.103 [cat] cat-speak-end {"id":"I'm","ms":549,"played":550,"shapes":4,"micBlocked":0,"why":"done"}
+ 128461.0 14:26:46.103 [scene] {"t":128461,"k":"line-end","id":"I'm","played":550,"why":"done"}
+ 128611.0 14:26:46.252 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+ 128955.0 14:26:46.596 [word-ear] голос начался: rms 0.011 ≥ порог 0.0033 (шум 0.0008)
+ 129158.0 14:26:46.799 [perf] fps=60 worst=22ms drops=0 anim=9 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+ 129319.0 14:26:46.960 [word-ear] черновик «я»: «я» — последнее слово, может быть не договорено (голос 258 мс, слогов 1) — жду конец голоса и итог
+ 129413.0 14:26:47.054 [pill] №0 «I'm» дорожка 2: +live +ring; узлов +1 −0; спустя 250 мс видна
+ 129467.0 14:26:47.108 [word-ear] голос кончился: шёл 258 мс, тишина 254 мс ≥ 220 (порог голоса 0.0025 (шум 0.001, пик речи 0.0289), тихие куски от 0.0009) — прошу итог
+ 129513.0 14:26:47.154 [word-ear] итог «я»: я conf 1, по Vosk 390 мс, голос 258 мс (ожидаю ≥ 120) — зачёт; в Vosk ушло: голос 299 мс, усиление до ×12, тишины не отдано 2603 мс
+ 129513.0 14:26:47.154 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+ 129528.0 14:26:47.169 [ru] слово: I'm ожидал: я услышал partial: я final: я уровень: 0.90 итог: зачёт
+ 129528.0 14:26:47.169 [speech] +0 мс idle → claimed: зачёт, похвалы нет
+ 129528.0 14:26:47.169 [scene] {"t":129528,"k":"claim","idx":2,"ms":1366}
+ 129528.0 14:26:47.169 [dodge] зачёт 3: голова на дорожке 3, следующая на 1, прыжок нет, пилюля у головы → прыжок (зачёт в последний момент)
+ 129528.0 14:26:47.169 [dodge] прыжок с 3 на 1 (зачёт в последний момент) → x 26.9 %
+ 129629.0 14:26:47.271 [scene] {"t":129629,"k":"answer","res":"win","idx":2,"word":"","final":true}
+ 129629.0 14:26:47.271 [scene] {"t":129629,"k":"knob","key":"preSay.gap","ms":450,"from":"rise","until":"say"}
+ 129629.0 14:26:47.271 [speech] +101 мс claimed → gap: взлёт, без похвалы: перевод через 450 мс
+ 129630.0 14:26:47.271 [race] взлёт: звук через 560 мс (нота награды 560 мс)
+ 129630.0 14:26:47.271 [scene] {"t":129630,"k":"note","order":2}
+ 129769.0 14:26:47.410 [word-ear] голос начался: rms 0.0094 ≥ порог 0.0039 (шум 0.001)
+ 129780.0 14:26:47.421 [pill] №0 «I'm» дорожка 2: +lock ‖ +full +rise; узлов +2 −0; спустя 250 мс видна
+ 130081.0 14:26:47.723 [speech] +553 мс gap → idle: перевод следующего слова разрешён (без похвалы)
+ 130161.0 14:26:47.802 [perf] fps=59 worst=33ms drops=0 anim=31 inf=8(wlBubA:3,wlBubB:3,wlBubC:2) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=177(c:59,Fu:59,a:59) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+ 130228.0 14:26:47.869 [scene] {"t":130228,"k":"ask","idx":3,"word":"learn"}
+ 130228.0 14:26:47.869 [race] голос: повтор 4/6 слово «learn», говорит слово «learn», на пилюле «learn», дорожка 0, скорость 1.869
+ 130228.0 14:26:47.869 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+ 130228.0 14:26:47.869 [speech] +700 мс перевод пошёл, оценка 836 мс
+ 130228.0 14:26:47.870 [cat] cat-speak {"id":"learn","ms":836,"trackLen":3,"empty":false,"up":true}
+ 130228.0 14:26:47.870 [scene] {"t":130228,"k":"line-start","who":"dictor","id":"learn","text":"learn","ms":836}
+ 130228.0 14:26:47.870 [cat] очередь: +слово «learn» 836 мс, в очереди 1, голова уже наверху (не перезапускаю)
+ 130361.0 14:26:48.002 [lag] кадр 33 мс · стадия catch3 · что шло: меток нет
+ 130451.0 14:26:48.093 [word-ear] голос кончился: шёл 428 мс, тишина 255 мс ≥ 220 (порог голоса 0.0026 (шум 0.001, пик речи 0.0094), тихие куски от 0) — прошу итог, не дожидаясь черновика
+ 130494.0 14:26:48.135 [word-ear] итог «» — не засчитано: цель не услышана; в Vosk ушло: голос 469 мс, усиление до ×8.7, тишины не отдано 0 мс
+ 130494.0 14:26:48.135 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+ 130530.0 14:26:48.171 [pill] №0 «I'm» дорожка 2: узлов +0 −1 ‖ узлов +0 −1; спустя 250 мс opacity 0.23
+ 130778.0 14:26:48.419 [scene] {"t":130778,"k":"pill","idx":3,"word":"learn","lane":0,"speed":1.869}
+ 130796.0 14:26:48.437 [conveyor] ступень 11: скорость 46.3 → 48.6 dvh/с (×1.78 → ×1.87) за 800 мс
+ 130797.0 14:26:48.439 [pill] №0 «I'm» дорожка 2: узлов +0 −1; спустя 250 мс видна
+ 131065.0 14:26:48.706 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"depth":0}
+ 131065.0 14:26:48.706 [cat] очередь: пуста, голова уйдёт через 900 мс
+ 131065.0 14:26:48.706 [speech] +1537 мс speech-end: перевод доиграл
+ 131079.0 14:26:48.720 [cat] cat-speak-end {"id":"learn","ms":836,"played":851,"shapes":6,"micBlocked":0,"why":"done"}
+ 131079.0 14:26:48.721 [scene] {"t":131079,"k":"line-end","id":"learn","played":851,"why":"done"}
+ 131165.0 14:26:48.806 [perf] fps=61 worst=17ms drops=0 anim=10 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:61,Fu:61,a:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+ 131215.0 14:26:48.856 [note] mic-hold {"on":false,"check":true,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"live","tracks":1,"dead":false,"depth":0}
+ 131263.0 14:26:48.905 [word-ear] голос начался: rms 0.0042 ≥ порог 0.0033 (шум 0.0008)
+ 131731.0 14:26:49.372 [word-ear] пауза внутри речи 128 мс (самый тихий кусок 0.0012, короче 220 мс) — жду дальше
+ 131884.0 14:26:49.525 [word-ear] черновик «приятно»: «приятно» — последнее слово, может быть не договорено (голос 553 мс, слогов 2) — жду конец голоса и итог
+ 132073.0 14:26:49.714 [word-ear] голос кончился: шёл 553 мс, тишина 256 мс ≥ 220 (порог голоса 0.0023 (шум 0.0009, пик речи 0.0234), тихие куски от 0.0008) — прошу итог
+ 132137.0 14:26:49.779 [word-ear] итог «приятно»: приятно conf 1, по Vosk 690 мс, голос 553 мс (ожидаю ≥ 240) — зачёт; в Vosk ушло: голос 512 мс, усиление до ×10.8, тишины не отдано 213 мс
+ 132138.0 14:26:49.779 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+ 132146.0 14:26:49.787 [scene] {"t":132146,"k":"answer","res":"miss","idx":3,"word":"learn","final":false}
+ 132169.0 14:26:49.810 [perf] fps=60 worst=17ms drops=0 anim=19 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:60,Fu:60,a:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+ 132378.0 14:26:50.020 [dodge] прыжок с 1 на 2 (не успел): низ пилюли 73.8 %, скорость ×1.87 → x 50.0 %
+ 133058.0 14:26:50.699 [ru] слово: learn ожидал: учиться услышал partial: приятно final: приятно уровень: 0.00 итог: ошибка (сказано «приятно»)
+ 133058.0 14:26:50.699 [scene] {"t":133058,"k":"knob","key":"preSay.gap","ms":450,"from":"missed","until":"say"}
+ 133058.0 14:26:50.699 [speech] +0 мс idle → gap: не успел: перевод через 450 мс
+ 133058.0 14:26:50.699 [note] mic-hold {"on":true,"mode":"enabled-false","enabled":false,"muted":false,"readyState":"live","tracks":1,"depth":1}
+ 133058.0 14:26:50.699 [mia] реплика mia_miss_2: звук 2534 мс
+ 133058.0 14:26:50.699 [scene] {"t":133058,"k":"line-start","who":"mia","id":"mia_miss_2","text":"Слово ушло, я ждать не люблю","ms":2534}
+ 133058.0 14:26:50.700 [mia] звук mia_miss_2 стартовал: snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live/off
+ 133058.0 14:26:50.700 [scene] {"t":133058,"k":"answer","res":"fail","idx":3,"word":"learn","final":true}
+ 133064.0 14:26:50.705 [cat] cat-speak {"id":"mia_miss_2","ms":2534,"trackLen":10,"empty":false,"up":true}
+ 133174.0 14:26:50.815 [perf] fps=58 worst=29ms drops=0 anim=32 inf=16(miaTailSlot:16) waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=174(c:58,Fu:58,a:58) canvas=0 snd=game:running,sounds:running,capture:running ses=playback/— mic=live/off
+ 133191.0 14:26:50.832 [lag] ×2 кадров за 0,1 с, худший 29 мс, лишних 25 мс · стадия catch3 · что шло: меток нет
+ 133508.0 14:26:51.150 [speech] +450 мс gap → idle: перевод следующего слова разрешён (после «не успел»)
+ 133803.0 14:26:51.445 [lag] ×2 кадров за 0,1 с, худший 34 мс, лишних 31 мс · стадия catch3 · что шло: меток нет
+ 134108.0 14:26:51.749 [mic] комментарий к логам: попап открыт — игра отпускает микрофон по-настоящему, чтобы iPhone дал диктовку голосом в поле (поток был открыт); следующая игра спросит разрешение заново
+ 134110.0 14:26:51.751 [mic] поток закрыт по-настоящему (комментарий к логам: диктовка) — следующий старт спросит разрешение
+ 134110.0 14:26:51.751 [mic] audioSession playback → auto: для диктовки iPhone игровая категория звука не нужна
+ 134110.0 14:26:51.752 [scene] {"t":134110,"k":"line-end","who":"mia","id":"mia_miss_2","why":"stop"}
+ 134111.0 14:26:51.752 [note] mic-hold {"on":false,"mode":"enabled-false","enabled":true,"muted":false,"readyState":"ended","tracks":1,"depth":0}
+ 134111.0 14:26:51.752 [note] audio-session {"mode":"playback","why":"end","requested":"playback","ok":true,"as":"playback","prev":"auto","supported":true}
+ 134111.0 14:26:51.752 [scene] {"t":134111,"k":"pause","why":"comment"}
+ 134111.0 14:26:51.752 [pause] игра на паузе (comment): ступень run/11, микрофон выключен (поток жив) — включится только по тапу «Продолжить»
+ 134113.0 14:26:51.754 [dodge] нырок подавлен — стоим: голова уже на месте (x 50.0 %, конец ступени)
+ 134126.0 14:26:51.767 [mic] освобождено: треков 0, контекст running→closed, rate 48000
+ 134126.0 14:26:51.767 [mic] контекст захвата игры закрыт (комментарий к логам: диктовка): running→closed
+ 134192.0 14:26:51.834 [perf] fps=57 worst=34ms drops=0 anim=29 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=169(c:57,Fu:57,a:55) canvas=0 snd=game:running×0.94,sounds:running×0.94 ses=playback/— mic=нет потока
+ 134610.0 14:26:52.251 [mic] через 500 мс после отпускания: поток закрыт, audioSession=playback
+ 135193.0 14:26:52.835 [perf] fps=43 worst=206ms drops=2 anim=23 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=86(c:43,Fu:43) canvas=0 snd=game:running×0.92,sounds:running×0.92 ses=playback/— mic=нет потока
+ 135604.0 14:26:53.246 [cat] cat-speak-end {"id":"mia_miss_2","ms":2534,"played":2540,"shapes":0,"micBlocked":0,"why":"done"}
+ 135610.0 14:26:53.251 [mic] через 1500 мс после отпускания: поток закрыт, audioSession=playback
+ 136198.0 14:26:53.839 [perf] fps=60 worst=19ms drops=0 anim=29 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=playback/— mic=нет потока
+ 137110.0 14:26:54.751 [mic] через 3000 мс после отпускания: поток закрыт, audioSession=playback
+ 137202.0 14:26:54.843 [perf] fps=58 worst=33ms drops=0 anim=23 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=116(c:58,Fu:58) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=playback/— mic=нет потока
+ 138209.0 14:26:55.850 [perf] fps=61 worst=25ms drops=0 anim=23 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=122(c:61,Fu:61) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=playback/— mic=нет потока
+ 139210.0 14:26:56.851 [perf] fps=60 worst=27ms drops=0 anim=23 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=playback/— mic=нет потока
+ 140214.0 14:26:57.855 [perf] fps=60 worst=36ms drops=0 anim=29 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=playback/— mic=нет потока
+ 141218.0 14:26:58.859 [perf] fps=60 worst=27ms drops=0 anim=23 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=playback/— mic=нет потока
+ 142222.0 14:26:59.863 [perf] fps=60 worst=25ms drops=0 anim=23 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=playback/— mic=нет потока
+ 143226.0 14:27:00.867 [perf] fps=61 worst=18ms drops=0 anim=23 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=122(c:61,Fu:61) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=playback/— mic=нет потока
+ 144230.0 14:27:01.871 [perf] fps=60 worst=23ms drops=0 anim=23 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=playback/— mic=нет потока
+ 145234.0 14:27:02.875 [perf] fps=60 worst=21ms drops=0 anim=23 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=playback/— mic=нет потока
+ 146237.0 14:27:03.878 [perf] fps=60 worst=17ms drops=0 anim=23 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:60,Fu:60) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=playback/— mic=нет потока
+ 147244.0 14:27:04.885 [perf] fps=59 worst=36ms drops=0 anim=27 inf=0 waves=0 audio=0/0 video=4/0 bubbles=-1 frozen=0 dom=-1 raf=118(c:59,Fu:59) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=playback/— mic=нет потока
