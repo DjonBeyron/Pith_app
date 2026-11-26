@@ -12,7 +12,7 @@
 import { createGame2Listener } from '../game2/game2Listen.js'
 import { createWordListener } from '../player/modules/rotate-phone/wordLaneListen.js'
 import { createDraftHold, PEAK_MIN, DRAFT_KEEP_MS } from './racePhraseDraftHold.js'
-import { createTailHold, cutTail, holdLast, TAIL_HOLD_MS } from './racePhraseTailHold.js'
+import { createTailHold, cutTail, holdLast, tailWait, TAIL_HOLD_MS, TAIL_LAST_STABLE_MS } from './racePhraseTailHold.js'
 import { unglue } from './racePhraseGlue.js'; import { createSticky } from './racePhraseSticky.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { scorePhrases, pickPhrase, unionWords, earLine, PHRASE_OK, PHRASE_GAP, cleanHeard as clean, normPhrases as norm } from './racePhraseScore.js'
@@ -156,8 +156,8 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       if (r.held.length) {
         scores = r.scores
         if (!tailLogged) { tailLogged = true; log(`[phrase-ear] новое слово хвостом черновика «${current}» — черновиком не принимаю, через ${TAIL_HOLD_MS} мс устойчивости прошу итог ${rel()}`) }
-        const ask = () => { tailTimer = 0; if (mine !== gen || disposed || !curDraft || !current) return; if (r.first && now() - voiceAt < TAIL_HOLD_MS) { tailTimer = setTimer(ask, 100); return } log(`[phrase-ear] новое слово устоялось (черновик «${current}») — прошу итог захода ${rel()}`); ear?.stop?.() } // не последнее слово: итог — только после паузы голоса TAIL_HOLD_MS (слитную речь не рвём: второе слово в черновике принимает первое и без итога)
-        if (!tailTimer) tailTimer = setTimer(ask, Math.max(1, tail.left()))
+        const ask = () => { tailTimer = 0; if (mine !== gen || disposed || !curDraft || !current) return; const w = tailWait({ first: r.first, left: tail.left(), sinceVoice: now() - voiceAt }); if (w) { tailTimer = setTimer(ask, w); return } log(`[phrase-ear] новое слово устоялось (черновик «${current}») — прошу итог захода ${rel()}`); ear?.stop?.() } // не последнее слово: итог — только после паузы голоса TAIL_HOLD_MS (слитную речь не рвём: второе слово в черновике принимает первое и без итога)
+        if (!tailTimer) tailTimer = setTimer(ask, Math.max(1, tail.left(r.first ? TAIL_HOLD_MS : TAIL_LAST_STABLE_MS)))
       }
     }
     words(scores, draft)

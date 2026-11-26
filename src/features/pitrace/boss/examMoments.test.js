@@ -34,7 +34,7 @@ describe('1. плашка экзамена появляется на «Эй, в�
   })
   it('подключено: у церемонии экзамена плашку ведёт реплика Мии, у «Допроса» — прежнее окно «говорит за кадром»; стадия-заставка экзамена без плашки, как раньше', () => {
     const src = read('../useRaceActs.js')
-    expect(src).toContain("st?.miaPlate ? ((st.script === 'boss' ? examPlateOn(miaTalk) : miaPlate.go) ? plateText({ type: 'announce', round: st.miaPlate }) : '')")
+    expect(src).toContain("st?.miaPlate ? ((st.script === 'boss' ? examPlateOn(miaTalk) && miaPlate.look : miaPlate.go) ? plateText({ type: 'announce', round: st.miaPlate }) : '')")
     expect(src).toContain("st?.mia === 'intro' || st?.sid === 'boss-intro-ann' ? ''")
     expect(read('./raceStagesBoss.js')).toContain("script: 'boss'")
   })

@@ -5,6 +5,14 @@
 // отдаёт как «[unk]» (там же: черновик «are you you» → итог «are you [unk]»). Поэтому последнее слово черновиком не принимается ВОВСЕ: хвост устоялся — слушатель просит итог захода (≈ 100 мс), решает итог.
 // Чистая логика над часами now(): таймер повторной проверки ведёт слушатель (racePhraseListen.js).
 export const TAIL_HOLD_MS = 300
+// v3.3.380 (владелец: «задержка, когда составляю фразу полностью»; журнал 26.11: от последнего слова в черновике до зачёта 468–499 мс, из них 300 — это TAIL_HOLD_MS): итог просим только для того, чтобы решить слово, — черновик не принимается вовсе
+// (v3.3.317), так что 300 мс нужны лишь затем, чтобы не оборвать ещё говорящееся слово. Для ПОСЛЕДНЕГО слова это проверяем напрямую: хвост не менялся TAIL_LAST_STABLE_MS и голоса нет TAIL_LAST_QUIET_MS — итог просим сразу;
+// голос ещё идёт — ждём, но не дольше прежних TAIL_HOLD_MS. Защита от «угаданного» слова не ослаблена: решает по-прежнему итог захода.
+export const TAIL_LAST_STABLE_MS = 150
+export const TAIL_LAST_QUIET_MS = 150
+
+/** Через сколько мс перепроверить хвост перед просьбой итога (0 — просим сейчас). first — придержано не последнее слово (ждём паузу голоса TAIL_HOLD_MS), left — сколько хвосту ещё стоять до TAIL_HOLD_MS, sinceVoice — мс с последнего громкого куска */
+export const tailWait = ({ first, left, sinceVoice }) => (first ? (sinceVoice < TAIL_HOLD_MS ? 100 : 0) : (left > 0 && sinceVoice < TAIL_LAST_QUIET_MS ? 50 : 0))
 
 export function createTailHold({ now = () => Date.now(), holdMs = TAIL_HOLD_MS } = {}) {
   let key = '', at = -Infinity
@@ -14,7 +22,7 @@ export function createTailHold({ now = () => Date.now(), holdMs = TAIL_HOLD_MS }
     /** Итог захода / новый заход / сброс */
     clear() { key = ''; at = -Infinity },
     /** Сколько мс хвосту ещё стоять (0 — устоялся или хвоста нет) */
-    left: () => (key ? Math.max(0, holdMs - (now() - at)) : 0),
+    left: (ms = holdMs) => (key ? Math.max(0, ms - (now() - at)) : 0), // ms — сколько должен простоять хвост (по умолчанию TAIL_HOLD_MS)
   }
 }
 

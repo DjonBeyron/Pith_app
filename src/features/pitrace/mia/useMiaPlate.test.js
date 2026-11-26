@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { OFFSCREEN_IDS, SPEED_ID, plateEndAt } from './useMiaPlate.js'
+import { OFFSCREEN_IDS, SPEED_ID, plateEndAt, plateShowAt, plateGoneAt, plateOn, PLATE_SHOW_MS } from './useMiaPlate.js'
 import { BOSS } from './raceMia.js'
 import { IMPACT } from './miaMotion.js'
 import { REV_WAIT_CAP_MS } from '../raceReverseTurn.js'
@@ -55,5 +55,11 @@ describe('плашка Мии по реплике за кадром', () => {
     expect(rd('../useRaceActs.js')).toContain('/^(sprint|catch)3-(intro-)?ann$/'); expect(MIA.EXIT_MS).toBeLessThanOrEqual(300)
     const css = rd('../../../styles/player/modules/race-mia.css'); expect(css).toContain('miaTailSlot'); expect(css).toContain("[data-tail='pleased']"); expect(css).toContain('--tail-up') // v3.3.292: хвост — 27 кадров по слотам CSS; «довольна» — пушистее, движение не замирает
     expect(rd('../RaceMia.jsx')).toContain("data-tail={pleased ? 'pleased' : undefined}");  expect(PLEASED_MS).toBeGreaterThan(1500)
+  })
+  it('v3.3.380: плашки «Допрос у Мии» и «Шкала памяти» стоят не дольше PLATE_SHOW_MS после появления (журнал 26.11: ≈16 с и 6,6 с)', () => {
+    expect(PLATE_SHOW_MS).toBeGreaterThanOrEqual(1200); expect(PLATE_SHOW_MS).toBeLessThanOrEqual(2000)
+    expect(plateGoneAt(1000, 6.4) - plateShowAt(1000, 6.4)).toBe(PLATE_SHOW_MS)
+    expect(plateOn({ ann: true, landed: true })).toBe(true); expect(plateOn({ ann: true, landed: true, gone: true })).toBe(false) // церемония идёт дальше, плашка ушла
+    const src = rd('./useMiaPlate.js'); expect(src).toContain('setTimeout(() => setLookDone(lookKey), PLATE_SHOW_MS)'); expect(src).toContain('setGone(seq), Math.max(0, plateGoneAt(at, jump) - now)')
   })
 })

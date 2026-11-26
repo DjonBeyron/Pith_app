@@ -38,7 +38,7 @@ describe('плашка «Допрос у Мии» — когда Мия уже �
   it('хук: таймеры от событий машины (m.at, m.jump), переставляются при сдвиге прыжка; плашку читает директор', () => {
     const src = read('./useMiaPlate.js')
     expect(src).toContain('plateShowAt(at, jump) - now'); expect(src).toContain('[ann, seq, at, jump]'); expect(src).toContain("boss = stage?.script === 'boss'")
-    expect(read('../useRaceActs.js')).toContain('examPlateOn(miaTalk) : miaPlate.go) ? plateText(')
+    expect(read('../useRaceActs.js')).toContain('examPlateOn(miaTalk) && miaPlate.look : miaPlate.go) ? plateText(')
   })
 })
 
