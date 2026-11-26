@@ -30,7 +30,7 @@ describe('какую пилюлю толкает линия', () => {
   it('едет за нижним краем, замирает на ответе и держится HOLD_MS', () => {
     let tr = trackStep(null, [pill({ top: -80, bottom: 5 })], H, 0)
     tr = trackStep(tr, [pill({ top: 100, bottom: 180 })], H, 100); expect(tr.y).toBe(180)
-    tr = trackStep(tr, [pill({ top: 200, bottom: 280, locked: true })], H, 200); expect(tr).toMatchObject({ done: true, y: 180, at: 200 }); expect(lineOn(tr, 200 + HOLD_MS - 1)).toBe(true); expect(lineOn(tr, 200 + HOLD_MS)).toBe(false)
+    tr = trackStep(tr, [pill({ top: 200, bottom: 280, locked: true })], H, 200); expect(tr).toMatchObject({ done: true, y: 280, at: 200 }); /* v3.3.375: locked — пилюля ВСТАЛА (data-rise); линия — там, где она встала, а не кадром раньше */ expect(lineOn(tr, 200 + HOLD_MS - 1)).toBe(true); expect(lineOn(tr, 200 + HOLD_MS)).toBe(false)
   })
   it('ТА ЖЕ пилюля-узел для следующего слова (пул переиспользует элементы): линия берёт её заново, а не молчит', () => {
     let tr = trackStep(null, [pill({ top: 300, bottom: 380 })], H, 0)
@@ -77,7 +77,7 @@ describe('пример при объяснении: пилюля встаёт в
   it('верный ответ: линия уходит слева направо за время взлёта пилюли (RISE_DELAY_MS + RISE_MS) с тем же easing; фиолетовые маркеры слов — треугольники острием вправо, остриё на стволе линейки', () => {
     expect(RISE_DELAY_MS + RISE_MS).toBe(930); expect(css).toContain(`wlBossLineOut ${RISE_DELAY_MS + RISE_MS}ms ${RISE_EASING}`); expect(css).toContain('.wlBossLine[data-exit] { transform-origin: 100% 50%;'); expect(css).toContain('from { scale: 1 1; } to { scale: 0 1; }')
     expect(css).toMatch(/\.wlBossMark \{[^}]*right: 6px[^}]*width: 10px[^}]*#a78bfa[^}]*clip-path: polygon\(0 0, 100% 50%, 0 100%\)/); expect(css).toMatch(/\.wlBossZone \{[^}]*right: 4px; width: 28px[^}]*linear-gradient\(to right, rgba\(var\(--zc\), 0\)/); expect(css).toMatch(/\.wlBossMark\[data-set\] \{ scale: 1\.2/) // v3.3.285: маркер ответа на 20 % крупнее; левый край зон — градиент от 0 // остриё на «стволе» линейки (правая кромка зон); v3.3.285: левая граница зон шире и растушёвана
-    const src = readFileSync(new URL('./RaceBossScale.jsx', import.meta.url), 'utf8'); expect(src).toContain('marksStep(slots'); expect(src).toContain('el.dataset.exit')
+    const src = readFileSync(new URL('./bossScaleDrive.js', import.meta.url), 'utf8'); expect(src).toContain('marksStep(slots'); expect(src).toContain('el.dataset.exit')
   })
   it('линия: без растушёвки и свечения, утончается от левого края пилюли (clip-path 11 %); пилюля финала меняет цвет плавно (--bz, переход 0,5 с); мигание появления шкалы 2,4 с', () => {
     expect(css).toContain('clip-path: polygon(0 50%, 11% 0, 100% 0, 100% 100%, 11% 100%)'); expect(css).not.toMatch(/\.wlBossLine \{[^}]*box-shadow/); expect(css).toContain('@property --bz'); expect(css).not.toContain('transition: --bz'); // цвет пилюли — мгновенно

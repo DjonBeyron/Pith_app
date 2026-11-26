@@ -13,6 +13,8 @@
 .wlPill {
   --c: var(--lvl1, #b6fe3b);
   --rgb: var(--lvl1-rgb, 182, 254, 59);
+  --wl-fill: #bc82fa;                                        /* ЖИДКОСТЬ — у всех пилюль игры одна, цвет тела Пита (базовый тон шерсти из его арта: sprites/mascot/kit.json, fill тела, головы и хвоста; владелец 2026-11-26). Цвет дорожки / зоны / серии (--c, --rgb) — это рамка и свет тела, жидкость от них не зависит */
+  --wl-fill-rgb: 188, 130, 250;
   --ring: 2px;                                               /* толщина обводки; --gap — тёмный зазор между обводкой и заливкой */
   --gap: 2px;
   --wl-soft: 8px;                                            /* запас слоя заливки: на столько он длиннее клипа (edge20) */
@@ -63,14 +65,14 @@
 .wlPillFill {
   position: absolute;
   inset: calc(var(--wl-soft) * -1) 0 0;                    /* слой выше капсулы на --wl-soft: при заливке 100 % его край за верхом клипа (v3.3.87) */
-  background: linear-gradient(to bottom, rgba(var(--rgb), 0) calc(var(--wl-surf) - 0.5px), var(--c) calc(var(--wl-surf) + 0.5px));
+  background: linear-gradient(to bottom, rgba(var(--wl-fill-rgb), 0) calc(var(--wl-surf) - 0.5px), var(--wl-fill) calc(var(--wl-surf) + 0.5px));
   transform: translateY(100%);                             /* заливку пишет движок прямо в style.transform */
 }
 /* ПОЛНАЯ ПИЛЮЛЯ (data-full — пул ставит, когда заливка дошла до 100 %; v3.3.185, владелец: «не всегда капсула заполняется на 100 %, есть небольшой зазор сверху, хотя слово зафиксировано»). Жидкость закрывает
    капсулу С ЗАПАСОМ и без слоя заливки: цвет жидкости — у клипа (его фон рисуется вместе с пилюлей, не отдельным композитным слоем) и у тела пилюли (тёмного зазора --gap между обводкой и жидкостью у полной
    пилюли нет — капсула сплошная до обводки). Дробное положение слоя заливки, скругление клипа и порядок слоёв на это уже не влияют. Только смена фона в кадре доезда — без переходов. */
-.wlField .wlPill[data-full]:not([data-fail]) { background-image: none; background-color: var(--c); }
-.wlField .wlPill[data-full]:not([data-fail]) .wlPillClip { background-color: var(--c); }
+.wlField .wlPill[data-full]:not([data-fail]) { background-image: none; background-color: var(--wl-fill); }
+.wlField .wlPill[data-full]:not([data-fail]) .wlPillClip { background-color: var(--wl-fill); }
 /* ЛИНИЯ УРОВНЯ (v3.3.185, владелец: «линия уровня заполнения должна слегка выходить слева и справа за границы капсулы с утончением»). .wlPillSparks — НЕ в клипе заливки: рамка по клипу на самой пилюле;
    её <i> — тот же блок, что слой заливки (на --wl-soft выше клипа), и пул пишет ему ТОТ ЖЕ transform в том же вызове (paintFill) — край жидкости, линия и свет совпадают покадрово (edge20: офсета нет по построению).
    Линия — <b> внутри <i>: на --wl-surf от верха (на поверхности жидкости), на --wl-tip длиннее клипа с каждой стороны; ::before — сама линия 3 px: белое ядро поверх цвета дорожки, кончики сходят на нет
@@ -83,12 +85,12 @@
   content: ''; position: absolute; inset: 0;
   background:
     linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.95) 22% 78%, rgba(255, 255, 255, 0)),
-    linear-gradient(to right, rgba(var(--rgb), 0), var(--c) 9% 91%, rgba(var(--rgb), 0));
+    linear-gradient(to right, rgba(var(--wl-fill-rgb), 0), var(--wl-fill) 9% 91%, rgba(var(--wl-fill-rgb), 0));
   clip-path: polygon(0 50%, 15px 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 15px 100%);
 }
 .wlPillSparks b::after {
   content: ''; position: absolute; left: 12px; right: 12px; top: -13px; height: 29px;
-  background: radial-gradient(closest-side, rgba(var(--rgb), 0.5), rgba(var(--rgb), 0.18) 55%, rgba(var(--rgb), 0));
+  background: radial-gradient(closest-side, rgba(var(--wl-fill-rgb), 0.5), rgba(var(--wl-fill-rgb), 0.18) 55%, rgba(var(--wl-fill-rgb), 0));
   opacity: 0.45; transition: opacity 0.3s ease-out;
 }
 .wlPill[data-live] .wlPillSparks b::after { opacity: 1; }

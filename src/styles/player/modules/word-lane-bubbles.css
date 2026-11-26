@@ -18,7 +18,7 @@
 .wlBub:nth-child(3n + 2) { animation-name: wlBubB; }
 .wlBub:nth-child(3n) { animation-name: wlBubC; }
 .wlBub[data-off] { display: none; }
-.wlBubs[data-out] .wlBub { background: radial-gradient(circle at 36% 32%, rgba(255, 255, 255, 0.95) 0 16%, rgba(255, 255, 255, 0) 40%), radial-gradient(circle, var(--c) 0 50%, rgba(var(--rgb), 0) 70%); }
+.wlBubs[data-out] .wlBub { background: radial-gradient(circle at 36% 32%, rgba(255, 255, 255, 0.95) 0 16%, rgba(255, 255, 255, 0) 40%), radial-gradient(circle, var(--wl-fill) 0 50%, rgba(var(--wl-fill-rgb), 0) 70%); }
 .wlPill[data-live] .wlBub { animation-play-state: running; }
 @keyframes wlBubA { from { transform: translate(-2px, 5px) scale(0.82); opacity: 0.6; } to { transform: translate(2px, -5px) scale(1); opacity: 1; } }
 @keyframes wlBubB { from { transform: translate(3px, 4px) scale(1); opacity: 1; } to { transform: translate(-2px, -4px) scale(0.85); opacity: 0.65; } }

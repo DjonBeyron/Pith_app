@@ -22,7 +22,7 @@ describe('вертикальная пилюля: жидкость, линия и
     expect(SOFT).toBe(8); expect(SOFT_PX).toBe(8); expect(SURF_PX).toBe(4)
     expect(block(pill, '.wlPillFill')).toMatch(/inset: calc\(var\(--wl-soft\) \* -1\) 0 0;/)
     expect(block(pill, '.wlPillSparks i')).toMatch(/inset: calc\(var\(--wl-soft\) \* -1\) 0 0;/)
-    expect(block(pill, '.wlPillFill')).toMatch(/linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\) calc\(var\(--wl-surf\) - 0\.5px\), var\(--c\) calc\(var\(--wl-surf\) \+ 0\.5px\)\)/) // край цвета — 1 px вокруг --wl-surf
+    expect(block(pill, '.wlPillFill')).toMatch(/linear-gradient\(to bottom, rgba\(var\(--wl-fill-rgb\), 0\) calc\(var\(--wl-surf\) - 0\.5px\), var\(--wl-fill\) calc\(var\(--wl-surf\) \+ 0\.5px\)\)/) // край цвета — 1 px вокруг --wl-surf
     expect(block(pill, '.wlPillSparks b')).toMatch(/top: calc\(var\(--wl-surf\) - 1\.5px\); height: 3px;/)                                                                       // центр линии — там же
     expect(block(ink, '.wlPillInk')).toMatch(/inset: var\(--wl-surf\) 0 0;/)                                                                                                      // окно тёмной подписи — от поверхности
     expect(block(ink, '.wlPillInkIn')).toMatch(/inset: calc\(var\(--wl-surf\) \* -1\) 0 0;/)                                                                                     // содержимое — блок слоя заливки
@@ -58,7 +58,7 @@ describe('широкая пилюля «Фраз»: веретено на сер
     }
   })
   it('край цвета — 1 px под веретеном (--wl-surf от правого края слоя), один фон «в процессе» и «принято»; при 100 % поверхность на --wl-surf за торцом клипа', () => {
-    expect(wide).toContain('.wlPill[data-wide]:not([data-fail]) .wlPillFill { background: linear-gradient(to left, rgba(var(--rgb), 0) calc(var(--wl-surf) - 0.5px), var(--c) calc(var(--wl-surf) + 0.5px)); }')
+    expect(wide).toContain('.wlPill[data-wide]:not([data-fail]) .wlPillFill { background: linear-gradient(to left, rgba(var(--wl-fill-rgb), 0) calc(var(--wl-surf) - 0.5px), var(--wl-fill) calc(var(--wl-surf) + 0.5px)); }')
     expect(wide).not.toMatch(/data-phase='student'[^{]*\.wlPillFill/)
     expect(surfaceAt(1, { w: 290, h: 86, wide: true })).toBe(290 + SURF_PX)
     expect(block(ink, ".wlPill[data-wide] .wlPillInk")).toMatch(/inset: 0 var\(--wl-surf\) 0 0;/) // окно тёмной подписи — до поверхности

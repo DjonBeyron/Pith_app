@@ -71,7 +71,7 @@ describe('gameFrame: общий цикл кадров игры', () => {
     expect(src('./useLaneConveyor.js')).toContain('raf: frameDraw')
     expect(src('./wordLaneCatVoice.js')).toContain('raf = frameDraw')
     expect(src('./wordLaneCatLook.js')).toContain('raf: frameDraw')
-    for (const f of ['../../../pitrace/RaceMia.jsx', '../../../pitrace/boss/RaceBossScale.jsx']) {
+    for (const f of ['../../../pitrace/RaceMia.jsx', '../../../pitrace/boss/bossScaleDrive.js']) {
       const s = src(f)
       expect(s).not.toMatch(/[^.\w]requestAnimationFrame\(/)
       expect(s).toContain('frameTick(frame)')

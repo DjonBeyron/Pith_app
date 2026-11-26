@@ -2,6 +2,7 @@
 // по этим строкам видно, что именно начислено). Чистая функция: директор (useRaceActs.miaEvent) зовёт её на каждое событие круга экзамена.
 import { examOf, missWhy } from './bossMia.js'
 import { wordTrophies, TROPHY_PER_WORD } from './bossTrophies.js'
+import { peekBossSeen } from './bossZoneNow.js'
 
 export const ZONE_RU = { fast: 'зелёная', mid: 'жёлтая', slow: 'красная' }
 const WHY_RU = { wrong: 'сказано чужое слово', late: 'не успели', forgot: 'молчали' }
@@ -11,7 +12,7 @@ const WHY_RU = { wrong: 'сказано чужое слово', late: 'не ус
  * Строка пишется один раз на слово, когда известны и ответ, и зона: верное слово — на втором из событий win / zone (шкала шлёт зону раньше зачёта, но порядок не гарантирован), потерянное — на fail.
  * → строка `[exam] слово 3 «learn»: зона красная, игроку +3, Мии +17; счёт 73 / 47` (счёт: у игрока / у Мии) или null
  */
-export function examWordLine(before, after, ev, corner = null) {
+export function examWordLine(before, after, ev, corner = null, seen = peekBossSeen()) { // seen — где шкала зафиксировала линию слова (bossZoneNow.setBossSeen), % длины шкалы: зелёная до 45, жёлтая до 80, дальше красная
   const st = ev?.stage, off = st?.offset ?? 0, t = ev?.t
   if (!before || !after || !['win', 'zone', 'fail'].includes(t)) return null
   const gi = t === 'zone' && ev.idx == null ? after.lw ?? 0 : (ev.idx ?? 0) + off
@@ -21,5 +22,5 @@ export function examWordLine(before, after, ev, corner = null) {
   const settled = t === 'win' ? !!after.zones?.[gi] && !before.won?.[gi] : !!after.won?.[gi] && !before.zones?.[gi]
   if (!settled) return null
   const z = after.zones[gi], got = wordTrophies({ ok: true, zone: z })
-  return `${head} зона ${ZONE_RU[z] ?? z}, игроку +${got}, Мии +${TROPHY_PER_WORD - got}${corner != null && corner !== got ? ` (РАСХОЖДЕНИЕ: счётчик в углу получает +${corner})` : ''}; ${tail}`
+  return `${head} зона ${ZONE_RU[z] ?? z}${seen?.pct != null ? ` (линия на ${seen.pct} % шкалы)` : ''}, игроку +${got}, Мии +${TROPHY_PER_WORD - got}${corner != null && corner !== got ? ` (РАСХОЖДЕНИЕ: счётчик в углу получает +${corner})` : ''}; ${tail}`
 }

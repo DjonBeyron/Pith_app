@@ -39,7 +39,7 @@ describe('треугольник слова на шкале', () => {
     expect(alive(s)).toEqual([[1, 0.4], [3, 0.2]])
   })
   it('шкала сообщает «ответа нет» только для слова, кончившегося без зачёта (источник)', () => {
-    const src = readFileSync(new URL('./RaceBossScale.jsx', import.meta.url), 'utf8')
+    const src = readFileSync(new URL('./bossScaleDrive.js', import.meta.url), 'utf8')
     expect(src).toMatch(/tr\.done && was !== tr && !pills\.find\(p => p\.el === tr\.el\)\?\.locked\) lost = tr\.id/)
     expect(src).toContain('drop: !!tr && tr.id === lost')
   })

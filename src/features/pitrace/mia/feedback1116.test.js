@@ -34,7 +34,7 @@ describe('замечания 2026-11-16 вечер (v3.3.260)', () => {
     expect(rd('../boss/raceStagesBoss.js')).toContain("round: { kind: 'switch', title: '', task: '', brief: '' }")
   })
   it('цвет принятой пилюли финала закрепляется на зоне принятия сразу (data-bzf без плавного перехода); пул сбрасывает признаки', () => {
-    expect(rd('../boss/RaceBossScale.jsx')).toContain("setAttribute('data-bzf', '')")
+    expect(rd('../boss/bossScaleDrive.js')).toContain("setAttribute('data-bzf', '')")
     const css = rd('../../../styles/player/modules/race-boss.css')
     expect(css).not.toMatch(/transition: --bz/); expect(css).toContain('меняется МГНОВЕННО') // вход в новую зону — цвет пилюли сразу
     expect(rd('../../player/modules/rotate-phone/wordLanePool.js')).toContain("'data-bzf', 'data-scatter'")

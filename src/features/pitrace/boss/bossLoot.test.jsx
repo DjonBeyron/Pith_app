@@ -89,9 +89,9 @@ describe('треугольники шкалы — правило владель�
     s = marksStep(s, { id: 3, y: 1, now: 9000, drop: true }); expect(s.find(x => x.id === 3).dying).toBe(9000) // ответа нет — гаснет у низа
   })
   it('на экране треугольник стоит ровно на линии: место пишется свойством translate (transform умножался на scale 1,2 у зафиксированного маркера — треугольник вставал на 20 % ниже)', () => {
-    const src = read('./RaceBossScale.jsx'), css = read('../../../styles/player/modules/race-boss.css')
-    expect(src).toContain('if (m) e.style.translate = `0 ${(m.y * H).toFixed(1)}px`'); expect(src).not.toContain('if (m) e.style.transform = `translate3d(0, ${(m.y * H)')
+    const src = read('./bossScaleDrive.js'), css = read('../../../styles/player/modules/race-boss.css')
+    expect(src).toContain('const my = m ? `0 ${(m.y * H).toFixed(1)}px` : null'); expect(src).toContain('e.style.translate = my'); expect(src).not.toContain('if (m) e.style.transform = `translate3d(0, ${(m.y * H)')
     expect(css).toMatch(/\.wlBossMark\[data-set\] \{ scale: 1\.2/)
-    expect(src).toContain("{ const z = zoneAt(Math.min(1, Math.max(0, tr.y / H))); setBossWonZone(z); clock.current.onZone?.(z) }") // зона для трофеев берётся в тот же момент и с той же высоты, что треугольник
+    expect(src).toContain("setBossSeen({ pct }); setBossWonZone(z); clock.current.onZone?.(z)") // зона для трофеев берётся в тот же момент и с той же высоты, что треугольник
   })
 })

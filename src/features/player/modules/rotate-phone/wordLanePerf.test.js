@@ -99,7 +99,7 @@ describe('заливка пилюль: ровная, край едет', () => {
     const css = cssCode()
     expect(css).not.toContain('repeating-linear-gradient')
     expect(css).not.toContain('scaleY')
-    expect(css).toMatch(/\.wlPillFill \{[^}]*background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\) calc\(var\(--wl-surf\) - 0\.5px\), var\(--c\) calc\(var\(--wl-surf\) \+ 0\.5px\)\);/) // выше поверхности прозрачно, ниже — цвет без альфы
+    expect(css).toMatch(/\.wlPillFill \{[^}]*background: linear-gradient\(to bottom, rgba\(var\(--wl-fill-rgb\), 0\) calc\(var\(--wl-surf\) - 0\.5px\), var\(--wl-fill\) calc\(var\(--wl-surf\) \+ 0\.5px\)\);/) // выше поверхности прозрачно, ниже — цвет без альфы
     expect(css).not.toMatch(/data-lock\]\)?[^{]*\.wlPillFill \{/)
     expect(css).toContain('.wlPill[data-fail] .wlPillFill { background: #7b8494; }')
     expect(css).not.toMatch(/\.wlPillFill[^{]*\{[^}]*rgba\(255, 93, 115/) // красного фона у заливки нет: красное — только вспышка промаха

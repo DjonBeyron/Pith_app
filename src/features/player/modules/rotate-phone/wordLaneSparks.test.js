@@ -129,8 +129,8 @@ describe('линия уровня: вне клипа заливки, на пов
     const line = block('.wlPillSparks b::before'), glow = block('.wlPillSparks b::after')
     expect(line).toMatch(/clip-path: polygon\(0 50%, 15px 0, calc\(100% - 15px\) 0, 100% 50%, calc\(100% - 15px\) 100%, 15px 100%\);/)
     expect(line).toContain('linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.95) 22% 78%, rgba(255, 255, 255, 0))') // белое ядро: от прозрачного к прозрачному
-    expect(line).toContain('linear-gradient(to right, rgba(var(--rgb), 0), var(--c) 9% 91%, rgba(var(--rgb), 0))')                     // цвет дорожки — так же
-    expect(glow).toMatch(/radial-gradient\(closest-side, rgba\(var\(--rgb\), 0\.5\)/)
+    expect(line).toContain('linear-gradient(to right, rgba(var(--wl-fill-rgb), 0), var(--wl-fill) 9% 91%, rgba(var(--wl-fill-rgb), 0))')                     // цвет дорожки — так же
+    expect(glow).toMatch(/radial-gradient\(closest-side, rgba\(var\(--wl-fill-rgb\), 0\.5\)/)
     expect(glow).toMatch(/opacity: 0\.45; transition: opacity 0\.3s ease-out;/)   // переход — только opacity
     expect(css).toContain('.wlPill[data-live] .wlPillSparks b::after { opacity: 1; }')
     expect(css).toContain('.wl--lite .wlPillSparks b::after, .weak-device .wlPillSparks b::after { display: none; }')
