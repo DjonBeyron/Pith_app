@@ -9,8 +9,8 @@ import { mouthTrack } from './wordLaneVisemes.js'
 // Чистая обёртка без React: часы, кадры и таймеры приходят аргументами (тесты).
 const NO_PEEK = { voice() {}, hold() {}, isUp: () => true }
 
-export function createMiaMouth({ getHead, look, apply = drawCatMouth, ...timers }) {
-  const hold = createMouthHold({ apply: key => apply(getHead(), key), now: timers.now, setTimer: timers.setTimer, clearTimer: timers.clearTimer })
+export function createMiaMouth({ getHead, look, apply = drawCatMouth, minHold, ...timers }) { // minHold — выдержка формы рта (слабое устройство: MOUTH_LITE_HOLD_MS)
+  const hold = createMouthHold({ apply: key => apply(getHead(), key), minHold, now: timers.now, setTimer: timers.setTimer, clearTimer: timers.clearTimer })
   const voice = createCatVoice({ hold, look, peek: NO_PEEK, ...timers })
   return {
     /** Реплика Мии: рот идёт ms мс по таймингам слов озвучки words (как у Пита; ms — длина звука, она же длина файла), нет их — по тексту равномерно */

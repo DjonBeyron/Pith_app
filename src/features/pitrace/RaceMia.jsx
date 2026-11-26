@@ -57,6 +57,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
     const box = createBox(); artG.current.appendChild(box.el)
     let tailInit = false
     const later = (fn, ms) => { const id = setTimeout(fn, ms); return () => clearTimeout(id) }
+    const lite = isWeakDevice() // слабое устройство (третий цикл оптимизации, журнал Android 2026-11-26: в длинных кадрах скрипт и стили — около четверти времени, остальное покраска и слои): глаза в прорези коробки и звуковые штрихи обновляются через два кадра на третий (пока коробка стоит), хвост Мии не дёргается — SVG перерисовывается в разы реже
     let raf = 0, last = performance.now(), L = null, M = null, talk = 0, n = 0, tt = 0, gz = { look: 0, w: 0 }, gzPill = null, talkUntil = 0, shown = { pose: null, vis: null, step: '' }, pupils = null, tailIn = null // gz — взгляд на пилюлю (mia/miaGaze.js)
     const measure = () => {
       const s = stage.getBoundingClientRect(), c = cat.getBoundingClientRect()
@@ -90,13 +91,14 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
       if (tk > 0.04) talkUntil = now + 350 // Пит говорит — смотрит прямо (по перспективе чуть влево); паузы между слогами не считаются концом речи
       gz = stepGaze(gz, { pill: gzPill, talking: now < talkUntil && !leaving, dt: c.paused || leaving ? 0 : dt })
       const rave = c.mode === 'rave' ? panicAt(c.rv) : null // метание после ухода Мии
-      box.update({ ...m.eyes, look: (m.eyes.look ?? 0) * (1 - gz.w) + gz.look * GAZE.EYE_PART * (leaving ? 0 : 1) + (rave ? 5 * rave.vn : 0) + (fear ? Math.sin(sc * 38) * 1.6 * fear : 0), gaze: leaving ? 0 : gz.look / GAZE.MAX, scale: (m.eyes.scale ?? 1) * (rave ? 1 + 0.1 * Math.abs(rave.vn) : 1), pupil: (m.eyes.pupil ?? 1) * (1 - 0.58 * fear), thNear: m.box.thNear, thFar: m.box.thFar, talk: tk, t: tt, live: true })
+      const boxIn = ({ ...m.eyes, look: (m.eyes.look ?? 0) * (1 - gz.w) + gz.look * GAZE.EYE_PART * (leaving ? 0 : 1) + (rave ? 5 * rave.vn : 0) + (fear ? Math.sin(sc * 38) * 1.6 * fear : 0), gaze: leaving ? 0 : gz.look / GAZE.MAX, scale: (m.eyes.scale ?? 1) * (rave ? 1 + 0.1 * Math.abs(rave.vn) : 1), pupil: (m.eyes.pupil ?? 1) * (1 - 0.58 * fear), thNear: m.box.thNear, thFar: m.box.thFar, talk: tk, t: tt, live: true })
       const pose = poseOfMotion(m.box, L)
       if (rave) { pose.dx += rave.x * L.f; pose.rot += rave.vn * 7; pose.sx *= 1 + 0.04 * Math.abs(rave.vn) } // Пит мечется из стороны в сторону, как при падении коробки (miaMotion.panicAt)
       if (c.mode === 'stuck') { const k = Math.max(0, 1 - (now - hitAt.current) / 280); pose.dx += 3.4 * k * Math.sin(2 * Math.PI * 21 * tt) * L.f; pose.rot += 0.9 * k * Math.sin(2 * Math.PI * 17 * tt + 1) } // стоит ровно по центру; на касание коробка вздрагивает
       pose.dx += 0.35 * Math.sin(2 * Math.PI * 22 * tt) * tk * L.f; pose.rot += 0.08 * Math.sin(2 * Math.PI * 17 * tt + 1) * tk // Пит говорит из коробки: дрожь минимальная (владелец 2026-11-14)
       const piv = toScene(M, ART.BOTTOM)
       const ps = poseSvg(pose, piv), vis = m.shown ? 'visible' : 'hidden' // запись — только когда значение сменилось: коробка стоит большую часть «Допроса», а запись того же атрибута SVG каждый кадр заставляла браузер перерисовывать её заново
+      if (!lite || ps !== shown.pose || n % 3 === 0) box.update(boxIn) // на слабом устройстве стоящая коробка обновляет глаза 20 раз в секунду, а не 60; коробка движется (падает, дрожит, улетает) — каждый кадр, как раньше
       if (ps !== shown.pose) { shown.pose = ps; poseG.current.setAttribute('transform', ps) }
       if (vis !== shown.vis) { shown.vis = vis; poseG.current.setAttribute('visibility', vis) } // до падения коробки (и после ухода) её не видно: без этого она мигала на месте за кадр до падения
       cat.style.visibility = m.hideCat ? 'hidden' : ''
@@ -109,7 +111,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
         else if (c.mode === 'rave' || c.mode === 'stuck' || (leaving && soloRef.current.alone)) mr = { mode: 'off' } // Мии нет: коробка одна (ждёт касаний / отлетает)
         mi.style.display = mr.mode === 'off' ? 'none' : 'block'
         if (!tailInit) { restTail(mi); tailInit = true } // хвост лежит на кадре 1, пока не позовут
-        if (tailIn) { tailW.current = wantStep(tailW.current, { ...tailIn, shown: mr.mode !== 'off' && !leaving }); tailIn = null; driveTail(mi, tailCtl.current, tailW.current.want, later) }
+        if (tailIn) { tailW.current = wantStep(tailW.current, { ...tailIn, shown: mr.mode !== 'off' && !leaving }); tailIn = null; if (!lite) driveTail(mi, tailCtl.current, tailW.current.want, later) } // слабое устройство: хвост лежит на кадре 1 (бюджет: у слабого idle-анимаций 0 — раньше 16 бесконечных анимаций хвоста перерисовывали Мию 11 раз в секунду)
         const tk0 = talkRef.current, sl = slitOn(tk0 && now < tk0.until ? tk0.id : null, mr.mode); if (sl !== slit.current) { slit.current = sl; mi.toggleAttribute('data-slit', sl) } // зрачок-щель: в прыжке и на колких репликах (mia/miaSlit.js)
         let pk = 0 // пик речи: широкий рот → зрачок плавно шире (mia/miaSlit.js)
         if (tk0 && now < tk0.until) { const h = [...mi.querySelectorAll('[data-part="head"]')].find(x => x.style.display !== 'none'); pk = peakTarget(talkLevel(h?.getAttribute('data-vis'), h?.getAttribute('data-mouth'))) }

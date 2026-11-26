@@ -4,6 +4,8 @@
 //    (иначе рот «застрял» бы открытым после последнего кадра);
 //  • та же форма, что уже нарисована, — DOM не трогаем вовсе (и ждущая просьба отменяется, если просят вернуться к показанной).
 export const MOUTH_MIN_HOLD_MS = 70
+/** Слабое устройство (третий цикл оптимизации, журнал Android 2026-11-26: пока коты говорят, fps падает до 28–35 при скрипте 0 мс — время уходит на перерисовку SVG головы на каждую форму рта): форма держится вдвое дольше — рот меняется не чаще ≈ 8 раз в секунду вместо 14 */
+export const MOUTH_LITE_HOLD_MS = 130
 
 /** apply(key) рисует форму; key — closed / half / open или код Rhubarb (одна заглавная буква). initial — что нарисовано при создании */
 export function createMouthHold({ apply, initial = 'closed', minHold = MOUTH_MIN_HOLD_MS, now = () => performance.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {

@@ -7,7 +7,7 @@ import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { CAT_SPOTS, catPeek, holdForReact } from './wordLaneCatPeek.js'
 import { createCatVoice } from './wordLaneCatVoice.js'
 import { createCatQueue } from './wordLaneCatQueue.js'
-import { createMouthHold } from './wordLaneMouthHold.js'
+import { createMouthHold, MOUTH_LITE_HOLD_MS } from './wordLaneMouthHold.js'
 import { CAT_FACES, buildCat } from './wordLaneCatTree.js'
 import { createCatLook, drawCatMouth, NO_LOOK } from './wordLaneCatLook.js'
 import { crossfadeHeads } from './wordLaneCatFade.js'
@@ -70,7 +70,7 @@ function WordLaneCat({ apiRef, skin = 'kit' }) {
 
   useEffect(() => {
     if (!apiRef) return undefined
-    const hold = createMouthHold({ apply: draw })
+    const hold = createMouthHold({ apply: draw, minHold: lite ? MOUTH_LITE_HOLD_MS : undefined }) // слабое устройство: рот меняется реже (wordLaneMouthHold.js)
     pLog(mouthSourceLine('запуск сцены'))
     holdRef.current = hold
     drawsRef.current = 0

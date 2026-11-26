@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { createMiaMouth } from './miaMouth.js'
+import { MOUTH_LITE_HOLD_MS } from './wordLaneMouthHold.js'
 import { createCatLook, NO_LOOK } from './wordLaneCatLook.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { MIA_FACES, nextFace } from '../../../pitrace/mia/miaCat.js'
@@ -26,7 +27,7 @@ export function useMiaLife(root, enabled, talk = null) {
     let cur = MIA_FACES.find(f => byFace[f]) ?? null
     heads.forEach(h => { h.style.display = h === byFace[cur] ? '' : 'none' })
     look.idle(true) // взгляд дрейфует
-    const mouth = createMiaMouth({ getHead: () => byFace[cur], look })
+    const mouth = createMiaMouth({ getHead: () => byFace[cur], look, minHold: lite ? MOUTH_LITE_HOLD_MS : undefined })
     mouthRef.current = mouth
     const timers = new Set()
     const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn() }, ms); timers.add(t) }

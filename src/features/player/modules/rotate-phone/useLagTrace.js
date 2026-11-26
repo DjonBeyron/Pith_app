@@ -28,11 +28,14 @@ export function watchLongFrames(trace, { PO = globalThis.PerformanceObserver } =
   } catch { return () => {} }
 }
 
+/** Трассер выключен ключом памяти pithy_lag_trace = '0' (замер цены самого трассера: _stand/race/perf-run.mjs LAG=0); '1' / нет ключа — работает. У владельца ключа нет */
+export const lagTraceOff = () => { try { return globalThis.localStorage?.getItem('pithy_lag_trace') === '0' } catch { return false } }
+
 /** on — отладочный интерфейс; paused — игра на паузе; done — игра дошла до экрана итога: сводка пишется сразу (её увидит и отправка журнала с экрана итога), а не при закрытии игры */
 export function useLagTrace(on, paused, done = false) {
   const ref = useRef(null)
   useEffect(() => {
-    if (!on) return undefined
+    if (!on || lagTraceOff()) return undefined
     const trace = ref.current = createLagTrace({ limit: isWeakDevice() ? LAG_WEAK_MS : LAG_MS })
     let id = 0
     const tick = ts => { id = frameTick(tick); trace.frame(ts) }

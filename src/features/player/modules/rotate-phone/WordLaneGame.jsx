@@ -87,7 +87,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
   const debug = isWordLaneDebug()
   const miaDropped = useMiaDrop(f.rh.mia?.mia) // финал: дорожки желтеют с момента, когда коробка падает на Пита
   const miaTint = useMiaTint(miaColorOn(f.rh.mia?.mia, f.stageObj, miaDropped, f.rh.miaPlate?.started)) // выключение цвета — с выдержкой 0,2 с: на стыке стадий он не мигает (mia/miaTint.js)
-  useLagTrace(f.dbg.enabled, f.paused, f.stageObj?.type === 'summary'); useLagMarkOn(miaTint, 'цвет дорожек → Мия', 'цвет дорожек → обычный', 900) // трассер лагов «[lag] …» (только отладочный интерфейс) и метка перекраски поля (race-mia.css)
+  useLagTrace(f.dbg.enabled, f.paused, f.stageObj?.type === 'summary'); useLagMarkOn(miaTint, 'цвет дорожек → Мия', 'цвет дорожек → обычный', lite ? 0 : 900) // трассер лагов «[lag] …» (только отладочный интерфейс) и метка перекраски поля (race-mia.css)
   const bossSid = f.rh.on && ['boss-ann', 'boss', 'boss-sw', 'boss2'].includes(f.stageObj?.sid) // стадии экзамена «Шкала памяти» (пауза стадию не меняет)
   const bossLive = bossSid && f.stage === 'run' // шкала живёт на церемонии Мии и в круге
   const bossReveal = useBossReveal(f.rh.miaTalk, bossSid) // шкала на церемонии появляется на слове «шкала» и больше не гаснет до конца экзамена (boss/useBossReveal.js)
@@ -97,7 +97,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
   const laneTap = useCallback((lane, pt) => { const api = f.sceneApi.current; if (api?.trio && !api.trio(lane, pt)) return; f.onLane(lane, pt) }, [f.sceneApi, f.onLane]) // eslint-disable-line react-hooks/exhaustive-deps -- тройка: тап по чужой пилюле — ошибка (дрожь), по верной дорожке — слово засчитывается как обычно
 
   return createPortal(
-    <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-streak={f.rh.race?.streakMode} data-charge={cfg.plan?.game === 'race' && chargeOn(f) ? '' : undefined} data-race={race ? '' : undefined} data-mia={miaTint ? 'in' : undefined} data-tape={laneTape(f) ? '' : undefined} data-up={laneUp(f) ? '' : undefined} data-testid="wl">
+    <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-paused={phase === 'paused' ? '' : undefined} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-streak={f.rh.race?.streakMode} data-charge={cfg.plan?.game === 'race' && chargeOn(f) ? '' : undefined} data-race={race ? '' : undefined} data-mia={miaTint ? 'in' : undefined} data-tape={laneTape(f) ? '' : undefined} data-up={laneUp(f) ? '' : undefined} data-testid="wl">
       <div className="wlStage" data-tex={race && !lite ? '' : undefined}>
         <WordLaneCat apiRef={catApi} />
         <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} speed={speed} paused={f.paused} speedKey={f.stage === 'run' ? f.idx : -1} trio={trio} dodge={dodge} watch={f.dbg.enabled} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || ((tapMode || f.stageObj?.step?.tapOnly) && (phase === 'student' || f.stageObj?.speak)) ? laneTap : null} />

@@ -25,6 +25,6 @@ describe('метки движений Мии «[lag-mark]»', () => {
   it('кадр RaceMia отмечает только смену шага; перекраску поля отмечает игра', () => {
     const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
     expect(read('../RaceMia.jsx')).toContain('if (step !== shown.step) { markMiaStep(shown.step, step, sp.alone); shown.step = step }')
-    expect(read('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain("useLagTrace(f.dbg.enabled, f.paused, f.stageObj?.type === 'summary'); useLagMarkOn(miaTint, 'цвет дорожек → Мия', 'цвет дорожек → обычный', 900)")
+    expect(read('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain("useLagTrace(f.dbg.enabled, f.paused, f.stageObj?.type === 'summary'); useLagMarkOn(miaTint, 'цвет дорожек → Мия', 'цвет дорожек → обычный', lite ? 0 : 900)") // на слабом устройстве перекраска мгновенная — метка без длительности (иначе трассер называл её причиной лагов ещё 0,9 с)
   })
 })
