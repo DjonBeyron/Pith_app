@@ -41,3 +41,45 @@ describe('«I\'m», услышанное как «am», занимает одн�
     old.ear({ kind: 'partial', text: 'am trying to learn' }); old.check(new Map([[0, true]]), 500); expect(old.shown()).toBe('to')
   })
 })
+
+// v3.3.373 — владелец: «нужно, чтобы и подобные фразы типа I'm или he's не вызывали проблем». Все сокращения «местоимение + глагол»: Vosk может отдать один глагол («is» за «he's»),
+// слитную форму («he's»), раздельную («he is») или форму без апострофа («hes») — во всех случаях цепочка прохода 1 идёт дальше и следующее слово не съедается.
+describe('сокращения «местоимение + глагол» в строгой цепочке прохода 1', () => {
+  const CASES = [
+    ["He's trying to learn", ['is', 'he is', "he's", 'hes']],
+    ["She's my best friend", ['is', 'she is', "she's", 'shes']],
+    ["You're trying to learn", ['are', 'you are', "you're", 'youre']],
+    ["We're going home now", ['are', 'we are', "we're"]],
+    ["They're very good friends", ['are', 'they are', "they're", 'theyre']],
+    ["It's nice to meet", ['is', 'it is', "it's", 'its']],
+    ["That's what I want", ['is', 'that is', "that's", 'thats']],
+    ["What's your name please", ['is', 'what is', "what's", 'whats']],
+    ["I've been there before", ['have', 'i have', "i've", 'ive']],
+    ["I'll call you later", ['will', 'i will', "i'll"]],
+    ["I'd like some tea", ['would', 'i would', "i'd"]],
+    ["I'm trying to learn", ['am', 'i am', "i'm", 'im']],
+  ]
+  for (const [phrase, heads] of CASES) {
+    const words = phrase.split(' '), rest = words.slice(1).join(' ').toLowerCase()
+    it(`«${phrase}»: первое слово в любой записи — вся фраза по порядку, слова не съедаются`, () => {
+      for (const h of heads) {
+        expect(strictHits(words, `${h} ${rest}`), `услышано «${h} ${rest}»`).toEqual(words.map(() => true))
+        expect(strictHits(words, `${h} ${words[1].toLowerCase()}`), `услышано «${h} ${words[1]}»`).toEqual(words.map((_, i) => i < 2))
+        expect(orderedHits(words, `${h} ${rest}`), `по порядку «${h} ${rest}»`).toEqual(words.map(() => true))
+      }
+    })
+  }
+  it('одно местоимение сокращение не зажигает (иначе глагол в «he is» остался бы лишним словом); отрицания по половине не засчитываются', () => {
+    expect(strictHits(["He's", 'trying'], 'he')).toEqual([false, false])
+    expect(strictHits(["He's", 'trying'], 'he is trying')).toEqual([true, true])
+    expect(strictHits(["Don't", 'worry'], 'do worry')).toEqual([false, false])
+    expect(strictHits(["Don't", 'worry'], 'dont worry')).toEqual([true, true])
+    expect(strictHits(["Don't", 'worry'], 'do not worry')).toEqual([true, true])
+  })
+  it('сокращение в середине фразы: «I think he is right», услышанное с одним глаголом и полностью', () => {
+    const w = ['I', 'think', "he's", 'right']
+    expect(strictHits(w, 'i think is right')).toEqual([true, true, true, true])
+    expect(strictHits(w, 'i think he is right')).toEqual([true, true, true, true])
+    expect(strictHits(w, "i think he's right")).toEqual([true, true, true, true])
+  })
+})
