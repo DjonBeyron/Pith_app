@@ -8,3 +8,5 @@
 .raceSum--gold .wlRevealLabel { color: var(--phrase-gold, #ffd257); }
 .raceSum [data-medal='gold'] { color: var(--phrase-gold, #ffd257); }
 .raceSum [data-medal='silver'] { color: #d7dbe6; }
+/* Итог собран заранее и скрыт, пока Пит договаривает «Финиш…» (RaceActs.jsx → RaceSummary hold): раскладка идёт в тихие кадры, а не в кадр показа; анимация появления начнётся со снятием атрибута. */
+.raceSum.raceFinal.wlTurn[data-hold] { visibility: hidden; animation: none; pointer-events: none; }

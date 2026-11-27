@@ -11,6 +11,7 @@ import RaceChargePlate from './RaceChargePlate.jsx'
 // view = { o: { plateAt, morphAt, plateEnd }, round: { title, task, brief }, pills, sparks, segments, totalMs } — расписание и план (RaceCharge.jsx, RaceRoundCharge.jsx). Полёт — Web Animations (transform / opacity / scale), хвост — отдельный узел под пилюлей
 // (.raceChargeTail, rotate по касательной к синусоиде, raceChargePath.tailFrames), на слабом устройстве и при reduced-motion частиц и хвоста нет (при reduced-motion пилюли не летят — бар заполняется ступеньками). Касание бара — тихий «тык» (raceChargeTap.js).
 const FILL_MS = 260 // заливка сегмента бара перед прилётом пилюли
+export const LEAD_MS = 100 // за сколько до начала анимацию заводят (слой композитора появляется не при показе, а перед вылетом)
 export const LATE_TAP_MS = 180 // «тык» и кольцо, опоздавшие больше чем на столько, пропускаются
 
 export default function ChargeRun({ view, leaving = false, plate = true }) {
@@ -32,6 +33,7 @@ export default function ChargeRun({ view, leaving = false, plate = true }) {
     segments.forEach(s => at(s.at, () => {
       if (performance.now() - t0 - s.at > LATE_TAP_MS) return // главный поток встал (смена модели Vosk и т. п.): полёт и заливка идут по часам анимаций и уже кончились — звук и рябь, пришедшие пачкой с опозданием, выглядят рассинхроном (владелец, v3.3.282)
       playChargeTap() // тихий «тык» о бар: звук, не графика — играет и на lite
+      if (!still) el?.querySelector(`[data-seg="${s.i}"]`)?.setAttribute('data-hit', '') // вспышка сегмента (race-charge.css): CSS-анимация стартует с атрибутом, а не висит девятью слоями с задержкой с самого показа
       if (still || !ring?.animate) return
       ring.style.setProperty('--rc', s.color)
       ring.animate(ringF.frames, { duration: ringF.duration, easing: 'ease-out' }) // кольцо-рябь от точки касания
@@ -39,7 +41,8 @@ export default function ChargeRun({ view, leaving = false, plate = true }) {
     if (el?.animate) {
       const box = el.getBoundingClientRect()
       const barTop = bar ? bar.getBoundingClientRect().top - box.top : 0
-      const timing = p => ({ delay: p.startAt, duration: p.flyMs, fill: 'both', easing: 'linear' })
+      const timing = (p, d = p.startAt) => ({ delay: d, duration: p.flyMs, fill: 'both', easing: 'linear' })
+      const since = () => performance.now() - t0 // сколько прошло от показа: анимацию заводим позже показа, а её часы остаются прежними (delay = старт − прошло)
       const barBox = bar?.getBoundingClientRect()
       const nudge = nudgeFrames()
       if (!still) {
@@ -49,16 +52,21 @@ export default function ChargeRun({ view, leaving = false, plate = true }) {
           const pillH = heights[n]
           const dist = flyDist({ height: box.height, pillH, barTop })
           const dx = flyDx({ width: box.width, x: p.x, barLeft: barBox ? barBox.left - box.left : 16, barWidth: barBox?.width ?? box.width - 76 })
-          if (trail) { node?.style.setProperty('--fly', `${p.flyMs}ms`); node?.style.setProperty('--delay', `${p.startAt}ms`); el.querySelector(`[data-tail="${p.i}"]`)?.animate(tailFrames({ dx, dist, sign: p.wave?.sign }), timing(p)) } // хвост наклоняется по касательной к синусоиде; --fly/--delay ведут его затухание (CSS)
-          node?.animate(pathFrames({ dx, dist, sign: p.wave?.sign, trail }), timing(p)) // одна кривая (raceChargePath.js): конец строго в центре бара, дальше пилюля гаснет под баром
+          at(p.startAt - LEAD_MS, () => { // слой композитора у пилюли появляется перед её вылетом, а не у всех девяти сразу при показе (журнал Android v3.3.390: ≈ 28 слоёв за один кадр на входе в «Допрос»)
+            const d = p.startAt - since(), tm = timing(p, d)
+            if (trail) { node?.style.setProperty('--fly', `${p.flyMs}ms`); node?.style.setProperty('--delay', `${d}ms`); el.querySelector(`[data-tail="${p.i}"]`)?.animate(tailFrames({ dx, dist, sign: p.wave?.sign }), tm) } // хвост наклоняется по касательной к синусоиде; --fly/--delay ведут его затухание (CSS)
+            node?.animate(pathFrames({ dx, dist, sign: p.wave?.sign, trail }), tm) // одна кривая (raceChargePath.js): конец строго в центре бара, дальше пилюля гаснет под баром
+          })
         })
         sparks.forEach(sp => { const node = el.querySelector(`[data-spark="${sp.i}"]`); node?.animate([{ transform: 'translateY(0)', opacity: 1 }, { transform: `translateY(${-Math.max(200, box.height - 62)}px)`, opacity: 1, offset: 0.9 }, { transform: `translateY(${-Math.max(200, box.height - 62) - 4}px)`, opacity: 0 }], { delay: sp.startAt, duration: sp.flyMs, fill: 'both', easing: 'linear' }) })
       }
       segments.forEach(s => {
         const node = el.querySelector(`[data-seg="${s.i}"]`)
-        if (still) node?.animate([{ opacity: 0, transform: 'none' }, { opacity: 1, transform: 'none' }], { delay: s.at, duration: 1, fill: 'both' })
-        else node?.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { delay: Math.max(0, s.at - FILL_MS), duration: Math.min(FILL_MS, s.at), fill: 'both', easing: 'ease-out' })
-        if (!still) bar?.animate(nudge.frames, { delay: s.at, duration: nudge.duration, easing: 'ease-out' }) // касание: лёгкий толчок всего бара (translateY 2 px и обратно)
+        if (still) { node?.animate([{ opacity: 0, transform: 'none' }, { opacity: 1, transform: 'none' }], { delay: s.at, duration: 1, fill: 'both' }); return }
+        at(s.at - FILL_MS - LEAD_MS, () => { // заливка сегмента и толчок бара — перед своим касанием (до него сегмент стоит на scaleX(0), как в CSS)
+          node?.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { delay: Math.max(0, s.at - FILL_MS) - since(), duration: Math.min(FILL_MS, s.at), fill: 'both', easing: 'ease-out' })
+          bar?.animate(nudge.frames, { delay: s.at - since(), duration: nudge.duration, easing: 'ease-out' }) // касание: лёгкий толчок всего бара (translateY 2 px и обратно)
+        })
       })
       if (!still && plate) { const h = haloKeys(segments); el.querySelector('[data-halo]')?.animate(h.keys, { duration: h.duration, fill: 'both', easing: 'linear' }) } // «толщина»: scaleY ореола ступенькой за пилюлю (только в начале игры и на этапе 2: перед плашкой), высота бара не меняется
     }

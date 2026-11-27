@@ -34,8 +34,8 @@
   inset: 0;
   opacity: 0;
   background: color-mix(in srgb, var(--c, #fff) 45%, #fff);
-  animation: raceHit 0.3s linear var(--at, 0s) 1 forwards; /* до --at opacity 0 (fill только forwards) */
 }
+.raceChargeSeg[data-hit]::after { animation: raceHit 0.3s linear 1 forwards; } /* v3.3.391: вспышку запускает RaceChargeRun.jsx в момент касания (атрибут), а не CSS-задержка --at: девять слоёв с отложенной анимацией висели с самого показа заставки */
 @keyframes raceHit { from { opacity: 0.9; } to { opacity: 0; } }
 .raceChargeRing { /* кольцо-рябь: центр бара, scale и opacity ведёт Web Animations */
   position: absolute;

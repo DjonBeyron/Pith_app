@@ -44,7 +44,9 @@ describe('итог (RaceSummary) и RaceActs', () => {
     expect(html(RaceActs, { f: f(), cfg })).toContain('race-summary')
     expect(html(RaceActs, { f: f({ stageObj: { type: 'student', act: 'climb', sid: 'climb-1' }, rh: { on: true, quiet: false, race: { climb: initClimb(4) } } }), cfg })).toContain('race-climb')
     expect(noBar(html(RaceActs, { f: f({ stageObj: { type: 'student', act: 'sprint' } }), cfg }))).toBe('')
-    expect(noBar(html(RaceActs, { f: f({ rh: { on: true, quiet: true } }), cfg }))).toBe('')
+    const held = noBar(html(RaceActs, { f: f({ rh: { on: true, quiet: true } }), cfg })) // итог собран заранее, но скрыт (data-hold), пока Пит говорит: показ — без новой раскладки
+    expect(held).toContain('data-hold="true"'); expect(held).toContain('aria-hidden="true"')
+    expect(noBar(html(RaceActs, { f: f({ rh: { on: true, quiet: false } }), cfg }))).not.toContain('data-hold')
     expect(noBar(html(RaceActs, { f: f({ stage: 'paused' }), cfg }))).toBe('')
   })
   it('RehearsalActs отдаёт гонке экран, когда у плана game = race; репетиция рисуется как раньше', () => {

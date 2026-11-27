@@ -99,7 +99,7 @@ describe('заставка-зарядка: план', () => {
     const r = ringFrames()
     expect(RING_MS).toBe(350); expect(r.duration).toBe(350); expect(r.frames[0].transform).toContain('scale(0.6)'); expect(r.frames.at(-1).transform).toContain('scale(1.6)'); expect(r.frames[0].opacity).toBeGreaterThan(0); expect(r.frames.at(-1).opacity).toBe(0)
     const css = read('../../styles/player/modules/race-charge.css')
-    expect(FLASH_MS).toBe(300); expect(css).toMatch(/\.raceChargeSeg::after \{[^}]*animation: raceHit 0\.3s linear var\(--at, 0s\) 1 forwards/); expect(css).toContain('@keyframes raceHit { from { opacity: 0.9; } to { opacity: 0; } }')
+    expect(FLASH_MS).toBe(300); expect(css).toMatch(/\.raceChargeSeg\[data-hit\]::after \{ animation: raceHit 0\.3s linear 1 forwards/); expect(css).toContain('@keyframes raceHit { from { opacity: 0.9; } to { opacity: 0; } }')
     expect(css).toMatch(/\.raceChargeSeg::after \{[^}]*opacity: 0;/) // до момента касания вспышки нет
     const src = read('./RaceChargeRun.jsx'); expect((src.match(/data-ring/g) ?? []).length).toBe(2) // один узел кольца на бар (разметка + выбор), не по узлу на касание
   })

@@ -18,13 +18,13 @@ import { useShowDebugUi } from '../player/useShowDebugUi.js'
 const mark = d => (d === 'ok' ? '✓' : d === 'miss' ? '✗' : '—')
 const EXAM_PIT = { free: 'свободен', mid: 'свободен', stay: 'остался в коробке' } // исход экзамена «Шкала памяти» (boss/bossTrophies.js): строки «Экзамен: трофеи N из M», «Забрала Мия K», «Пит …» — только если экзамен был (result.exam)
 
-export default function RaceSummary({ plan, result, onAgain = null, onShown = null, onDone, journal = false }) {
+export default function RaceSummary({ plan, result, onAgain = null, onShown = null, onDone, journal = false, hold = false }) { // hold — экран собран, но скрыт (Пит договаривает реплику итога): показ — снятием атрибута, без новой раскладки
   const showJournal = useShowDebugUi() || journal
   const ref = useRef(null)
   const timer = useRef(0)
   const [lite] = useState(plateLite)
   const [leaving, setLeaving] = useState(false)
-  useEffect(() => { onShown?.() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!hold) onShown?.() }, [hold]) // eslint-disable-line react-hooks/exhaustive-deps -- «итог показан» — один раз, когда экран появился
   useEffect(() => () => clearTimeout(timer.current), [])
   const leave = () => { // «Нет» / «Готово»: окно улетает, игра опускается и растворяется, потом — завершение
     if (leaving) return
@@ -35,7 +35,7 @@ export default function RaceSummary({ plan, result, onAgain = null, onShown = nu
   const r = result
   const twoStages = isMode(plan.round)
   return (
-    <div ref={ref} className={`wlTurn rhScreen raceFinal raceSum${r?.gold ? ' raceSum--gold' : ''}${lite ? ' wlTurn--lite' : ''}${leaving && lite ? ' wlTurn--leave' : ''}`} data-testid="race-summary" data-leaving={leaving || undefined}>
+    <div ref={ref} className={`wlTurn rhScreen raceFinal raceSum${r?.gold ? ' raceSum--gold' : ''}${lite ? ' wlTurn--lite' : ''}${leaving && lite ? ' wlTurn--leave' : ''}`} data-testid="race-summary" data-leaving={leaving || undefined} data-hold={hold || undefined} aria-hidden={hold || undefined}>
       <div className="raceFinalHead"><div className="wlRevealLabel" data-testid="race-summary-title">Встряхни память: итог{r?.gold ? ' · золото' : ''}</div>
       <div className="raceFinalPhrase" data-testid="race-summary-phrase">{plan.chunks.join(' ')}</div></div>
       <dl className="rhStats">
