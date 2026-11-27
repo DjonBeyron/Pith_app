@@ -16,7 +16,8 @@ mkdirSync(OUT, { recursive: true })
 const args = ['--no-sandbox', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required', '--enable-precise-memory-info']
 const browser = await chromium.launch({ executablePath: E.PW_CHROMIUM_PATH, args })
 const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true, permissions: ['microphone'] })
-await ctx.addInitScript(([weak, start, lagOff, catVis]) => {
+await ctx.addInitScript(([weak, start, lagOff, catVis, lane]) => {
+  if (lane) localStorage.setItem('pithy_wl_lane_mode_v1', lane) // LANE=move|steps|still — режим узора дорожек (без него — умолчание: на слабом «реже»)
   if (lagOff) localStorage.setItem('pithy_lag_trace', '0') // LAG=0 — трассер лагов выключен (цена самого трассера: пара прогонов LAG=1 / LAG=0)
   if (start) localStorage.setItem('pithy_race_start_stage_v1', start) // START=boss-intro-ann — «начать с этапа» (как у админа): сразу экзамен
   localStorage.setItem('pithy_weak_device_v6', weak ? '1' : '0'); localStorage.setItem('pithy_debug', '1'); localStorage.setItem('pithy_debug_console', '0')
@@ -43,7 +44,7 @@ await ctx.addInitScript(([weak, start, lagOff, catVis]) => {
     P.sec.push({ t: Math.round(t0), sid: wl?.dataset.sid ?? null, raf: calls, an: an.length, run, inf, names, wl: inWl, out: all - inWl, heap: performance.memory?.usedJSHeapSize ?? 0, logN: window.__logN ?? 0 })
     P.skip.push([Math.round(t0), Math.round(performance.now()) + 1])
   }, 2000)
-}, [WEAK, E.START ?? '', E.LAG === '0', E.CATVIS === '1'])
+}, [WEAK, E.START ?? '', E.LAG === '0', E.CATVIS === '1', E.LANE ?? ''])
 const page = await ctx.newPage()
 const cdp = await ctx.newCDPSession(page)
 await cdp.send('Performance.enable')

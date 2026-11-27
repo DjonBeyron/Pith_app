@@ -22,7 +22,7 @@ export const MAX_DT = 64        // шаг модели за кадр не бол
 export const reducedMotion = () => { try { return !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches } catch { return false } }
 
 export function createConveyorDrive({
-  root, still = false, cheap = false, now = () => globalThis.performance.now(), log = pLog, talk = () => 0, // talk — сколько мс Пит ещё говорит (директор гонки: pitLeft)
+  root, still = false, cheap = false, steps = false, now = () => globalThis.performance.now(), log = pLog, talk = () => 0, // talk — сколько мс Пит ещё говорит (директор гонки: pitLeft)
   raf = f => globalThis.requestAnimationFrame(f), caf = i => globalThis.cancelAnimationFrame(i),
   observe = (el, fn) => { const o = new globalThis.MutationObserver(fn); o.observe(el, { subtree: true, attributes: true, attributeFilter: ['data-held', 'data-lane', 'data-still', 'data-speed'] }); return () => o.disconnect() },
   mover = pseudoMover, loop = loopMover, watchUp = (el, fn) => { const o = new globalThis.MutationObserver(fn); o.observe(el, { attributes: true, attributeFilter: ['data-up'] }); return () => o.disconnect() }, // разворот конвейера (data-up) при стоящих дорожках: «двигатель» перерисовывает сдвиг сам
@@ -67,7 +67,7 @@ export function createConveyorDrive({
   // Сдвиг узора: «двигатель» слоя (laneConveyorMover.js — стоящая анимация псевдоэлемента, стили колонки не пересчитываются); нет его (слабое устройство — узор стоит; старый браузер; тесты) — переменная --run-y, как раньше
   const calm = still || cheap // модель идёт без бега и мигания (y не считается): на слабом узор едет сам (loops), при reduced-motion стоит
   const movers = cols.map(c => (calm ? null : mover(c)))
-  const loops = cols.map(c => (cheap && !still ? loop(c) : null)) // слабое устройство: стоящий на композиторе бесконечный сдвиг слоя, привод меняет только скорость (laneConveyorMover.loopMover)
+  const loops = cols.map(c => (cheap && !still ? loop(c, { steps }) : null)) // слабое устройство: стоящий на композиторе бесконечный сдвиг слоя, привод меняет только скорость (laneConveyorMover.loopMover)
   const game = root.closest?.('.wl') ?? null
   const up = () => game?.hasAttribute?.('data-up') === true // обратный конвейер: в CSS сдвиг «период − y» (word-lane-lane-run.css), у «двигателя» его считает привод
   const shift = (i, y) => {
@@ -77,7 +77,7 @@ export function createConveyorDrive({
   }
   const loop_ = i => { // слабое устройство: период и направление — только когда сменились; скорость (px/с = dvh/с × доля дорожки × высота / 100) — мувер сам отсекает шаги меньше 4 %
     const m = loops[i], S = shown[i]
-    if (S.loopP !== P) { S.loopP = P; m.setPeriod(P) }
+    if (S.loopP !== P) { S.loopP = P; m.setPeriod(P, vp.dpr) }
     const u = up(); if (S.loopUp !== u) { S.loopUp = u; m.setUp(u) }
     m.setRate(lanes[i].s * lanes[i].k * vp.h / 100)
   }

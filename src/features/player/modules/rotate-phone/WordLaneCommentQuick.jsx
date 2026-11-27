@@ -3,7 +3,8 @@ import { isMicProcessingOn, setMicProcessingOn } from '../../../../shared/lib/ga
 import { readAudioSessionMode, readMicHoldMode, writeMicHoldMode } from '../../../../shared/lib/gameAudioSettings.js'
 import { getRewardSound, setRewardSound, getRewardVolume, setRewardVolume, REWARD_SOUNDS } from './wordLaneMeow.js'
 import { unlockNotes } from './wordLaneNotes.js'
-import { readLaneStill, writeLaneStill } from './wordLaneLaneStill.js'
+import { readLaneMode, writeLaneMode, LANE_MODE_LABELS } from './wordLaneLaneStill.js'
+import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { readPillSafe, writePillSafe, applyPillSafe, readTapMode, writeTapMode, applyAudioSessionMode } from './wordLaneHudSettings.js'
 
 // Быстрые переключатели режимов в окне комментария (WordLaneComment): те же настройки и те же функции, что в HUD (WordLaneHud.jsx, wordLaneHudSettings.js) — «почему хрипит звук»: тип аудиосессии, дорожка микрофона на речь Пита,
@@ -23,7 +24,7 @@ function Chip({ on, onClick, children, testid }) {
 
 export default function WordLaneCommentQuick({ rootRef, setTapMode = null, onChange = null }) {
   const [, setTick] = useState(0)
-  const session = readAudioSessionMode(), hold = readMicHoldMode(), proc = isMicProcessingOn(), reward = getRewardSound(), volume = getRewardVolume(), safe = readPillSafe(), tap = readTapMode(), still = readLaneStill()
+  const session = readAudioSessionMode(), hold = readMicHoldMode(), proc = isMicProcessingOn(), reward = getRewardSound(), volume = getRewardVolume(), safe = readPillSafe(), tap = readTapMode(), laneMode = readLaneMode(isWeakDevice())
   const change = (key, label, from, to, apply) => () => { apply(); onChange?.({ key, label, from, to }); setTick(n => n + 1) }
   const flipSafe = () => { writePillSafe(!safe); applyPillSafe(rootRef?.current, !safe); onChange?.({ key: 'safe', label: 'безопасные слои', from: yn(safe), to: yn(!safe) }); setTick(n => n + 1) } // класс — прямо на корень игры, без перерисовки пилюль
   return (
@@ -47,8 +48,7 @@ export default function WordLaneCommentQuick({ rootRef, setTapMode = null, onCha
         <Chip on={safe} onClick={flipSafe} testid="wl-cmt-safe-toggle">{safe ? 'Вкл' : 'Выкл'}</Chip>
       </Row>
       <Row label="Узор дорожек (после «Игра заново»)" testid="wl-cmt-lane">
-        <Chip on={!still} onClick={change('lane', 'узор дорожек', still ? 'стоит' : 'едет', 'едет', () => writeLaneStill(false))} testid="wl-cmt-lane-move">Едет</Chip>
-        <Chip on={still} onClick={change('lane', 'узор дорожек', still ? 'стоит' : 'едет', 'стоит', () => writeLaneStill(true))} testid="wl-cmt-lane-still">Стоит</Chip>
+        {[['move', 'Едет'], ['steps', 'Реже'], ['still', 'Стоит']].map(([m, t]) => <Chip key={m} on={laneMode === m} onClick={change('lane', 'узор дорожек', LANE_MODE_LABELS[laneMode], LANE_MODE_LABELS[m], () => writeLaneMode(m))} testid={`wl-cmt-lane-${m}`}>{t}</Chip>)}
       </Row>
       <Row label="Тап вместо речи" testid="wl-cmt-tap">
         <Chip on={tap} onClick={change('tap', 'тап вместо речи', yn(tap), yn(!tap), () => { writeTapMode(!tap); setTapMode?.(!tap) })} testid="wl-cmt-tap-toggle">{tap ? 'Вкл' : 'Выкл'}</Chip>

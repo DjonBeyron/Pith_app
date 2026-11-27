@@ -6,7 +6,7 @@ import { isMicProcessingOn, describeGameMic } from '../../../shared/lib/gameMic.
 import { readAudioSessionMode, readMicHoldMode } from '../../../shared/lib/gameAudioSettings.js'
 import { audioModeInfo, readSelectedPreset } from './audioPresets.js'
 import { isWeakDevice } from '../../../shared/lib/deviceTier.js'
-import { readLaneStill } from '../../player/modules/rotate-phone/wordLaneLaneStill.js'
+import { readLaneMode } from '../../player/modules/rotate-phone/wordLaneLaneStill.js'
 import { voskRuntime } from '../../../shared/lib/vosk/voskRuntime.js'
 import { getVoiceRate } from '../../player/lessonVolume.js'
 import { getRewardSound, getRewardVolume } from '../../player/modules/rotate-phone/wordLaneMeow.js'
@@ -22,7 +22,7 @@ export const DEFAULT_READERS = {
   rewardVolume: getRewardVolume,
   pillSafe: readPillSafe,
   tapMode: readTapMode,
-  laneStill: readLaneStill,
+  laneMode: () => readLaneMode(isWeakDevice()),
   voiceRate: getVoiceRate,
   lite: () => readWeakStored() ?? isWeakDevice(),
 }
@@ -47,7 +47,7 @@ export function snapshotSettings(readers = DEFAULT_READERS) {
     rewardVolume: safe(r.rewardVolume),
     pillSafe: !!safe(r.pillSafe, false),
     tapMode: !!safe(r.tapMode, false),
-    laneStill: !!safe(r.laneStill, false),
+    laneMode: safe(r.laneMode, 'move'),
     voiceRate: safe(r.voiceRate),
     lite: !!safe(r.lite, false),
     mic: hud.mic ?? '—',
@@ -61,7 +61,7 @@ const onOff = v => (v ? 'вкл' : 'выкл')
 export function settingsLine(s) {
   return [
     `аудиосессия ${s.audioSession} (режим «${s.audioSessionMode}»)`, `дорожка на речь Пита «${s.micHold}»`, `обработка микрофона ${onOff(s.micProcessing)}`,
-    `награда «${s.rewardSound}» ${pct(s.rewardVolume)}%`, `безопасные слои ${onOff(s.pillSafe)}`, `тап вместо речи ${onOff(s.tapMode)}`, `голос ${s.voiceRate}×`, `lite ${onOff(s.lite)}`, `узор дорожек ${s.laneStill ? 'стоит' : 'едет'}`,
+    `награда «${s.rewardSound}» ${pct(s.rewardVolume)}%`, `безопасные слои ${onOff(s.pillSafe)}`, `тап вместо речи ${onOff(s.tapMode)}`, `голос ${s.voiceRate}×`, `lite ${onOff(s.lite)}`, `узор дорожек ${({ move: 'едет', steps: 'реже', still: 'стоит' })[s.laneMode] ?? s.laneMode}`,
     `дорожка микрофона: ${s.mic}`, `Vosk: ${s.vosk}`,
   ].join(', ')
 }
