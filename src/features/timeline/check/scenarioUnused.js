@@ -7,4 +7,5 @@ export const UNUSED_WHY = {
   race_climb: CLIMB, race_climb_slip: CLIMB, race_climb_top: CLIMB, race_climb_time: CLIMB, race_descent: CLIMB,
   race_trap_pre: CLIMB, race_trap_mid: CLIMB, race_trap_short: CLIMB,
   race_ask_voice: 'только стенд: вопрос «голосом или руками» перед стартом',
+  boss_mia_ru_wait: 'звучит только на медленном телефоне, пока русская модель слуха ещё грузится (прикрытие за «Я меняю правила», boss/useSwitchWait.js)',
 }

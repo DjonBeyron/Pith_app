@@ -16,7 +16,7 @@ export function useConveyorArm(f) {
   const [ignitedKey, setIgnitedKey] = useState(null)
   useEffect(() => {
     if (!needTimer) return undefined
-    const t = setTimeout(() => setIgnitedKey(key), igniteAtMs({ holdMs: rh.holdMs(stageObj), cueMs: rh.cueMs(stageObj) }))
+    const t = setTimeout(() => setIgnitedKey(key), rh.launchMs?.(stageObj) ?? igniteAtMs({ holdMs: rh.holdMs(stageObj), cueMs: rh.cueMs(stageObj) })) // launchMs — старт гонки: узор трогается на слове «запускаю» (pitrace/raceConveyorLaunch.js)
     return () => clearTimeout(t)
     // rh и stageObj меняются на каждый рендер, а раскладка плашки считается один раз — в момент её старта
     // eslint-disable-next-line react-hooks/exhaustive-deps

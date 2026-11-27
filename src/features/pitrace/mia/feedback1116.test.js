@@ -10,7 +10,7 @@ describe('замечания 2026-11-16 (v3.3.259)', () => {
     const stage = { mia: 'ann', act: 'catch', line: 'pit_forgot' }
     expect(reduceMia(miaInit(), { t: 'enter', stage, now: 1000 }).mia.at).toBe(1000 + MIA.DROP_AT)
     expect(reduceMia(miaInit(), { t: 'enter', stage, now: 1000, dropAt: 2900 }).mia.at).toBe(3900)
-    expect(rd('./useMiaEnter.js')).toContain("300 + mspeech.msOf(running.line, 'pit')")
+    expect(rd('./useMiaEnter.js')).toContain("lineMs: mspeech.msOf(running.line, 'pit')") // срок считает mia/miaDropPlan.js: удар коробки — на конец реплики
   })
   it('прогресс-бар: слова прилетают в порядке слов круга (как сегменты бара в игре), риски между цветами', () => {
     const words = ['a', 'b', 'c', 'd'].map((text, i) => ({ text, level: i }))

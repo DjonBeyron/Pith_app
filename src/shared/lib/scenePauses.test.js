@@ -31,7 +31,7 @@ describe('проверка значений', () => {
   it('неизвестные ключи, не числа и значения вне пределов отбрасываются с причиной; годное округляется', () => {
     const r = validatePauses({ 'mia.intro': 800.4, 'good.delay': 5, 'mia.gap': 99999, 'нет.такой': 100, 'preSay.gap': '450', 'stage.exit': NaN, 'boss.pit1At': 1000 })
     expect(r.pauses).toEqual({ 'mia.intro': 800 })
-    expect(r.dropped.map(d => [d.key, d.why])).toEqual([['good.delay', 'вне пределов 150…2000 мс'], ['mia.gap', 'вне пределов 100…2000 мс'], ['нет.такой', 'нет такой паузы'], ['preSay.gap', 'не число'], ['stage.exit', 'не число'], ['boss.pit1At', 'вне пределов 1650…5000 мс']])
+    expect(r.dropped.map(d => [d.key, d.why])).toEqual([['good.delay', 'вне пределов 150…2000 мс'], ['mia.gap', 'вне пределов 100…2000 мс'], ['нет.такой', 'нет такой паузы'], ['preSay.gap', 'не число'], ['stage.exit', 'не число'], ['boss.pit1At', 'вне пределов 1100…5000 мс']])
   })
   it('ни одна пауза не уходит в минус и в бесконечность', () => {
     for (const p of SCENE_PAUSES) for (const bad of [-1, -1000, Infinity, -Infinity, p.max + 1]) expect(validatePauses({ [p.key]: bad }).pauses).toEqual({})

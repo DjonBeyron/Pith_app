@@ -41,7 +41,7 @@ describe('значение по умолчанию каждой настройк
   it('реестр и список прежних констант — одни и те же ключи; числа те же, что были до настроек (v3.3.349)', () => {
     expect(Object.keys(WAS).sort()).toEqual(SCENE_PAUSES.map(p => p.key).sort())
     expect(PAUSE_DEFAULTS).toEqual(WAS)
-    expect(WAS).toEqual({ 'line.at': 250, 'plate.hold': 1200, 'count.tail': 200, 'race.announce': 1700, 'good.delay': 500, 'afterGood.gap': 350, 'preSay.gap': 450, 'stage.exit': 1300, 'mia.intro': 0, 'mia.gap': 350, 'phrase.lineTail': 230, 'phrase.exit': 300, 'boss.pit1At': 1650 })
+    expect(WAS).toEqual({ 'line.at': 250, 'plate.hold': 700, 'count.tail': 200, 'race.announce': 1700, 'good.delay': 500, 'afterGood.gap': 350, 'preSay.gap': 450, 'stage.exit': 1300, 'mia.intro': 0, 'mia.gap': 350, 'phrase.lineTail': 230, 'phrase.exit': 300, 'boss.pit1At': 1100 })
     expect(LEAD_MS).toBe(PAUSE_DEFAULTS['line.at']) // заставка считает реплику стадии 0 тем же отступом
   })
   it('каждый ключ, который читает код (pauseMs / knobMs / sceneKnob / knobs), есть в реестре; каждая настройка реестра где-то читается', () => {
@@ -67,7 +67,7 @@ describe('переопределение доходит до стадий', () =
     const p = normalizePlan({ ...fixturePlan('three'), game: 'race' }), lines = { race_start: { text: 'Три заезда', url: 'u1', duration: 5 } }
     const o = openingPlan({ ...p, extraWords: extrasOf(p) }, lines); resetPauses()
     const was = openingPlan({ ...p, extraWords: extrasOf(p) }, lines)
-    expect(o.pause).toBe(2000); expect(was.pause).toBe(1200); expect(o.countAt - was.countAt).toBe(800)
+    expect(o.pause).toBe(2000); expect(was.pause).toBe(700); expect(o.countAt - was.countAt).toBe(1300)
   })
   it('mia.intro — заставка перед «Допросом» в обоих проходах и перед экзаменом', () => {
     setPauseOverrides({ 'mia.intro': 800 })
@@ -142,7 +142,7 @@ describe('переопределение доходит до речи', () => {
   })
   it('boss.pit1At — срок первой реплики Пита в экзамене и сдвиг речи Мии за ней', () => {
     const cue = () => reduceMia(miaInit(), { t: 'enter', now: 0, stage: { mia: 'ann', act: 'boss', script: 'boss', sid: 'boss-ann' } }).say.find(c => c.who === 'pit')
-    expect(cue()).toMatchObject({ id: 'boss_pit_new', delay: 1650 }); expect(bossShift(1000)).toBe(1650 + 1000 + BOSS.AFTER_PIT_MS - BOSS.HUSH_AT)
+    expect(cue()).toMatchObject({ id: 'boss_pit_new', delay: 1100 }); expect(bossShift(1000)).toBe(1100 + 1000 + BOSS.AFTER_PIT_MS - BOSS.HUSH_AT)
     setPauseOverrides({ 'boss.pit1At': 3000 })
     expect(cue().delay).toBe(3000); expect(bossShift(1000)).toBe(3000 + 1000 + BOSS.AFTER_PIT_MS - BOSS.HUSH_AT); expect(by(stagesOf(), 'boss-ann').knobs.pit1).toBe('boss.pit1At')
   })
@@ -154,7 +154,7 @@ describe('трасса сцены: какая настройка дала пау
     const st = stagesOf(); sceneRun(plan(), st); sceneStage(st[0]); sceneStage(by(st, 'sprint'))
     expect(sceneTrace.runs().at(-1).meta.pauses).toBe('race.announce=3000')
     const ins = sceneTrace.events().filter(e => e.k === 'stage-in')
-    expect(ins[0].pauses).toEqual([{ key: 'race.announce', ms: 3000, as: 'ms', set: true }, { key: 'plate.hold', ms: 1200, as: 'pause' }, { key: 'line.at', ms: 250, as: 'lead' }])
+    expect(ins[0].pauses).toEqual([{ key: 'race.announce', ms: 3000, as: 'ms', set: true }, { key: 'plate.hold', ms: 700, as: 'pause' }, { key: 'line.at', ms: 250, as: 'lead' }])
     expect(ins[1].pauses).toBeUndefined()
     resetPauses(); sceneTrace.clear(); sceneRun(plan(), stagesOf()); expect(sceneTrace.runs().at(-1).meta.pauses).toBeUndefined(); expect(pauseMs('race.announce')).toBe(1700)
   })

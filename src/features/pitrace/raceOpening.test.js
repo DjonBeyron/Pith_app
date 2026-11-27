@@ -17,7 +17,7 @@ const mk = (extra = {}) => { const p = normalizePlan({ ...fixturePlan('three'), 
 const lines = { race_start: { text: 'Три заезда', url: 'u1', duration: 5 }, race_sprint: { text: 'Разгон', url: 'u2', duration: 6 } }
 
 describe('расписание открытия: слова → бар → плашка → ноты', () => {
-  it('константы: морф 600 мс, плашка 1,2 с после речи', () => { expect([MORPH_MS, PLATE_HOLD_MS, LEAD_MS]).toEqual([600, 1200, 250]) })
+  it('константы: морф 600 мс, плашка 0,7 с после речи (было 1,2 с, v3.3.383)', () => { expect([MORPH_MS, PLATE_HOLD_MS, LEAD_MS]).toEqual([600, 700, 250]) })
   it('речь Пита: стартовая фраза режима сразу (RACE_START_LEAD_MS), объявления этапа A после неё нет; конец речи, морф за 600 мс до него, плашка этапа — с началом речи', () => {
     const o = openingPlan(mk(), lines)
     expect(o.startMs).toBe(5000); expect(o.firstMs).toBe(0); expect(o.early).toBe(true); expect(o.stageAt).toBe(DROP_MS + LANES_MS)
@@ -45,7 +45,7 @@ describe('расписание открытия: слова → бар → пл�
   })
   it('реплик нет вовсе — слова летят 4 с; у прохода B первой (без прохода A) после стартовой идёт его реплика', () => {
     const none = openingPlan(mk(), null)
-    expect(none.speechEnd).toBe(4000); expect(none.morphAt).toBe(3400); expect(none.plateEnd).toBe(5200)
+    expect(none.speechEnd).toBe(4000); expect(none.morphAt).toBe(3400); expect(none.plateEnd).toBe(4700)
   })
   it('«Пинг-понг + финал» и «Проход A»: тоже стартовая фраза (раньше — реплика этапа); одиночные Вершина и Спуск, проход B — вступления нет, реплика этапа звучит СРАЗУ со стартом часов', () => {
     const st = openingPlan(mk({ round: 'stages' }), lines)
