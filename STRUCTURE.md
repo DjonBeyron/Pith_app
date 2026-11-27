@@ -3915,6 +3915,9 @@ A2 из `PLAN_NEW_USER.md`. Чистая модель без React и сети: 
 | `_stand/race/perf-moment.mjs` | Покадровая картина моментов Мии по замеру `perf-run.mjs` |
 | `_stand/race/perf-events.mjs`, `perf-paint.mjs` | Замер производительности игры: выжимка событий трассы (что шло в длинных кадрах) / сводка «что перекрашивается» из трассы Chromium (v3.3.378) |
 | `_stand/race/vite.perf.config.mjs`, `perfStand.js`, `perf-run.mjs`, `perf-report.mjs`, `perf-trace.mjs` | Замер производительности игры на прод-сборке стенда: прогон полной игры, сводка по этапам «до → после», разбор трассы Chromium |
+| `src/shared/lib/fontLog.js` | Журнал загрузки веб-шрифтов (`[fonts] начали грузить / загружено`), включается вместе с трассером лагов |
+| `src/shared/lib/fontLog.test.js` | Тест журнала шрифтов |
+| `src/features/player/modules/rotate-phone/useLagTraceLoaf.test.js` | Тест записи длинного кадра браузера (файл и позиция тяжёлого скрипта) |
 | `src/features/pitrace/raceWarmArt.js` | Заранее по одной грузит и декодирует SVG-картинки из CSS игры (узоры плашек Пита и Мии, стрелка разворота), чтобы браузер не собирал их в кадре показа |
 | `src/features/pitrace/raceWarmArt.test.js` | Тесты прогрева картинок игры: выбор правил, закрытая таблица стилей, один раз, сбой декодирования |
 | `_stand/race/perf-answer.mjs` | Окна верного ответа по замеру `perf-run.mjs`: худший кадр, кадры > 24/33/50 мс, слои |
