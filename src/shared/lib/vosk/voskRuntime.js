@@ -8,6 +8,7 @@
 // пока кто-то держит модель (до MAX_AUTO_RETRIES подряд). Режим «Только системное» модель не греет (читается при каждом запуске, так что смена режима видна сразу).
 // Ошибки и этапы пишутся в журнал плеера (pLog «[say-vosk] …»); ученику ничего не показываем. info() — подробности для админской диагностики (sayDiagWarm.js). Окружение подставляется (тесты).
 import { pLog } from '../debug.js'
+import { lagMark, lagMarks } from '../lagTrace.js'
 import { begin as beginNetBusy } from '../netBusy.js'
 import { readModelUrl } from './voskConfig.js'
 import { peekCached, readCached } from './voskStorage.js'
@@ -16,7 +17,8 @@ import { onBgCached } from './voskBgStatus.js'
 import { loadPhones } from './phones/phoneTable.js'
 import { readSayEngine } from '../speech/sayEngineMode.js'
 import { warmRecognizer } from './voskWarmRec.js'
-import { STAGE_TEXT, STAGE_FAIL_TEXT, TRIGGER_TEXT, createStageGuard, StageTimeout, WarmAbandoned, addTrace } from './voskWarmStages.js'
+import { STAGE_TEXT, STAGE_FAIL_TEXT, TRIGGER_TEXT, createStageGuard, STAGE_TIMEOUT_MS, StageTimeout, WarmAbandoned, addTrace } from './voskWarmStages.js'
+const LOAD_MARK = 'загрузка модели Vosk' // подпись в трассере лагов (lagTrace.js)
 
 export const FREE_AFTER_MS = 30000          // после ухода всех владельцев модель живёт в памяти ещё столько (вернулись — уже готова)
 export const BROKEN_MS = 60 * 1000          // «Vosk не работает» после сбоя — 1 минута
@@ -38,9 +40,11 @@ export function createVoskRuntime(deps = {}) {
   const isBroken = () => st.brokenUntil > d.now()
 
   function enter(stage, note = '') {
+    const was = st.stage
     st.stage = stage; st.stageAt = d.now()
     addTrace(st.trace, { stage, at: st.stageAt, note })
     st.run?.guard.arm(stage)
+    if (stage === 'loading-model') lagMark(LOAD_MARK, STAGE_TIMEOUT_MS['loading-model']); else if (was === 'loading-model') lagMarks.end(LOAD_MARK) // модель грузится в воркере 7–9 с и забирает ядра у главного потока слабого телефона: лаги за это время помечаются в [lag] (журнал 2026-11-27: кадр 835 мс при отъезде пилюль разворота пришёлся на загрузку русской модели)
     d.log(`прогрев: ${STAGE_TEXT[stage]}${note ? ` — ${note}` : ''}`)
     emit()
   }

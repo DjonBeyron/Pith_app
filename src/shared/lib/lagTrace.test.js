@@ -140,6 +140,9 @@ describe('подписи', () => {
     expect(journalLabel('[say-vosk] прогрев: загружаем модель в память')).toBe('смена модели Vosk')
     expect(journalLabel('[boss] экзамен: слово 3 — верно; трофеи 73, у Мии 47')).toBe('экзамен: счёт и полёт «+N»')
     expect(journalLabel('[cat] cat-speak {}')).toBe(null)
+    expect(journalLabel('[fill] +4331 мс: слово 2 «are» черновик → цель 0,52, экран 0,50')).toBe(null) // построчная заливка кадра — не событие
+    expect(journalLabel('[fill] экран 0,42 → 0,50')).toBe(null)
+    expect(journalLabel('[fill] итог хода: слов 4, первое слово через 3683 мс')).toBe('событие заливки «Скажи»')
   })
   it('лаг посреди речи называет идущую реплику (журнал Android 2026-11-26: такие кадры шли «без меток»); договорившая реплика не называется', () => {
     const quiet = Math.ceil(LAG_QUIET_MS / 16.7) + 1
@@ -156,5 +159,15 @@ describe('подписи', () => {
   })
   it('сводка без лагов и с лагами без меток', () => {
     expect(lagSummaryLine({ frames: 2, bursts: 2, worst: 41.2, extra: 40, playMs: 200000, keys: new Map(), blank: 2 }, 24)).toBe('[lag] итог: 2 длинных кадров (от 24 мс) в 2 местах за 3:20 игры; худший 41 мс, всего лишних 40 мс; чаще всего: —; без меток ×2')
+  })
+})
+
+describe('метка с концом (загрузка модели Vosk)', () => {
+  it('end() сокращает метку до фактической длительности', () => {
+    let t = 1000; const m = createLagMarks({ now: () => t })
+    m.add('загрузка модели Vosk', 60000); t = 9000; m.end('загрузка модели Vosk')
+    expect(m.list()[0].ms).toBe(8000)
+    m.end('нет такой') // неизвестная метка — ничего не ломает
+    expect(m.list()).toHaveLength(1)
   })
 })

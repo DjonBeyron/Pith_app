@@ -31,6 +31,7 @@ export function createLagMarks({ now = () => globalThis.performance?.now?.() ?? 
   return {
     add(label, ms = 0) { ring[at] = { t: now(), label: String(label), ms }; at = (at + 1) % size },
     list: () => ring.filter(Boolean),
+    end(label) { for (let i = ring.length - 1; i >= 0; i--) if (ring[i]?.label === label) { ring[i] = { ...ring[i], ms: Math.max(0, now() - ring[i].t) }; return } }, // работа с меткой кончилась (ms была потолком): метка длится ровно до сейчас — иначе лаг после конца загрузки модели считался бы «идущей загрузкой»
     clear() { ring.length = 0; at = 0 },
   }
 }
