@@ -41,6 +41,8 @@ function withDefaults(deps) {
   }
   d.store ??= (() => { try { return globalThis.localStorage } catch { return null } })()
   d.lang = deps.lang === 'ru' ? 'ru' : 'en' // какая модель: русская (проход «называй перевод» игры «Встряхни память») качается своим запуском, своим статусом и своим замком
+  // card: модель качается, пока открыта карточка игры поверх урока — фоновое видео слайда и «лента» тут не помеха (на iPhone зацикленное видео держало ворота закрытыми всю карточку, журнал 28.11)
+  if (deps.card) d.busy = { ...d.busy, feed: () => false, video: () => false }
   d.status = bgStatusOf(d.lang)
   d.url ??= modelUrlOf(d.lang)
   d.fetchFn ??= globalThis.fetch?.bind(globalThis)

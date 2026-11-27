@@ -67,3 +67,17 @@ describe('modelUrlSource: откуда адрес модели', () => {
     expect(modelUrlSource({ getItem() { throw new Error('x') } }, {})).toBe('builtin')
   })
 })
+
+describe('card: карточка игры поверх урока', () => {
+  it('играющее видео слайда и «лента» не держат ворота — качается; сеть занята урока всё ещё держит', async () => {
+    const e = env({ nav: { onLine: true }, doc: { visibilityState: 'visible' } })
+    e.flags.net = false
+    await startBackground({ ...e, card: true })
+    expect(await peekCached(URL1, e.cachesApi)).toBeTruthy()
+    const e2 = env({ nav: { onLine: true }, doc: { visibilityState: 'visible' }, cachesApi: fakeCaches() })
+    e2.flags.feed = false; e2.flags.video = false
+    const p = startBackground({ ...e2, card: true, sleep: async (ms, signal) => { if (signal?.aborted) throw new VoskError('cancelled'); e2.flags.net = false } })
+    await p
+    expect(await peekCached(URL1, e2.cachesApi)).toBeTruthy()
+  })
+})

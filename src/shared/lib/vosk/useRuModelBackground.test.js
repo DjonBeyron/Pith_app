@@ -8,7 +8,7 @@ describe('scheduleRuDownload', () => {
     const cancel = scheduleRuDownload(start, abort)
     expect(start).not.toHaveBeenCalled()
     vi.advanceTimersByTime(RU_BG_DELAY_MS)
-    expect(start).toHaveBeenCalledWith({ lang: 'ru' })
+    expect(start).toHaveBeenCalledWith({ lang: 'ru', card: true })
     cancel()
     expect(abort).toHaveBeenCalledWith('ru')
     vi.useRealTimers()
