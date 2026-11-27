@@ -174,7 +174,7 @@ describe('движок пилюль подключён к событиям ку�
     expect(eng).toContain("e.type === 'piece-ok') lockPiece(e.pill)")
     expect(eng).toContain('e.rep.pills.forEach(lockPiece)')
     expect(eng).toContain("e.rep.pills.find(p => p.state === 'fly')")
-    expect(eng).toContain('{ full: e.full }')
+    expect(eng).toContain('{ full: e.full, simple: flySimple(e.rep.share), rect: e.rect }')
   })
   it('«тень» слова показывается только на незащёлкнутых кусках', () => {
     expect(eng).toContain("p.state === 'fly' && g.reps[p.rep].state === 'fly' ? '0.6'")

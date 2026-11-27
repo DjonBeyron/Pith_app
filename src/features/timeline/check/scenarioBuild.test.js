@@ -98,4 +98,9 @@ describe('допрос у Мии и экзамен — те же реплики 
     expect(b.k.length).toBe(6); expect(Math.min(...b.k.slice(-3))).toBeGreaterThan(Math.max(...b.k.slice(0, -3))); expect(b.win.every(ms => ms > 1500)).toBe(true)
     expect(sc.ids.has('boss_mia_fast')).toBe(true); expect(sc.unused.some(u => u.id === 'boss_mia_fast')).toBe(false)
   })
+  it('мягкие реплики Пита на слабом слове — группа «одна из» в проходах A и B; их нет в «Допросе» и экзамене', () => {
+    for (const key of ['sprint', 'turn']) { const g = block(key).parts.find(p => p.key === 'soft'); expect(g.kind).toBe('variants'); expect(g.items.map(x => x.id)).toEqual(['race_soft_1', 'race_soft_2', 'race_soft_3']); expect(g.title).toContain('на слабом слове') }
+    for (const b of sc.blocks.filter(x => !['sprint', 'turn'].includes(x.key))) expect(idsOf(b).some(id => id.startsWith('race_soft_')), b.key).toBe(false)
+    expect(sc.unused.some(u => u.id.startsWith('race_soft_'))).toBe(false)
+  })
 })

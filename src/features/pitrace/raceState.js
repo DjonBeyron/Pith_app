@@ -8,6 +8,8 @@ import * as ladder from './raceLadder.js'
 import { CLIMB_BONUS_MS } from './raceClimbTimer.js'
 import { trapSaid } from './raceTrap.js'
 import { phraseStep } from './raceStatePhrases.js'
+import { pendingGood } from './raceGood.js'
+import { praiseAllowed } from './racePathShare.js'
 
 export const STREAK_GOLD = 3  // серия: пилюли вспыхивают золотом (голосом серии больше нет: мини-реплики успеха — raceGood.js)
 export const STREAK_FIRE = 5  // серия: тёплое свечение
@@ -44,8 +46,10 @@ function queue(s, kind, stage, info) {
   const fell = (patch, log) => ({ ...same(s, { streak: 0, streakMode: undefined, [k]: done({ ...patch, ...wrong }) }), log: `${tag}: ${wordTitle(word ?? '…')} ${log}, серия 0, слово к повтору` })
   if (kind === 'claim') { // слово принято: время ответа и мини-реплика успеха по плану круга (raceGood.js), следующая пилюля ждёт, пока Пит договорит
     const claims = cur.claims + 1
-    const timed = i != null ? { results: { ...cur.results, [i]: { ...prev, ms: info.ms ?? prev.ms ?? null, late: !!info.late, ...accInfo(info) } } } : {}
-    return { ...same(s, { [k]: put({ claims, ...timed }) }), say: stage.good?.find(g => g.at === claims)?.id ?? null }
+    const timed = i != null ? { results: { ...cur.results, [i]: { ...prev, ms: info.ms ?? prev.ms ?? null, late: !!info.late, share: info.share ?? null, ...accInfo(info) } } } : {}
+    const due = pendingGood(stage.good, claims, cur.praised ?? 0) // умная похвала: подошедшая по плану реплика говорится только за РАННИЙ верный (доля пути < PRAISE_MAX_SHARE), иначе ждёт следующего раннего
+    const say = due && praiseAllowed(info.share) ? due.id : null
+    return { ...same(s, { [k]: put({ claims, praised: say ? claims : cur.praised ?? 0, ...timed }) }), say }
   }
   if (w?.trap) { // пилюля с чужим переводом: верное действие — промолчать
     if (kind === 'miss') return info.believed ? fell({ trap: true, miss: true, believed: true }, 'поверил чужому переводу') : { state: s }
@@ -54,7 +58,7 @@ function queue(s, kind, stage, info) {
   }
   if (kind === 'win') {
     const streak = s.streak + 1
-    return { ...same(s, { streak, best: Math.max(s.best, streak), streakMode: modeOf(streak), [k]: done({ hit: true }) }), log: `${tag}: ${wordTitle(word)} верно${prev?.ms ? ` за ${prev.ms} мс` : ''}, серия ${streak}` }
+    return { ...same(s, { streak, best: Math.max(s.best, streak), streakMode: modeOf(streak), [k]: done({ hit: true }) }), log: `${tag}: ${wordTitle(word)} верно${prev?.ms ? ` за ${prev.ms} мс` : ''}${Number.isFinite(prev?.share) ? `, путь ${Math.round(prev.share * 100)} %` : ''}, серия ${streak}` }
   }
   return fell({ miss: true }, kind === 'fail' ? 'не успел' : 'промах')
 }
@@ -77,7 +81,7 @@ function climbRound(s, kind, stage, info) {
 function resumeQueue(s, stage, from) {
   const k = stage.act, second = stage.sid === `${k}2`, cur = (second ? s[k].r2 : s[k]) ?? { words: [], results: {}, claims: 0 }
   const kept = Object.entries(cur.results).filter(([i]) => Number(i) < from).map(([i, r]) => [i, 'ms' in r && !r.hit ? { ...r, hit: true } : r])
-  const next = { ...cur, results: Object.fromEntries(kept), claims: kept.filter(([, r]) => 'ms' in r).length }
+  const next = { ...cur, results: Object.fromEntries(kept), claims: kept.filter(([, r]) => 'ms' in r).length, praised: Math.min(cur.praised ?? 0, kept.filter(([, r]) => 'ms' in r).length) }
   return { ...same(s, { [k]: second ? { ...s[k], r2: next } : { ...s[k], ...next } }), log: `${k === 'catch' ? 'проход B' : 'проход A'}${second ? ', второй круг' : ''}: продолжаем с пилюли ${from + 1} из ${stage.words.length}, сыграно ${kept.length}` }
 }
 

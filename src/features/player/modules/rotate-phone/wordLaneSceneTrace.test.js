@@ -65,7 +65,7 @@ describe('запись игры в трассу сцены (wordLaneSceneTrace)'
 
   it('проводка: директор и директор гонки пишут события одной строкой рядом с прежними вызовами', () => {
     const flow = read('./useWordLaneFlow.js'), acts = read('../../../pitrace/useRaceActs.js'), cat = read('./useCatLines.js')
-    for (const s of ["sceneAnswer('win', rep); rh.rec('win', { ...rep, order })", "rh.rec('miss', e?.rep); sceneAnswer('miss', e?.rep)", "rh.rec('fail', e.rep); sceneAnswer('fail', e.rep ?? e.prompt)", 'rh.claim?.(e.rep, e.ms, e.y); sceneClaim(e)', 'rh.spawn?.(e); scenePill(e)', 'sceneStageOut(stages[at])', "dbg.event('finish'); scenePush('end', {})"]) expect(flow, s).toContain(s)
+    for (const s of ["sceneAnswer('win', rep); rh.rec('win', { ...rep, order })", "rh.rec('miss', e?.rep); sceneAnswer('miss', e?.rep)", "rh.rec('fail', e.rep); sceneAnswer('fail', e.rep ?? e.prompt)", 'rh.claim?.(e.rep, e.ms, e.y, e.share); sceneClaim(e)', 'rh.spawn?.(e); scenePill(e)', 'sceneStageOut(stages[at])', "dbg.event('finish'); scenePush('end', {})"]) expect(flow, s).toContain(s)
     for (const s of ['tr.stage(running); sceneStage(running)', "tr.begin('старт'); sceneRun(plan, stages)", 'pre(rep, e) { sceneAsk(e)']) expect(acts, s).toContain(s)
     expect(cat).toContain('sceneTrace.hint(id, line.text || line.caption)'); expect(cat).toContain("if (!voiced) scenePush('line-start', { who: 'pit', id")
     const helper = read('./wordLaneSceneTrace.js'); expect(helper).not.toMatch(/await |document\.|querySelector|addEventListener|setTimeout|setInterval/) // только запись: без DOM, ожиданий, подписок и таймеров

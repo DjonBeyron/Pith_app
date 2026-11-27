@@ -123,7 +123,7 @@ describe('XP за пилюлю, ноты, Пит', () => {
   it('2 XP за принятую пилюлю; пилюля летит в счётчик (wordLaneRiseXp), от счётчика идёт «+N XP» (WordLaneXpFloat), в профиль пока не начисляется', () => {
     expect(XP_PER_PILL).toBe(2)
     const flow = read('./useWordLaneFlow.js')
-    expect(flow).toContain('XP_PER_PILL * rep.count, rect, XP_ARRIVE_MS)') // одна цифра на повтор: XP за все его куски
+    expect(flow).toContain('XP_PER_PILL * rep.count, rect, rep.simple ? XP_ARRIVE_SIMPLE_MS : XP_ARRIVE_MS)') // одна цифра на повтор: XP за все его куски
     expect(read('./WordLaneXp.jsx')).toContain("import WordLaneXpFloat from './WordLaneXpFloat.jsx'") // «+N XP» идёт вверх ОТ счётчика, из пилюли цифра больше не летит
     expect(read('./WordLaneXp.jsx')).toContain('getTarget={getTarget}')
     expect(read('./WordLaneGame.jsx')).toContain('<WordLaneXp apiRef={f.xpApi} />')

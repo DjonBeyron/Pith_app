@@ -14,11 +14,11 @@
 // Офсета между краем заливки, линией, светом и пузырями нет по построению. data-full — заливка дошла до 100 %: тело и клип пилюли цвета жидкости (зазора у засчитанной пилюли нет при любом округлении слоёв).
 // Размер ёмкости — замер при взятии; форма сменилась (обычная ↔ широкая) — перемер при первой заливке (при взятии замер идёт до записи размеров).
 // data-ring — «выдох» кольца: ставится ОДИН раз за выдачу пилюли, когда data-live появился впервые (начало заливки), и снимается в clean (take / give); после этого CSS-анимация кольца (0,75 с) не повторяется.
-import { XP_ARRIVE_MS, XP_PULSE_EVENT } from './wordLaneRiseXp.js'
+import { XP_ARRIVE_MS, XP_ARRIVE_SIMPLE_MS, XP_PULSE_EVENT } from './wordLaneRiseXp.js'
 import { LANE_X, PILL_W, PILL_H, WIDE_W, WIDE_H } from './wordLaneTimeline.js'
 import { startFlight, flightPosition, mirrorY } from './wordLaneMotion.js'
 import { fillProfile } from './wordLaneTimeline.js'
-import { flightY, startRise, RISE_END_Y, RISE_DELAY_MS } from './wordLaneRise.js'
+import { flightY, startRise, startRiseSimple, RISE_END_Y, RISE_DELAY_MS } from './wordLaneRise.js'
 import { createLaneFlash } from './wordLaneLaneFlash.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { msToExit, addRider, coastTail } from './wordLaneCoast.js'
@@ -194,12 +194,12 @@ export function createPool(root) {
      * Взлёт принятой пилюли: полёт вниз снимается (положение — по его часам), заливка доводится до края, через RISE_DELAY_MS пилюля улетает вверх (wordLaneRise.js); когда взлёт кончился — give.
      * Пилюля после этого вне логики конвейера (в игре ученика движок отпускает её из своих рук). Возвращает анимацию или null, если взлетать нечему (нет полёта, уже взлетела, не выдана).
      */
-    rise(k, { xp = false } = {}) { // xp — верная пилюля даёт XP: счётчик пульсирует, когда она на 90 % за экраном (полёта в счётчик нет)
+    rise(k, { xp = false, simple = false } = {}) { // simple — верное слово на ≥ FLY_SIMPLE_SHARE пути: простой улёт прямо вверх (startRiseSimple, одна анимация) // xp — верная пилюля даёт XP: счётчик пульсирует, когда она на 90 % за экраном (полёта в счётчик нет)
       const l = live.get(k)
       if (!l?.anim || l.rise) return null
       const game = root.closest?.('.wl')
-      const a = startRise(parts[k].el, scr(l), RISE_DELAY_MS, RISE_END_Y) // верная улетает ВВЕРХ по старой синусоиде и в реверсе (замечание владельца v3.3.270)
-      if (xp && game) setTimeout(() => game.dispatchEvent(new globalThis.CustomEvent(XP_PULSE_EVENT)), XP_ARRIVE_MS) // пилюля почти покинула экран — пульс счётчика
+      const a = simple ? startRiseSimple(parts[k].el, scr(l), RISE_END_Y) : startRise(parts[k].el, scr(l), RISE_DELAY_MS, RISE_END_Y) // верная улетает ВВЕРХ по старой синусоиде и в реверсе (замечание владельца v3.3.270)
+      if (xp && game) setTimeout(() => game.dispatchEvent(new globalThis.CustomEvent(XP_PULSE_EVENT)), simple ? XP_ARRIVE_SIMPLE_MS : XP_ARRIVE_MS) // пилюля почти покинула экран — пульс счётчика
       try { l.anim.cancel() } catch { /* уже снята */ }
       l.anim = null; l.rise = a
       parts[k].el.setAttribute('data-rise', '1')

@@ -38,14 +38,15 @@ describe('один залп искр и одна цифра XP на повтор
     const loud = fakePill()
     snapPill(loud, 0)
     expect(loud.animate).toHaveBeenCalledTimes(1)
-    expect(made.length).toBeGreaterThan(isWeakDevice() ? SPARK_COUNT_WEAK : SPARK_COUNT) // вспышка + кольцо + хост залпа + искры: 14, на слабом устройстве 5 (там 14 новых слоёв в кадре ответа — самое дорогое в щелчке)
+    if (isWeakDevice()) expect(made.length).toBe(0) // слабое устройство (2026-11-27): только хлопок и вибрация — ни вспышки, ни кольца, ни искр (замер: три новых узла и до семи анимаций в кадре ответа)
+    else expect(made.length).toBeGreaterThan(SPARK_COUNT) // вспышка + кольцо + хост залпа + 14 искр
     expect([SPARK_COUNT, SPARK_COUNT_WEAK]).toEqual([14, 5])
     expect(navigator.vibrate).toHaveBeenCalledTimes(1)
   })
 
   it('движок зовёт полный щелчок только у последнего защёлкнутого куска повтора (ученик) и у договорённого (диктор)', () => {
     const eng = read('./useWordLanePills.js')
-    expect(eng).toContain('{ full: e.full }')
+    expect(eng).toContain('{ full: e.full, simple: flySimple(e.rep.share), rect: e.rect }')
     expect(eng).toContain('{ full: lastPiece }')
   })
 
@@ -62,7 +63,7 @@ describe('один залп искр и одна цифра XP на повтор
     expect(wins).toHaveLength(3)
     expect(wins.map(w => w.last)).toEqual([false, false, true])
     const flow = read('./useWordLaneFlow.js')
-    expect(flow).toContain('if (rep.last && !rep.res?.noXp) { xpApi.current?.add(stages[sRef.current.idx]?.silent ? bossXp() : XP_PER_PILL * rep.count, rect, XP_ARRIVE_MS); return true }') // экзамен: трофеи слова по зоне (правила 2026-11-24)
+    expect(flow).toContain('if (rep.last && !rep.res?.noXp) { xpApi.current?.add(stages[sRef.current.idx]?.silent ? bossXp() : XP_PER_PILL * rep.count, rect, rep.simple ? XP_ARRIVE_SIMPLE_MS : XP_ARRIVE_MS); return true }') // экзамен: трофеи слова по зоне (правила 2026-11-24)
   })
 
   it('XP: счётчик и цифры живут в своём компоненте — награда не перерисовывает оверлей', () => {

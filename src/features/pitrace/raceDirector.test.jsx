@@ -1,3 +1,4 @@
+import { SOFT_IDS } from './raceSoft.js'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { createElement } from 'react'
@@ -80,7 +81,9 @@ describe('useRaceActs: директор гонки поверх директор
     const st = stages.find(s => s.sid === 'catch'), i = st.words.findIndex(w => !w.trap)
     rh.claim({ idx: i }, 1500); rh.rec('win', { idx: i, last: true }); vi.advanceTimersByTime(600)
     expect(sayLine.mock.calls.map(c => c[0])).toEqual([st.good[0].id])
-    const t = probe('catch'); t.rh.rec('fail', { idx: 1 }); t.rh.rec('miss', { idx: 1 }); expect(t.sayLine).not.toHaveBeenCalled()
+    const t = probe('catch'); t.rh.rec('miss', { idx: i }); expect(t.sayLine).not.toHaveBeenCalled() // промах при живой пилюле — не слабое слово: Пит не говорит под руку
+    const tr = probe('catch'), trap = st.words.findIndex(w => w.trap); if (trap >= 0) { tr.rh.rec('fail', { idx: trap }); expect(tr.sayLine).not.toHaveBeenCalled() } // ловушка пропущена верно — слабым не считается
+    const w = probe('catch'); w.rh.rec('fail', { idx: i }); expect(w.sayLine.mock.calls.map(c => c[0]).filter(id => SOFT_IDS.includes(id))).toHaveLength(1) // «не успел» на первом слабом слове — мягкая реплика (raceSoft.js)
   })
   it('перед выездом пилюли Пит говорит: в разгоне — русский перевод (ru), в «Слушай и лови» — английское слово (hold: Пит занят); без озвучки — молча', () => {
     const sp = probe('sprint'); sp.rh.pre({ cap: 'learn', say: 'учиться' }) // тап: на пилюле английское слово, а говорит Пит перевод (rep.say)

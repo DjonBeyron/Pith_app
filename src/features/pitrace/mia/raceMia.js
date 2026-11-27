@@ -8,6 +8,7 @@
 // ev: { t: 'enter' | 'win' | 'miss' | 'fail' | 'zone', stage, now, zone? }.
 import { variantOf } from './miaLines.js'
 import { pauseMs } from '../../../shared/lib/scenePauses.js'
+import { jabAllowed } from '../racePathShare.js'
 import { examBlock, examRound, examEnd, examBye, bossEnd } from '../boss/bossMia.js' // экзамен «Шкала памяти»: круг слов, трофеи по зонам и три исхода (boss/bossMia.js, boss/bossTrophies.js)
 export { bossEnd }
 
@@ -79,7 +80,7 @@ function ordinaryRound(m, ev) {
   const bad = t === 'fail' && (!word?.trap || slipped)
   if (ok) {
     const streak = m.streak + 1, wins = m.wins + 1 // v3.3.297: три верных подряд больше не отпускают Мию с коробкой (владелец: коробка улетает, только когда ВСЕ слова круга сказаны верно — решает стадия-конец круга)
-    const say = streak === 2 ? [line('mia_streak2', 'mia')] : wins % MIA.OK_EVERY === 1 ? [line(variantOf('mia_ok', m.hits + 1), 'mia')] : []
+    const say = !jabAllowed(ev.share) ? [] : streak === 2 ? [line('mia_streak2', 'mia')] : wins % MIA.OK_EVERY === 1 ? [line(variantOf('mia_ok', m.hits + 1), 'mia')] : [] // верный на ≥ JAB_MAX_SHARE пути (85 %) — колкости нет, счётчики идут как раньше (владелец 2026-11-27)
     return { mia: { ...m, streak, wins, rwon: { ...(m.rwon ?? {}), [ev.idx ?? 0]: true }, hits: say.length && streak !== 2 ? m.hits + 1 : m.hits }, say, boost: null }
   }
   if (bad) return { mia: { ...m, streak: 0, hits: m.hits + 1, seq: m.seq + 1 }, say: [line(variantOf('mia_miss', m.hits + 1), 'mia')], boost: null }

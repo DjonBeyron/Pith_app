@@ -28,6 +28,8 @@ import { laneOf, stepTargets, textOf } from './wordLaneRecipe.js'
 import { estChunkMs } from './wordLaneAudio.js'
 import { spawnEarly } from './wordLaneConveyorSpeed.js'
 import { lockPill, stepFill } from './wordLaneStudentFill.js'
+import { shareOfLogical, praiseAllowed } from '../../../pitrace/racePathShare.js' // доля пути пилюли в миг принятия (улёт, похвала, реплики, колкости)
+import { pendingGood } from '../../../pitrace/raceGood.js'
 
 export { PENDING_TOP, PENDING_MS, SPEECH_HOLD_MS } from './wordLaneStudentFill.js' // заливка живого повтора — отдельный модуль
 
@@ -109,7 +111,7 @@ export function createStudentGame({ step, chunks, estMs = c => estChunkMs(chunks
     return { idx, parts: rp.parts, target: repTarget[idx], text: textOf(chunks, rp.parts), state: idx < from ? 'skip' : 'todo', tries: 0, pills: [], tk: 0, cnt, cum, durs, offs, lanes: rp.lane != null ? [rp.lane] : rp.parts.map(c => laneOf(n, c, idx)), speed: rp.speed ?? 1, y0: rp.y0 ?? null, cap: rp.cap ?? null, say: rp.say ?? null, trap: !!rp.trap, reveal: rp.reveal ?? null } // lane / speed / cap / reveal — «Гонка с Питом»: своя дорожка, скорость, подпись внутри пилюли и слово, которое проявится при промахе
   })
   const life = Math.max(0, ...reps.map(r => repLifeMs(r.offs.at(-1)) / Math.min(1, r.speed > 0 ? r.speed : 1))) // медленная пилюля (экзамен «Шкала памяти»: скорость 0,5) живёт на экране дольше — бюджет ступени считает её настоящую жизнь; раньше он считался по полной скорости конвейера, и при нескольких «не успел» подряд последнее слово блока экзамена не выезжало вовсе (время ступени «вышло»). Быстрые пилюли бюджет не уменьшают
-  return { t: 0, boost: step.boost ?? null, overlap, holdAll: !!step.holdAll, holdMax: step.holdMax > 0 ? step.holdMax : MAX_HOLD_MS, preSay: !!step.preSay, claimGap: step.claimGap ?? 0, preGap: step.preGap ?? 0, gapAt: step.goodAt ?? [], maxTries, leadIn, budget: budget ?? budgetOf(reps.length - from, life), reps, pills: [], nextId: 1, nextSpawn: 0, claimed: 0, locked: 0, failed: [], seenSeq: 0, seenMisses: 0, spentTail: null, finished: false, spawned: 0, waited: 0 }
+  return { t: 0, boost: step.boost ?? null, overlap, holdAll: !!step.holdAll, holdMax: step.holdMax > 0 ? step.holdMax : MAX_HOLD_MS, preSay: !!step.preSay, claimGap: step.claimGap ?? 0, preGap: step.preGap ?? 0, gapAt: step.goodAt ?? [], goodDone: 0, up: !!step.reverse, maxTries, leadIn, budget: budget ?? budgetOf(reps.length - from, life), reps, pills: [], nextId: 1, nextSpawn: 0, claimed: 0, locked: 0, failed: [], seenSeq: 0, seenMisses: 0, spentTail: null, finished: false, spawned: 0, waited: 0 }
 }
 
 /** Принять повтор rep: защёлкнуть куски, учесть паузу до следующего, событие claim (слово из итога или — «в последний момент» — из черновика, см. stepStudent) */
@@ -118,9 +120,11 @@ function claimRep(g, rep, t, tail, events) {
   if (tail) g.spentTail = tail                          // хвост принятого повтора следующему не достаётся
   let j = 0
   rep.pills.forEach(p => { if (p.state === 'fly') lockPill(p, t, j++ * LOCK_STAGGER_MS) }) // куски, не защёлкнутые раньше, — по очереди
-  if (g.claimGap && g.gapAt.includes(g.claimed)) g.nextSpawn = Math.max(g.nextSpawn, t + g.claimGap)   // «Гонка»: на принятиях, где Пит скажет реплику успеха (step.goodAt — номера принятий), следующая пилюля выезжает не в тот же кадр, а чуть позже: реплика (fx.claim) успевает занять Пита, и выезд ждёт её конца (holdAll); остальные принятия — выезд сразу
+  const share = shareOfLogical(rep.pills[0]?.y, g.up); rep.share = share // доля пути (0…1) в миг принятия: поздний ответ (≥ PRAISE_MAX_SHARE) похвалы не получает — она сдвигается на следующий ранний (raceGood.pendingGood)
+  const praise = pendingGood(g.gapAt.map(at => ({ at })), g.claimed, g.goodDone) && praiseAllowed(share); if (praise) g.goodDone = g.claimed
+  if (g.claimGap && praise) g.nextSpawn = Math.max(g.nextSpawn, t + g.claimGap)   // «Гонка»: на принятиях, где Пит скажет реплику успеха (step.goodAt — номера принятий), следующая пилюля выезжает не в тот же кадр, а чуть позже: реплика (fx.claim) успевает занять Пита, и выезд ждёт её конца (holdAll); остальные принятия — выезд сразу
   else if (g.preGap) g.nextSpawn = Math.max(g.nextSpawn, t + g.preGap)   // без реплики успеха — выдержка step.preGap перед переводом следующей пилюли; с репликой — только claimGap, перевод идёт сразу после неё
-  events.push({ type: 'claim', rep, order: rep.note, ms: Math.round(t - rep.spawnAt), y: rep.pills[0]?.y }) // ms — время ответа: от выезда пилюли до принятия слова; y — где пилюля в этот миг (% высоты экрана): ниже отметки raceExtraRound.LATE_Y — ответ «в последний момент»
+  events.push({ type: 'claim', rep, order: rep.note, ms: Math.round(t - rep.spawnAt), y: rep.pills[0]?.y, share }) // ms — время ответа: от выезда пилюли до принятия слова; y — где пилюля в этот миг (% высоты экрана): ниже отметки raceExtraRound.LATE_Y — ответ «в последний момент»
 }
 
 /**

@@ -132,6 +132,21 @@ describe('взлёт заполненной пилюли', () => {
     const k2 = pool.take(1, { flight: false })
     expect(k2).toBe(k)                                                               // вернулась в пул и выдаётся снова
   })
+  it('pool.rise с simple (≥ 80 % пути): простой улёт — три кадра без rotate / scale, без задержки; возврат в пул тот же', async () => {
+    const { pool, pills } = rig()
+    let done
+    const riseAnim = { cancel: vi.fn(), finished: new Promise(r => { done = r }) }
+    const k = pool.take(0)
+    pool.anims()[0].currentTime = FLIGHT_MS * 0.85
+    pills[k].animate = vi.fn(() => riseAnim)
+    expect(pool.rise(k, { simple: true })).toBe(riseAnim)
+    const [frames, opts] = pills[k].animate.mock.calls[0]
+    expect(frames).toHaveLength(3); expect(frames.some(f => 'rotate' in f || 'scale' in f)).toBe(false)
+    expect(opts.delay).toBeUndefined(); expect(opts.duration).toBeLessThan(RISE_MS / 1.5)
+    expect(pills[k].has('data-rise')).toBe(true)
+    done(); await new Promise(r => setTimeout(r, 0))
+    expect(pills[k].has('data-held')).toBe(false)
+  })
   it('взлетать нечему без полёта; снятая раньше анимация (смена сцены) пилюлю повторно не возвращает', async () => {
     const { pool } = rig()
     const k = pool.take(0, { flight: false })
@@ -140,7 +155,7 @@ describe('взлёт заполненной пилюли', () => {
   })
   it('движок: после win пилюля отпускается из рук (held.delete) и не мешает конвейеру; у диктора взлёта нет', () => {
     const eng = read('./useWordLanePills.js')
-    expect(eng).toContain('if (k != null && pool.rise(k, { xp: xpOk === true })) held.delete(e.pill.id)')
+    expect(eng).toContain('if (k != null && pool.rise(k, { xp: xpOk === true, simple })) held.delete(e.pill.id)')
     const dictor = eng.slice(eng.indexOf("kind === 'dictor'"), eng.indexOf("kind === 'student'"))
     expect(dictor).not.toContain('rise(')
     const student = read('./wordLaneStudent.js')

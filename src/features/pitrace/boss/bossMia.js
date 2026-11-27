@@ -5,6 +5,7 @@
 // Конец: три исхода (bossTrophies.outcomeOf) — free: Мия «вот твои трофеи» → «Коробка мне ещё пригодится, пока» → уходит с коробкой → Пит; mid: Мия «потерянные трофеи я оставлю себе» → уходит → Пит;
 // stay: Мия вердикт → Пит «жду тебя завтра», Мия и коробка остаются.
 import { variantOf } from '../mia/miaLines.js'
+import { jabAllowed } from '../racePathShare.js'
 import { HELP_LINES } from './bossHelp.js'
 import { examTrophies } from './bossTrophies.js'
 
@@ -41,7 +42,7 @@ export function examRound(m, ev) {
   const { t, stage } = ev, gi = (ev.idx ?? 0) + (stage.offset ?? 0) // номер слова в общем счёте экзамена (у второго блока — со смещением)
   if (t === 'win') { // верный ответ: Мия иногда подкалывает (на второй верный подряд и на каждый третий), даже когда слово названо в красной зоне
     const streak = m.streak + 1, wins = m.wins + 1
-    const say = streak === 2 ? [line('mia_streak2', 'mia')] : wins % OK_EVERY === 1 ? [line(variantOf('mia_ok', m.hits + 1), 'mia')] : []
+    const say = !jabAllowed(ev.share) ? [] : streak === 2 ? [line('mia_streak2', 'mia')] : wins % OK_EVERY === 1 ? [line(variantOf('mia_ok', m.hits + 1), 'mia')] : [] // верный на ≥ JAB_MAX_SHARE пути (85 %) — колкости нет (владелец 2026-11-27)
     return { mia: { ...m, won: { ...m.won, [gi]: true }, lw: gi, streak, wins, hits: say.length && streak !== 2 ? m.hits + 1 : m.hits }, say, boost: null }
   }
   if (t === 'zone') { const zi = ev.idx != null ? gi : m.lw ?? 0; return { mia: { ...m, zones: { ...(m.zones ?? {}), [zi]: ev.zone }, redWins: m.redWins + (ev.zone === 'slow' ? 1 : 0) }, say: [], boost: null } } // зона слова в момент, когда пилюля подтвердила ответ; директор шлёт номер слова (отметка markClaimed), без номера — последнее верно названное

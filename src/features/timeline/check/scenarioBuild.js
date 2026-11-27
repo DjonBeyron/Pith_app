@@ -8,6 +8,7 @@
 import { MIA_LINES } from '../../pitrace/mia/miaLines.js'
 import { raceStartId } from '../../pitrace/raceTexts.js'
 import { GOOD_IDS, OK_IDS } from '../../pitrace/raceGood.js'
+import { SOFT_IDS } from '../../pitrace/raceSoft.js'
 import { DEMO_LINES, DEMO_MORE, DEMO_GO } from '../../pitrace/racePhraseDemo.js'
 import { AGAIN_LINE, PAUSES_LINE } from '../../pitrace/racePhraseVoice.js'
 import { SLIP_WORD_LINE, SLIP_RETRY_LINE, SLIP_NEXT_LINE } from '../../pitrace/racePhraseSlip.js'
@@ -21,6 +22,8 @@ export const YES_LINE = 'race_phrase_yes'   // pitrace/racePhraseVoice.js, react
 export const SHOW_LINE = 'race_phrases_show' // pitrace/raceStagesPhrases.js: реплика плашки этапа фраз, когда есть пример (без примера — DEMO_GO)
 export const DONE_LINES = { gold: 'race_done_gold', usual: 'race_done' } // pitrace/useRaceActs.js: реплика итога
 
+const SOFT_TITLE = 'Мягкие реплики, на слабом слове (одна из)' // pitrace/raceSoft.js: слово ушло / «поверил» / верно, но на 80 % пути и позже; не чаще раза на 3 слабых слова, только если Пит свободен
+const SOFT_NOTE = 'не каждый раз: раз в 3–4 слабых слова; не звучат в «Допросе» и экзамене'
 const MIA_WHO = Object.fromEntries(MIA_LINES.map(l => [l.id, l.who]))
 export const whoOf = id => MIA_WHO[id] ?? 'pit'
 const item = (x, note = '') => (typeof x === 'string' ? { id: x, who: whoOf(x), note } : { id: x.id, who: x.who ?? whoOf(x.id), note: note || (x.word ? 'и сразу верное слово' : '') })
@@ -102,11 +105,11 @@ export function buildScenario() {
   const mia = miaBlock(voice), boss = bossBlock(voice), rev = annLines(voice, 'catch')
   const blocks = [
     { key: 'start', title: 'Старт', note: '', parts: [part('line', 'Первая реплика игры', 'seq', [raceStartId(false)]), part('tap', 'Режим «Пальцами» (вместо неё)', 'seq', [raceStartId(true)], { alt: true })] },
-    { key: 'sprint', title: 'Конвейер слов', note: 'Слова и переводы говорит диктор (библиотека слов урока) — они проверяются не здесь.', parts: [...(annLines(voice, 'sprint').length ? [part('ann', 'Начало круга', 'seq', annLines(voice, 'sprint'))] : []), part('good', 'Похвала за верное слово — случайно одна из', 'variants', GOOD_IDS), ...tapPart('sprint')] },
+    { key: 'sprint', title: 'Конвейер слов', note: 'Слова и переводы говорит диктор (библиотека слов урока) — они проверяются не здесь.', parts: [...(annLines(voice, 'sprint').length ? [part('ann', 'Начало круга', 'seq', annLines(voice, 'sprint'))] : []), part('good', 'Похвала за верное слово — случайно одна из', 'variants', GOOD_IDS, { note: 'не звучит, если пилюля к ответу прошла 65 % пути и больше (умная похвала): она ждёт следующего раннего верного' }), part('soft', SOFT_TITLE, 'variants', SOFT_IDS, { note: SOFT_NOTE }), ...tapPart('sprint')] },
     { key: mia.key, title: mia.title, note: mia.note, parts: mia.parts },
     { key: 'turn', title: 'Разворот и обратный конвейер', note: '', parts: [
       part('ann', 'Пит объявляет разворот (пилюли разворачиваются под его слова) — одна из', 'branch', [...rev.map(id => item(id, 'обычно')), item(REV_LINE_AFTER_MIA, 'если перед разворотом ученик победил Мию')]),
-      part('good', 'Похвала за верный перевод', OK_IDS.length > 1 ? 'variants' : 'seq', OK_IDS), ...tapPart('catch')] },
+      part('good', 'Похвала за верный перевод', OK_IDS.length > 1 ? 'variants' : 'seq', OK_IDS, { note: 'не звучит, если пилюля к ответу прошла 65 % пути и больше' }), part('soft', SOFT_TITLE, 'variants', SOFT_IDS, { note: SOFT_NOTE }), ...tapPart('catch')] },
     { key: 'phrases', title: 'Фразы — круг «Скажи»', note: 'Круг «Пойми · Тапни фразу» вырезан: этап начинается сразу с круга «Скажи».', parts: [
       part('ann', 'Плашка этапа: Пит зовёт смотреть пример', 'seq', head),
       part('demo', 'Пример Пита на живой пилюле (между репликами он называет слова фразы)', 'seq', [...DEMO_LINES.map((id, i) => item(id, `перед словом ${i + 1}`)), item(DEMO_MORE, 'только если во фразе больше трёх слов'), item(DEMO_GO, 'после примера; без примера — на плашке этапа')]),

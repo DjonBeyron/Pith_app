@@ -14,6 +14,7 @@ import { useRaceSwitch } from './useRaceSwitch.js'
 import { takeoffOn, playTakeoffAfter } from './raceTakeoffSound.js'
 import { rewardMs } from '../player/modules/rotate-phone/wordLaneNotes.js'
 import { ALL_GOOD_IDS } from './raceGood.js'
+import { createSoft, softStage, failIsWeak } from './raceSoft.js'; import { isLateShare } from './racePathShare.js'
 import { useRaceSpeech, speakTranslation } from './useRaceSpeech.js'
 import { createRuJournal } from './raceRuLog.js'
 import { createSurfaceWait } from './raceDiveWait.js'
@@ -62,6 +63,7 @@ export function useRaceActs(args) {
   const miaPlate = useMiaPlate({ talk: miaTalk, m: miaView.mia, stage: running }) // плашка Мии: «Допрос» — когда Мия уже на коробке, до конца церемонии; экзамен — пока она говорит за кадром, до прыжка (mia/useMiaPlate.js)
   useMiaEnter({ running, at, mb, mspeech, setMiaView, log: pLog }) // эпизод «Мия»: вход на стадию (очередь речи — раньше расчёта времени стадии, mia/useMiaEnter.js)
   const rh = useRehearsalActs(on && args.cat ? { ...args, sayLine: sayTr, cat: { ...args.cat, busyLeft: () => Math.max(args.cat.busyLeft(), speech.pendingMs(), running?.mia === 'ann' ? 0 : mspeech.leftMs()) }, countWait: () => (mspeech.pending() > 0 || revBack.busy ? 1 : 0) } : args) // расписание реплик этапа знает, что похвала ещё впереди
+  const softRef = useRef(null) // мягкие реплики на слабом слове (raceSoft.js): состояние одной игры
   const praiseRef = useRef(null) // похвала, которую reduceRace назначил на этот зачёт (apply → claim)
   const demo = useRacePhraseDemo({ on, cat: args.cat, sayLine, sayText, lines, rate }) // демо-ход «Скажи» на живой пилюле (racePhraseDemoTurn.js): голос и ворота для сцены
   const [box] = useState(makeBox) // s — актуальное состояние (читает nextIdx без перерисовки), hinted — подсказка голосом сказана на этом промахе (raceState.makeBox)
@@ -182,6 +184,12 @@ export function useRaceActs(args) {
   }, [leftByWin, running, at, nextIdx, jump, mspeech])
   if (!on) return rh
   const pitBusy = () => Math.max(args.cat?.busyLeft?.() ?? 0, sw.pendingMs(), mspeech.leftMs()) // сколько мс Пит (и Мия) ещё РЕАЛЬНО говорят (без «занят надолго» секвенсора речи: тот держит LOCK_MS)
+  const weakSay = (st, idx, why) => { // слабое слово (raceSoft.js): раз в 3–4 слабых — мягкая реплика Пита, если Пит и речь свободны; зовётся ДО speech.claim / pillGone (они занимают секвенсор)
+    if (!softStage(st) || leftByWin) return
+    const id = (softRef.current ??= createSoft(plan?.seed)).weak(`${st.sid}:${idx}`); if (!id) return
+    if (pitBusy() > 0 || speech.holdMs() > 0) { pLog(`[soft] слабое слово ${idx + 1} (${why}): реплика «${id}» пропущена — Пит занят`); return }
+    pLog(`[soft] слабое слово ${idx + 1} (${why}): мягкая реплика «${id}»${sayRef.current.sayLine?.(id) ? '' : ' не сказана (нет озвучки или кулдаун)'}`)
+  }
   return {
     ...rh, result, race: view, mia: miaView, miaCap, miaTalk, miaDemo, miaAlarm, miaPlate, nextIdx, afterCount: examEnd(boxFree.afterCount), miaStuck: boxFree.onStuck, miaTry: boxFree.onTry, miaBoxHit: boxFree.onHit, // конец финала ждёт снятия коробки с Пита; Мия выпрыгнула одна / касание коробки (RaceMia)
     boss: { zone: z => { miaEvent({ t: 'zone', zone: z, idx: mb.zi, stage: running }); if (z === 'slow') redAlarm() } }, // zone — слово отыграно в зоне // финал «Шкала памяти»: слово отыграно в зоне (шкала → машина Мии: пять красных — Пит остаётся внутри)
@@ -194,7 +202,7 @@ export function useRaceActs(args) {
     exitMs: st => raceExit(st, st?.act === 'phrases' ? PHRASE_EXIT_MS : st?.type === 'student' && stages[(st.idx ?? -9) + 1]?.act === 'phrases' ? PHRASE_ENTER_MS : miaComesNext(st) ? MIA.EXIT_MS : st?.act === 'boss' && st.type === 'student' ? BOSS_EXIT_MS : undefined), // перед церемонией Мии пауза короче: тишина между кругами и падение коробки тянулись слишком долго (владелец 2026-11-15); // круг фраз кончился: до следующей стадии PHRASE_EXIT_MS, а не 1,3 с (Пит уже договорил итог хода)
     plate: st => (st?.rev || st?.mia === 'intro' || st?.sid === 'boss-intro-ann' ? '' : st?.miaPlate ? ((st.script === 'boss' ? examPlateOn(miaTalk) && miaPlate.look : miaPlate.go) ? plateText({ type: 'announce', round: st.miaPlate }) : '') : plateText(st, plateCaption(lines, st?.line))), // неозвученная реплика стадии — подписью на плашке (raceSilentLine.js)
     /** Слово прохода A / B принято (раньше, чем щёлкнет заливка): время ответа ms (от выезда пилюли) и y (положение пилюли, % высоты: ниже LATE_Y — ответ «в последний момент») — в результаты, и для точности слова (raceAccuracy.js) — окно жизни пилюли по её скорости, заливка голосом в миг зачёта, тап ли это; Пит говорит мини-реплику успеха, следующая пилюля ждёт его */
-    claim(rep, ms, y) { if (!running) return; lead.cancel(); tr.last(); if (running.act === 'boss') { markClaimed(mb, rep?.idx); const back = markBossAnswer(listenerRef?.current?.voice, ms); if (back) pLog(`[boss] слово ${(rep?.idx ?? 0) + 1} принято: ответ начат ${back} мс назад — отметка шкалы ставится на тот момент`) } if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null },
+    claim(rep, ms, y, share) { if (!running) return; lead.cancel(); tr.last(); if (running.act === 'boss') { markClaimed(mb, rep?.idx); const back = markBossAnswer(listenerRef?.current?.voice, ms); if (back) pLog(`[boss] слово ${(rep?.idx ?? 0) + 1} принято: ответ начат ${back} мс назад — отметка шкалы ставится на тот момент`) } if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), share, life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); if (isLateShare(share) && (running.act === 'sprint' || running.act === 'catch')) weakSay(running, rep?.idx ?? 0, `верно на ${Math.round(share * 100)} % пути`); speech.claim(praiseRef.current); praiseRef.current = null },
     /** Перед выездом пилюли (движок: событие 'pre'): в «Разгоне» Пит говорит русский перевод слова из библиотеки (raceTrans.js), в «Слушай и лови» — английское слово (rep.say, библиотека слов); озвучки нет — молча, пилюля выезжает сразу.
      *  Пилюля ждёт, пока он договорит (pitLeft) */
     pre(rep, e) { sceneAsk(e)
@@ -223,10 +231,11 @@ export function useRaceActs(args) {
       if (ruOn && kind === 'fail') ruLog(info, 'fail', info?.peak)
       if (kind === 'miss' && running.act === 'boss') redAlarm() // финал: сказано неверно — зрачки сжимаются сразу, а верное слово Пит скажет, когда пилюля уйдёт (ученик успеет поправиться, Пит его не перебьёт)
       if (kind === 'fail' && running.act === 'boss') redAlarm() // финал: слово не названо (пилюля ушла) — зрачки сжимаются; верное слово Пит скажет после колкости Мии (очередь речи, miaEvent ниже)
+      if (kind === 'fail' && failIsWeak(running.words?.[info?.idx], info)) weakSay(running, info?.idx ?? 0, 'не успел')
       if (kind === 'fail' && ['sprint', 'catch', 'boss'].includes(running.act)) speech.pillGone('missed') // «не успел»: отступ до перевода следующего слова
       if (takeoffOn(running, kind, info)) playTakeoffAfter(rewardMs(info?.order ?? 0)) // взлёт принятой пилюли: глиссандо ми → ля ПОСЛЕ ноты награды, а не вместе с ней (только ступени-очереди гонки)
       apply({ t: kind, stage: running, info: kind === 'miss' ? { ...info, heard: listenerRef?.current?.heard?.() ?? '' } : info }) // на промахе — что услышал Vosk: двойник слова ступени ломает ловушку
-      if (['win', 'miss', 'fail'].includes(kind) && !(kind === 'win' && info?.last === false)) miaEvent({ t: kind, stage: running, idx: info?.idx, ...(kind === 'fail' ? { spoke: spokeSince(mb, listenerRef?.current?.heardAt?.()) } : {}) }) // эпизод «Мия»: ответы ученика в круге с Мией
+      if (['win', 'miss', 'fail'].includes(kind) && !(kind === 'win' && info?.last === false)) miaEvent({ t: kind, stage: running, idx: info?.idx, share: info?.share, ...(kind === 'fail' ? { spoke: spokeSince(mb, listenerRef?.current?.heardAt?.()) } : {}) }) // эпизод «Мия»: ответы ученика в круге с Мией
       if (kind === 'miss' && running.act === 'climb' && running.type === 'student') jump(climbStageIdx(stages, box.s.climb)) // сказал не то — соскальзывание: ступень-стадия перезапускается (слово ступени звучит подсказкой при 2-м промахе)
     },
     // Реплик на «не успел» из директора игры нет: «ой, соскользнул» «Вершины» говорит редюсер (raceState.js)

@@ -17,7 +17,7 @@ export const dictorFillMs = ms => Math.max(ms - SNAP_LEAD_MS, Math.min(ms, DICTO
 export const POP_MS = 620
 export const FLASH_MS = 850
 export const SPARK_COUNT = 14
-export const SPARK_COUNT_WEAK = 5 // слабое устройство: запасной залп втрое меньше — 14 новых слоёв поверх игры в кадре верного ответа там дороже всего остального щелчка (замер 2026-11-26, lite, CPU 4×)
+export const SPARK_COUNT_WEAK = 5 // (v3.3.374: залп слабого устройства из 5 искр) с 2026-11-27 на слабом залпа нет вовсе — snapPill там только хлопает; константа осталась для истории и теста
 
 /** Цвета искр пилюли k: её цвет, его светлый тон и белый */
 export const sparkColors = k => [levelHex(k + 1), LIGHT[k] ?? '#ffffff', '#ffffff']
@@ -57,16 +57,18 @@ function flash(host, css, frames, ms) {
  * ОДИН на повтор (full: true только у одного куска), остальные куски лишь хлопают (full: false): на каждый кусок вспышки давали кучу слоёв и анимаций в самый тяжёлый момент игры.
  * Пузыри вылетают у каждой пилюли, чья заливка дошла (узлы уже есть — новых не создаётся). → сколько пузырей вылетело
  */
-export function snapPill(pill, k, { full = true } = {}) {
+export function snapPill(pill, k, { full = true, simple = false, rect = null } = {}) { // simple — верное слово на ≥ FLY_SIMPLE_SHARE пути (racePathShare.js): пилюля просто улетает (wordLaneRise.startRiseSimple) — ни хлопка, ни вспышек, ни искр, ни пузырей; rect — рамка пилюли, прочитанная движком ДО записей кадра (без неё getBoundingClientRect здесь принуждал бы браузер к пересчёту стилей посреди кадра ответа)
   if (!pill) return 0
+  if (simple) { try { navigator.vibrate?.(14) } catch { /* не везде есть */ } return 0 }
   const out = burstBubbles(pill) // пузыри — ДО хлопка: они читают свои стили (откуда вылетать), и после записи хлопка браузеру пришлось бы пересчитать стили пилюли посреди кадра ответа; на экране то же — всё в одном кадре
   pill.animate(pill.hasAttribute?.('data-edge') ? POP_EDGE_FRAMES : POP_FRAMES, { duration: POP_MS, easing: 'cubic-bezier(0.33, 0, 0.2, 1)' })
   if (!full) return out
+  if (isWeakDevice()) { try { navigator.vibrate?.(14) } catch { /* не везде есть */ } return out } // слабое устройство (замер 2026-11-27, lite, CPU 4×): белая вспышка, кольцо и залп искр — три новых слоя-узла и до семи анимаций В КАДРЕ верного ответа; остаётся хлопок пилюли (scale на уже готовом слое) и щелчок дорожки
   const clip = pill.querySelector('.wlPillClip')
   const c = levelHex(k + 1)
   if (clip) flash(clip, 'inset:0;border-radius:999px;background:#fff;', [{ opacity: 0.7 }, { opacity: 0 }], FLASH_MS * 0.75)
   flash(pill, `inset:calc(-2px - var(--ring));border-radius:999px;border:3px solid ${c};`, [{ opacity: 0.8, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(1.45, 1.2)' }], FLASH_MS)
-  if (!out) fireBurst({ count: isWeakDevice() ? SPARK_COUNT_WEAK : SPARK_COUNT, size: 3.5, colors: sparkColors(k), origin: burstOrigin(pill.getBoundingClientRect(), pill.hasAttribute?.('data-wide')) })
+  if (!out) fireBurst({ count: SPARK_COUNT, size: 3.5, colors: sparkColors(k), origin: burstOrigin(rect ?? pill.getBoundingClientRect(), pill.hasAttribute?.('data-wide')) })
   try { navigator.vibrate?.(14) } catch { /* не везде есть */ }
   return out
 }

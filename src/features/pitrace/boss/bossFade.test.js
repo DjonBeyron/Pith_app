@@ -62,7 +62,7 @@ describe('финал: трофеи слова по зоне (было: XP не �
     setBossZoneNow('mid'); expect(bossXp()).toBe(TROPHY_PER_WORD / 2); setBossZoneNow('fast'); expect(bossXp()).toBe(TROPHY_PER_WORD)
     setBossZoneNow(null); expect(bossXp()).toBe(TROPHY_PER_WORD) // слово принято раньше, чем пилюля коснулась шкалы — зелёная
     const flow = read2('../../player/modules/rotate-phone/useWordLaneFlow.js')
-    expect(flow).toContain('if (rep.last && !rep.res?.noXp) { xpApi.current?.add(stages[sRef.current.idx]?.silent ? bossXp() : XP_PER_PILL * rep.count, rect, XP_ARRIVE_MS); return true }')
+    expect(flow).toContain('if (rep.last && !rep.res?.noXp) { xpApi.current?.add(stages[sRef.current.idx]?.silent ? bossXp() : XP_PER_PILL * rep.count, rect, rep.simple ? XP_ARRIVE_SIMPLE_MS : XP_ARRIVE_MS); return true }')
     expect(read2('./bossScaleDrive.js')).toContain("else if (pills.some(p => !p.locked && !p.failed && p.bottom <= 0)) setBossZoneIdle()") // зона прошлого слова не остаётся следующему
     expect(read2('./bossScaleDrive.js')).toContain('setBossZoneNow(zoneAt(')
   })

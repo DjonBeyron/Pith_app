@@ -63,6 +63,22 @@ export function startRise(el, y0, delay = RISE_DELAY_MS, endY = RISE_END_Y) {
   return el.animate(riseFrames(y0, viewHeightPx(), wavePosition, endY), { duration: RISE_MS, delay, easing: RISE_EASING, fill: 'both' })
 }
 
+// ПРОСТОЙ улёт (владелец 2026-11-27, слабый Android: «если пилюля прошла 80 % пути — просто прямо летит вверх»): верное слово принято, когда пилюля уже прошла ≥ FLY_SIMPLE_SHARE пути (racePathShare.js) —
+// никакой синусоиды, наклона, сжатия в искру, хлопка, вспышек, искр и пузырей: ОДНА анимация translate по прямой вертикали вверх (RISE_END_Y) + opacity в конец, без задержки «набрать дыхание».
+// Длина растёт с путём (пилюля из нижней части экрана летит дальше): SIMPLE_MS + 1 мс на каждый % высоты; к концу — гаснет (последние 30 %).
+export const SIMPLE_MS = 300
+export const SIMPLE_EASING = 'cubic-bezier(0.4, 0, 0.9, 0.6)'
+export const SIMPLE_FADE_FROM = 0.7
+/** Сколько длится простой улёт с высоты y0 (% высоты экрана) до RISE_END_Y */
+export const simpleMs = (y0, endY = RISE_END_Y) => Math.round(SIMPLE_MS + Math.abs(y0 - endY))
+export function simpleFrames(y0, endY = RISE_END_Y) {
+  return [{ offset: 0, translate: wavePosition(y0, 0) }, { offset: SIMPLE_FADE_FROM, opacity: 1 }, { offset: 1, translate: wavePosition(endY, 0), opacity: 0 }]
+}
+/** Простой улёт пилюли el с высоты y0: одна WAAPI-анимация (композитор), fill both; возвращает Animation */
+export function startRiseSimple(el, y0, endY = RISE_END_Y) {
+  return el.animate(simpleFrames(y0, endY), { duration: simpleMs(y0, endY), easing: SIMPLE_EASING, fill: 'both' })
+}
+
 export const SCATTER_MS = 520       // разлёт «лишних» пилюль круга выбора («Пойми» / «Узнай») в стороны
 export const SCATTER_DELAY_MS = 140 // пауза: ошибочная пилюля успевает показать красную рамку
 /** Разлёт пилюли el с высоты y0 в сторону dir (−1 влево, +1 вправо): сдвиг по x за пределы экрана, наклон, угасание под конец */
