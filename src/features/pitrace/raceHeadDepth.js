@@ -19,6 +19,8 @@ export const HIDE_GRACE_MS = 350    // уход по peek откладывает
 export const WAIT_TARGET_MS = 450   // после паузы ждём цель новой ступени не дольше
 
 const heads = new WeakMap()
+/** Уже созданная голова в слежении (не создаёт новую): для тех, кому нужно только «поставить на место» (Мия — RaceMia.jsx) */
+export const headDepthOf = cat => (cat ? heads.get(cat) ?? null : null)
 /** Голова в слежении (одна на элемент): создаёт при первом вызове (класс wlCat--track, x0, глубина по классу wlCat--up) */
 export function headDepth(cat, o = {}) {
   if (!cat) return null
@@ -81,6 +83,9 @@ export function createHeadDepth({
     },
     /** Прыжок к x (dir −1 / +1): на виду — сразу; выныривает — после выныривания; внизу — новая цель */
     jump(x, dir) { if (x === xW && x === tx && pos === 'up' && !timer) return; tx = x; kick = 'dive'; unwait(); if (pos === 'up' && !timer && want()) doJump(dir); else { if (pos === 'up') jumpDir = dir; apply() } },
+    /** Поставить x на место БЕЗ перехода и записать его заново (журнал iPhone 2026-11-28: Пит под коробкой Мии «прыгал» по дорожкам, а при снятии коробки стоял справа — в DOM x был от прыжка 3-й дорожки, хотя цель уже 50).
+     *  Режим 'set' снимает любой незаконченный переход x; цель и x равны x — следующая ступень стартует с неё. Глубину не трогает (голова спрятана или на виду как была). */
+    snap(x = 50) { tx = x; jumpDir = 0; xW = null; dxS = ''; mode('set'); dx(x) },
     /** Перечитать класс wlCat--up и паузу (MutationObserver; тесты зовут сами) */
     sync() {
       const up = isUp(), p = isPaused()

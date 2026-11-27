@@ -14,6 +14,8 @@ import { GAZE, readPills, pickPill, stepGaze } from './mia/miaGaze.js'
 import { layoutOf, artMatrix, toScene, poseApply, poseSvg, poseOfMotion, miaCss, MIA_W, MIA_H } from './mia/miaLayout.js'
 import { frameTick, frameCancel } from '../player/modules/rotate-phone/gameFrame.js'
 import { miaStep, markMiaStep } from './mia/miaLagMark.js'
+import { headDepthOf } from './raceHeadDepth.js'
+import { pLog } from '../../shared/lib/debug.js'
 
 // Эпизод «Мия» поверх сцены игры (.wlStage, прототип 2026-11-14): картонная коробка падает на голову Пита (его голова скрыта, в прорези коробки — глаза Пита, совмещённые
 // с настоящими), Мия запрыгивает на крышку из-за экрана, коробка прогибается; пока Пит говорит (рот его головы живёт по озвучке), из краёв прорези идут звуковые линии —
@@ -58,7 +60,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
     let tailInit = false
     const later = (fn, ms) => { const id = setTimeout(fn, ms); return () => clearTimeout(id) }
     const lite = isWeakDevice() // слабое устройство (третий цикл оптимизации, журнал Android 2026-11-26: в длинных кадрах скрипт и стили — около четверти времени, остальное покраска и слои): глаза в прорези коробки и звуковые штрихи обновляются через два кадра на третий (пока коробка стоит), хвост Мии не дёргается — SVG перерисовывается в разы реже
-    let raf = 0, last = performance.now(), L = null, M = null, talk = 0, n = 0, tt = 0, gz = { look: 0, w: 0 }, gzPill = null, talkUntil = 0, shown = { pose: null, vis: null, step: '' }, pupils = null, tailIn = null // gz — взгляд на пилюлю (mia/miaGaze.js)
+    let raf = 0, last = performance.now(), L = null, M = null, talk = 0, n = 0, tt = 0, gz = { look: 0, w: 0 }, gzPill = null, talkUntil = 0, shown = { pose: null, vis: null, step: '', hid: false }, pupils = null, tailIn = null // gz — взгляд на пилюлю (mia/miaGaze.js)
     const measure = () => {
       const s = stage.getBoundingClientRect(), c = cat.getBoundingClientRect()
       L = layoutOf({ stageW: s.width, stageH: s.height, catX: c.x - s.x, catY: c.y - s.y, catW: c.width, catH: c.height }, ART.PER_EYE)
@@ -101,6 +103,10 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
       if (!lite || ps !== shown.pose || n % 3 === 0) box.update(boxIn) // на слабом устройстве стоящая коробка обновляет глаза 20 раз в секунду, а не 60; коробка движется (падает, дрожит, улетает) — каждый кадр, как раньше
       if (ps !== shown.pose) { shown.pose = ps; poseG.current.setAttribute('transform', ps) }
       if (vis !== shown.vis) { shown.vis = vis; poseG.current.setAttribute('visibility', vis) } // до падения коробки (и после ухода) её не видно: без этого она мигала на месте за кадр до падения
+      if (m.hideCat !== shown.hid) { // коробка накрыла Пита / сняла его: под коробкой он стоит по центру (коробка — по рамке .wlCat), а не там, где его оставили прыжки уворота под ней
+        shown.hid = m.hideCat; headDepthOf(cat)?.snap(50); cat.dataset.dodgeX = '50'
+        if (!m.hideCat) pLog('[mia] Пит из-под коробки: x возвращён в центр')
+      }
       cat.style.visibility = m.hideCat ? 'hidden' : ''
       const mi = miaEl.current
       if (mi) {                                                  // Мия: прыжок из-за экрана → сидит на крышке (едет с коробкой) → уезжает с ней в лапах за экран

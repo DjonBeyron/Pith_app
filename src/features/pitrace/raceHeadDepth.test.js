@@ -148,3 +148,19 @@ describe('цепочки смены стадий (привод + глубина)
     expect(h.vars['--wl-dx']).toBe('0.00%')
   })
 })
+
+describe('raceHeadDepth.snap: Пит из-под коробки Мии стоит по центру (журнал iPhone 2026-11-28)', () => {
+  it('после прыжков под коробкой snap(50) ставит x в центр без перехода и заново пишет значение', () => {
+    const { d, c, cat, vars, modes } = head()
+    d.jump(81, 1); c.go(300); d.jump(27, -1); c.go(300)
+    expect(vars['--wl-dx']).not.toBe('0.00%')
+    cat.style.setProperty('--wl-dx', '62.00%') // «залипшее» значение в DOM: цель в модуле уже другая
+    d.snap(50)
+    expect(vars['--wl-dx']).toBe('0.00%'); expect(d.x).toBe(50); expect(modes().at(-1)).toBe('set')
+    expect(d.dive(50)).toBe(false) // следующая ступень стартует с центра: нырка нет
+  })
+  it('RaceMia: при смене hideCat зовёт snap(50) (проводка)', async () => {
+    const src = (await import('node:fs')).readFileSync(new URL('./RaceMia.jsx', import.meta.url), 'utf8')
+    expect(src).toMatch(/m\.hideCat !== shown\.hid[\s\S]{0,200}headDepthOf\(cat\)\?\.snap\(50\)/)
+  })
+})
