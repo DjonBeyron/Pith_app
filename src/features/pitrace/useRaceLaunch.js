@@ -12,6 +12,7 @@ import { gameMicAlive } from '../../shared/lib/gameMic.js'
 import { tipVisibleNow } from './raceMicSettingsTip.js'
 import { readMicGrantedAt } from '../../shared/lib/micGrantFlag.js'
 import useRaceStartStage, { cfgWithStart } from './useRaceStartStage.js'
+import { warmGameArt } from './raceWarmArt.js'
 
 // Проводка запуска «Встряхни память» в RotatePhoneModule (порядок — raceLaunch.js, CONCEPT_RACE.md «Попап внутри игры»): open — тап «Начать» (сцена с попапом + прогрев без звука, raceWarm.js), pick — «Говорю» / «Тапаю»
 // (жест: startGameAudio синхронно; «Говорю» ждёт микрофон в попапе — wait 'mic' / 'sound', до тапа — note «iPhone спросит…», отказ — плашка hint (raceMicHelp.js) в попапе; «Тапаю» — без микрофона, игра сразу), cancel — крестик попапа (поднятое в жесте отпускается),
@@ -34,6 +35,7 @@ export default function useRaceLaunch({ on, phase, setPhase, cfg, audioSrc, line
     setHint(null); setWait(null); setEntry(null)
     setNote(needsMicNote({ alive: gameMicAlive(), grantedAt: readMicGrantedAt(), now: Date.now() }) ? MIC_NOTE_TEXT : '')
     setTip(tipVisibleNow())
+    warmGameArt() // узоры плашек и стрелки разворота (SVG в CSS) готовим заранее, по одному, а не в кадре появления плашки (raceWarmArt.js)
     raceChron.tap() // хронология «[start]»: отсчёт от этого тапа
     openAsk({ fullscreen, setPhase, prewarm: () => raceWarm.start({ cfg, lines }) }) // жест «Начать»: AudioContext открыт, первые реплики и слова декодируются, пока виден попап
   }, [cfg, lines, setPhase])
