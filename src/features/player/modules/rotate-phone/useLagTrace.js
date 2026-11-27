@@ -4,6 +4,7 @@ import { sceneTrace } from '../../../../shared/lib/sceneTrace.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { watchFonts } from '../../../../shared/lib/fontLog.js'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { createMicroFreeze } from '../../../../shared/lib/microFreeze.js'
 import { frameTick, frameCancel } from './gameFrame.js'
 
 // Трассер лагов в игре (shared/lib/lagTrace.js): включается только при отладочном интерфейсе (on = f.dbg.enabled — как шестерёнка и журнал; у ученика ничего не заводится). Кадры берёт из общего цикла
@@ -37,18 +38,18 @@ export const lagTraceOff = () => { try { return globalThis.localStorage?.getItem
 
 /** on — отладочный интерфейс; paused — игра на паузе; done — игра дошла до экрана итога: сводка пишется сразу (её увидит и отправка журнала с экрана итога), а не при закрытии игры */
 export function useLagTrace(on, paused, done = false) {
-  const ref = useRef(null)
+  const ref = useRef(null), microRef = useRef(null) // microRef — микро-фризы возле пилюль (microFreeze.js): кадры от 25 мс в окне −100…+500 мс вокруг выезда / улёта / «слово принято»
   useEffect(() => {
     if (!on || lagTraceOff()) return undefined
-    const trace = ref.current = createLagTrace({ limit: isWeakDevice() ? LAG_WEAK_MS : LAG_MS })
+    const trace = ref.current = createLagTrace({ limit: isWeakDevice() ? LAG_WEAK_MS : LAG_MS }), micro = microRef.current = createMicroFreeze()
     let id = 0
-    const tick = ts => { id = frameTick(tick); trace.frame(ts) }
+    const tick = ts => { id = frameTick(tick); trace.frame(ts); micro.frame(ts) }
     id = frameTick(tick)
-    const unwatch = watchLongFrames(trace), offEnd = sceneTrace.onEnd(() => trace.summary()), offFonts = watchFonts(pLog) // шрифты — в журнал рядом с [jank]: догрузка шрифта пересчитывает весь текст страницы
-    return () => { frameCancel(id); unwatch(); offEnd(); offFonts(); trace.summary(); ref.current = null }
+    const unwatch = watchLongFrames(trace), offEnd = sceneTrace.onEnd(() => { trace.summary(); micro.summary() }), offEv = sceneTrace.onEvent(micro.event), offFonts = watchFonts(pLog) // шрифты — в журнал рядом с [jank]: догрузка шрифта пересчитывает весь текст страницы
+    return () => { frameCancel(id); unwatch(); offEnd(); offEv(); offFonts(); trace.summary(); micro.summary(); ref.current = microRef.current = null }
   }, [on])
-  useEffect(() => { ref.current?.pause(paused) }, [paused, on])
-  useEffect(() => { if (done) ref.current?.summary() }, [done, on])
+  useEffect(() => { ref.current?.pause(paused); microRef.current?.pause(paused) }, [paused, on])
+  useEffect(() => { if (done) { ref.current?.summary(); microRef.current?.summary() } }, [done, on])
 }
 
 /** Метка смены признака (перекраска дорожек при Мии): на первом показе молчит, на смене пишет on / off длиной ms */

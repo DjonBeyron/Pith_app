@@ -168,7 +168,7 @@ describe('вспышка дорожки на верный ответ', () => {
     const pool = createPool({ querySelectorAll: () => [] })
     expect(typeof pool.flashLane).toBe('function')
     expect(() => pool.flashLane(1)).not.toThrow()
-    expect(read('./useWordLanePills.js')).toContain("else if (e.type === 'win') { gate.mute(performance.now()); const k = held.get(e.pill.id); pool.flashLane(e.pill.lane);")
+    expect(read('./useWordLanePills.js')).toContain("else if (e.type === 'win') { gate.mute(performance.now()); const k = held.get(e.pill.id); frameAfter(() => pool.flashLane(e.pill.lane), 1);")
     expect(read('./wordLaneOrderScene.js')).toContain('pool.flashLane?.(e.lane)')
   })
   it('React колонкам и кромкам data-win не пишет (атрибут живёт только в DOM)', () => {

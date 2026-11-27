@@ -34,5 +34,11 @@ export function frameCancel(id) {
   for (const q of queues) if (q.delete(id)) return
   if (running) for (const q of running) if (q.delete(id)) return
 }
+/** Выполнить fn через n кадров (n ≥ 1; по умолчанию в СЛЕДУЮЩЕМ кадре, а не в этом): так тяжёлая реакция (верный ответ: вспышка дорожки, нота, лицо Пита) не складывается в один кадр с улётом пилюли — каждая запись в своём кадре
+ * (журнал Android 2026-11-27: микро-фризы на улёте — кадр ответа 35–50 мс при бюджете 16,7). Отменить нельзя; fn не бросает наружу (ошибка идёт в перехват, как у остальных колбэков кадра). Нет цикла кадров (тест без rAF) — через setTimeout 16 мс */
+export function frameAfter(fn, n = 1) {
+  const step = left => frameTick(() => { if (left > 1) step(left - 1); else fn() })
+  step(Math.max(1, n | 0))
+}
 /** Для тестов и датчика: сколько колбэков ждёт кадра по очередям [tick, draw] */
 export const frameQueued = () => queues.map(q => q.size)

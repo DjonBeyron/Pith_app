@@ -3,7 +3,7 @@ import { createLevelSource } from '../../../../shared/lib/speech/sayLevelSource.
 import { createRmsLevel } from '../../../../shared/lib/vosk/sayVoskLevel.js'
 import { createWordListener } from './wordLaneListen.js'
 import { speakWord, playTrack, stopVoice } from './wordLaneVoice.js'
-import { playNote, releaseNotes } from './wordLaneNotes.js'
+import { playNote, releaseNotes } from './wordLaneNotes.js'; import { frameAfter } from './gameFrame.js'
 import { buildStages, listenStepOf } from './wordLaneStages.js'; import { useBuiltLabels } from './useLaneLabels.js'; import { bossXp, failMute } from '../../../pitrace/boss/bossZoneNow.js'
 import { stepTargets, textOf } from './wordLaneRecipe.js'
 import { clipsFor, playSpan, estChunkMs } from './wordLaneAudio.js'
@@ -100,9 +100,8 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   // Реакции игры (зовёт движок пилюль, useWordLanePills). Обработчики свежие на каждый рендер (handlers), а fx — стабильный объект-обёртка: движку не нужно перезапускаться
   const handlers = {
     win(order, rect, rep = { last: true, count: 1 }) { // rep — у ученика: последний ли это кусок повтора и сколько в нём кусков; раунды «Порядок» / «Различи» награждают пилюлю сразу
-      sceneAnswer('win', rep); rh.rec('win', { ...rep, order }); if (playNote(order)) { listenerRef.current?.mute(900); dbg.note('note'); scenePush('note', { order }) }
-      catApi?.current?.react('love', 1600)
-      catApi?.current?.peek?.()
+      sceneAnswer('win', rep) // остальное — в СЛЕДУЮЩИХ кадрах, не в кадре улёта пилюли (v3.3.392: микро-фризы на улёте, кадр ответа 35–50 мс при бюджете 16,7): итог в состояние раундов (React, реплики Пита) и нота — кадром позже (звук на 17 мс позже не слышно), лицо Пита — двумя
+      frameAfter(() => { rh.rec('win', { ...rep, order }); if (playNote(order)) { listenerRef.current?.mute(900); dbg.note('note'); scenePush('note', { order }) } }, 1); frameAfter(() => { catApi?.current?.react('love', 1600); catApi?.current?.peek?.() }, 2)
       if (rep.last && !rep.res?.noXp) { xpApi.current?.add(stages[sRef.current.idx]?.silent ? bossXp() : XP_PER_PILL * rep.count, rect, rep.simple ? XP_ARRIVE_SIMPLE_MS : XP_ARRIVE_MS); return true } // экзамен (silent): трофеи слова по зоне шкалы (pitrace/boss/bossTrophies.js), а не обычные XP_PER_PILL; // у повтора из нескольких кусков одна цифра («+6»), когда принят последний кусок; true — пилюля летит в счётчик (wordLaneRiseXp), число прибавляется и идёт вверх от счётчика, когда она долетела (XP_ARRIVE_MS)
     },
     miss(e) { rh.rec('miss', e?.rep); sceneAnswer('miss', e?.rep); const face = missFace(plan?.game === 'race'); if (face) catApi?.current?.react(face, 1300, !!stages[sRef.current.idx]?.step?.quiet) }, claim(e) { rh.claim?.(e.rep, e.ms, e.y, e.share); sceneClaim(e) }, pre(e) { rh.pre?.(e.rep, e) }, spawn(e) { rh.spawn?.(e); scenePill(e) }, // гонка (spawn — выезд пилюли: журнал переходов raceTransChron.js): на промах Пит не меняет лицо (missFace, wordLaneCatPeek.js)

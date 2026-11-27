@@ -21,6 +21,7 @@ export function createSceneTrace({ now = () => globalThis.performance?.now?.() ?
   const texts = new Map() // id реплики Пита → текст, каким он прозвучит (кладёт useCatLines перед звуком)
   const miaIds = new Set() // id реплик Мии: её рот тоже сообщает cat-speak (тот же движок рта) — это не вторая реплика
   const enders = new Set() // подписчики «прохождение закончилось»
+  const watchers = new Set() // подписчики «записано событие» (микро-фризы возле пилюль, microFreeze.js)
   const ended = run => { for (const fn of enders) { try { fn(run) } catch { /* подписчик не мешает игре */ } } }
   const open = (meta, auto) => {
     const run = { id: ++seq, at: clock(), meta: { ...meta, ...(auto ? { auto: true } : {}) }, events: [], dropped: 0 }
@@ -49,12 +50,15 @@ export function createSceneTrace({ now = () => globalThis.performance?.now?.() ?
       try {
         if (k === 'line-start' && data.who === 'mia') miaIds.add(String(data.id))
         const run = runs[runs.length - 1] ?? open({}, true), ev = put(run, String(k), data)
+        for (const fn of watchers) { try { fn(ev) } catch { /* подписчик не мешает игре */ } }
         if (k === 'end') ended(run)
         return ev
       } catch { return null }
     },
     /** Подписка на конец прохождения (событие end): fn(run). → отписка */
     onEnd(fn) { enders.add(fn); return () => enders.delete(fn) },
+    /** Подписка на каждое записанное событие: fn(ev) — вернуться сразу. → отписка */
+    onEvent(fn) { watchers.add(fn); return () => watchers.delete(fn) },
     /** Текст реплики Пита id, каким он звучит (с правками админа и подстановками) — возьмёт line-start */
     hint(id, text) { try { if (id != null && text) { if (texts.size > 400) texts.clear(); texts.set(String(id), cut(text)) } } catch { /* трасса не мешает игре */ } },
     /** Рот Пита пошёл (cat-speak): реплика каталога (есть hint) — who 'pit' с текстом; иначе слово / перевод / фраза голосом Пита — who 'dictor' */
