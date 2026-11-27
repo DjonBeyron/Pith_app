@@ -3915,3 +3915,6 @@ A2 из `PLAN_NEW_USER.md`. Чистая модель без React и сети: 
 | `_stand/race/perf-moment.mjs` | Покадровая картина моментов Мии по замеру `perf-run.mjs` |
 | `_stand/race/perf-events.mjs`, `perf-paint.mjs` | Замер производительности игры: выжимка событий трассы (что шло в длинных кадрах) / сводка «что перекрашивается» из трассы Chromium (v3.3.378) |
 | `_stand/race/vite.perf.config.mjs`, `perfStand.js`, `perf-run.mjs`, `perf-report.mjs`, `perf-trace.mjs` | Замер производительности игры на прод-сборке стенда: прогон полной игры, сводка по этапам «до → после», разбор трассы Chromium |
+| `_stand/race/perf-answer.mjs` | Окна верного ответа по замеру `perf-run.mjs`: худший кадр, кадры > 24/33/50 мс, слои |
+| `_stand/race/perf-layers.mjs` | Какие узлы держат слои в окне ответа (прогон с `LAYERS=1`) |
+| `_stand/race/perf-winpaint.mjs` | Работа главного потока, растеризация и композитор в окнах ответа по трассе (`TRACE_GPU=1`) |
