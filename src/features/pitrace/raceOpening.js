@@ -17,7 +17,7 @@ import { silentPause } from './raceSilentLine.js'
 import { wordAtMs, hasWord } from './raceLineWord.js'
 
 export const MORPH_MS = 600        // бар → плашка: последние ~600 мс речи Пита
-export const PLATE_HOLD_MS = 1200  // плашка держится столько после конца речи, потом три ноты
+export const PLATE_HOLD_MS = 700   // плашка держится столько после конца речи, потом три ноты
 export const OPEN_FALLBACK_MS = 4000 // реплик нет вообще (не озвучены) — слова летят столько
 export const LAUNCH_WORD = 'запуска' // стартовая фраза «…запускаю конвейер слов»: на этом слове бар уже заряжен и появляется плашка этапа (владелец 2026-11-25); срок — по таймингам слов записи, без них — по месту слова в тексте (raceLineWord.wordAtMs)
 export const LEAD_MS = 250         // реплика Пита — через столько после начала сцены / стадии (useRehearsalActs.LINE_AT_MS)

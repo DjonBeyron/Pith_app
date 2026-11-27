@@ -48,7 +48,7 @@ describe('экран проверки сценария', () => {
   })
   it('риски сцены, запас и лишние записи — раскрывающимися списками', () => {
     expect(bad).toMatch(/Риски сцены от длины реплик: проверок \d+, требуют внимания 1/); expect(ok).toMatch(/Риски сцены от длины реплик: проверок \d+, все в порядке/)
-    expect(ok).toContain('Не звучат в игре (запас): 11'); expect(bad).toContain('Лишние записи озвучки: 1'); expect(ok).not.toContain('tl-ck-orphans')
+    expect(ok).toContain('Не звучат в игре (запас): 12'); expect(bad).toContain('Лишние записи озвучки: 1'); expect(ok).not.toContain('tl-ck-orphans')
   })
   it('переключатель источника: «Сценарий сейчас» по умолчанию, «Последняя игра» — прежний список прохождения; без игр — только сценарий', () => {
     const e = editOf(checkFixtureRaw()), m = buildTimeline(fixtureEvents(), {})

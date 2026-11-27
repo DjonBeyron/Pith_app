@@ -9,7 +9,10 @@
    ШЛЕЙФ («размытие движения» без filter, только при data-trail: не lite и не reduced-motion): один мягкий хвост-градиент в отдельном узле .raceChargeTail ПОД пилюлей (раньше в DOM). v3.3.117: хвост — трапеция (clip-path: polygon, raceChargePath.TAIL_POLY) ПОД пилюлей:
    верхняя кромка = ширине пилюли и привязана к её верхним углам (top / left / right: 0), книзу сужается, выступает ниже пилюли на 1,15 её высоты; прозрачность ≤ 0,35, гаснет к прилёту. Наклон — rotate по касательной к синусоиде (raceChargePath.tailAngle) вокруг СЕРЕДИНЫ верхней кромки
    (transform-origin 50% 0 = центр пилюли сверху); срез узла полёта по линии верха пилюли (.raceChargeFly clip-path) прячет часть кромки, ушедшую выше, поэтому острых углов снаружи пилюли не видно. Растяжение по оси движения ≤ 1,08 (scale ведёт Web Animation). Бар (v3.3.115): 6 px между «назад» и «пауза», после заставки его продолжает постоянный RaceBar (race-bar.css). */
-.wl[data-charge] .wlLanes, .wl[data-charge] .wlDots { opacity: 0; }
+.wl[data-charge] .wlDots { opacity: 0; }
+/* v3.3.383 (владелец 2026-11-27): линии дорожек и узор проявляются сразу, как появился Пит (одна короткая opacity-анимация слоя на композиторе: стили поля не пересчитываются), узор стоит и ЕДЕТ с
+   момента «запускаю конвейер слов» (pitrace/raceConveyorLaunch.js); раньше дорожек не было вовсе до конца заставки, и конвейер «включался» уже во время отсчёта. */
+.wl[data-charge] .wlLanes { transition-duration: 0.6s; }
 
 .raceCharge { inset: 0; z-index: 1; isolation: isolate; overflow: hidden; pointer-events: none; transition: opacity 0.6s ease; }
 .raceCharge[data-leaving] { opacity: 0; }

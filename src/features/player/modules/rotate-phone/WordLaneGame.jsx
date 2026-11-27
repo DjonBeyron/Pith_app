@@ -81,7 +81,9 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
   const speed = conveyorSpeedHint(f.stages, f.stage === 'run' ? f.idx : -1, !!f.rh.miaPlate?.speedUp, bonusPlayedOf(f.rh.mia?.mia)) // «Гонка с Питом»: скорость первой пилюли ближайшей стадии — пунктир набирает её заранее (wordLaneConveyorSpeed.js)
   const armed = useConveyorArm(f) // какие дорожки взведены: конвейер зажигается за 0,66 с до конца реплики Пита / плашки (wordLaneConveyorStart.js), остановку решает привод по пилюлям на дорожке
   const single = cfg.chunks.length === 1 && phase !== 'discern' && !cfg.plan // у одного слова текст стоит крупно — кроме «Различи»: там слова на пилюлях, а верное над дорожками не выдаём
-  const showSlots = phase !== 'drop'
+  const [laneIn, setLaneIn] = useState(false) // гонка: линии дорожек проявляются сразу, с появлением Пита (один opacity-переход слоя, race-charge.css), а не через секунду; на первом кадре их ещё нет — переход виден
+  useEffect(() => { const id = setTimeout(() => setLaneIn(true), 30); return () => clearTimeout(id) }, [])
+  const showSlots = phase !== 'drop' || (cfg.plan?.game === 'race' && laneIn)
   const intro = phase === 'drop' || phase === 'lanes' || f.pausedIntro
   const heads = intro && !cfg.plan ? cfg.chunks.map(text => ({ text, on: true })) : intro ? f.labels.map(() => ({ text: '', on: false })) : f.labels // заставка репетиции: слов сверху нет (v3.3.84)
   const fresh = useLabelFrames(heads, lite) // рамка вокруг новой подписи (WordLaneHeads)
