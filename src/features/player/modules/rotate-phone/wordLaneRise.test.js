@@ -6,6 +6,7 @@ import { ENTER_Y, EXIT_Y } from './wordLaneTimeline.js'
 import { FLIGHT_MS } from './wordLaneMotion.js'
 import { riseFrames, startRise, flightY, RISE_DELAY_MS, RISE_MS, RISE_END_Y, RISE_WAVE_PX, RISE_WAVES, RISE_SCALE, RISE_SHRINK_FROM, RISE_FADE_FROM, risePosition, riseScale } from './wordLaneRise.js'
 import { sine } from './wordLaneWave.js'
+import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 
 // Взлёт заполненной пилюли ученика (wordLaneRise.js, pool.rise): кадры анимации, пауза и длительность, возврат в пул после finish, движок
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
@@ -146,6 +147,21 @@ describe('взлёт заполненной пилюли', () => {
     expect(pills[k].has('data-rise')).toBe(true)
     done(); await new Promise(r => setTimeout(r, 0))
     expect(pills[k].has('data-held')).toBe(false)
+  })
+  it('заморозка на слабом (wl--lite): в миг улёта слой заливки снимается (will-change пуст), на обычном устройстве остаётся; слои клипа, света и подписи снимает CSS по data-rise', () => {
+    for (const [classes, kept] of [[['wl--lite'], false], [[], true]]) {
+      const { pool, pills } = rig({ classes })
+      const k = pool.take(0)
+      pool.anims()[0].currentTime = FLIGHT_MS * 0.5
+      const fill = pills[k].parts['.wlPillFill']
+      expect(fill.style.willChange).toBe('transform')
+      pool.rise(k, { simple: true })
+      if (!kept || !isWeakDevice()) expect(fill.style.willChange === 'transform').toBe(kept) // на обычном устройстве слой остаётся (если среда тестов сама не «слабая»)
+    }
+    const css = read('../../../../styles/player/modules/word-lane-pill.css')
+    expect(css).toContain('.wlField.wl--lite .wlPill[data-held][data-rise] .wlPillClip')
+    expect(css).toMatch(/\.wl--lite \.wlPill\[data-rise\] \.wlPillInkIn[^{]*\{ will-change: auto; \}/)
+    expect(css).toMatch(/\.wl--lite \.wlPill\[data-rise\] \.wlPillSparks[^{]*\{ display: none; \}/)
   })
   it('взлетать нечему без полёта; снятая раньше анимация (смена сцены) пилюлю повторно не возвращает', async () => {
     const { pool } = rig()

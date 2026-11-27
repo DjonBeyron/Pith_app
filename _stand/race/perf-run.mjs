@@ -15,7 +15,7 @@ const CPU = Number(E.CPU || 4), WEAK = E.WEAK === '1', SHOTS = E.SHOTS === '1', 
 mkdirSync(OUT, { recursive: true })
 const args = ['--no-sandbox', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required', '--enable-precise-memory-info']
 const browser = await chromium.launch({ executablePath: E.PW_CHROMIUM_PATH, args })
-const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true, permissions: ['microphone'] })
+const ctx = await browser.newContext({ viewport: { width: Number(E.VW || 375), height: Number(E.VH || 812) }, deviceScaleFactor: 2, hasTouch: true, isMobile: true, permissions: ['microphone'] })
 await ctx.addInitScript(([weak, start, lagOff, catVis, lane]) => {
   if (lane) localStorage.setItem('pithy_wl_lane_mode_v1', lane) // LANE=move|steps|still — режим узора дорожек (без него — умолчание: на слабом «реже»)
   if (lagOff) localStorage.setItem('pithy_lag_trace', '0') // LAG=0 — трассер лагов выключен (цена самого трассера: пара прогонов LAG=1 / LAG=0)
@@ -45,20 +45,28 @@ await ctx.addInitScript(([weak, start, lagOff, catVis, lane]) => {
     P.skip.push([Math.round(t0), Math.round(performance.now()) + 1])
   }, 2000)
 }, [WEAK, E.START ?? '', E.LAG === '0', E.CATVIS === '1', E.LANE ?? ''])
+if (E.SHOTRISE) await ctx.addInitScript(N => { // SHOTRISE=N — серия кадров улёта первых N верных пилюль: в миг data-rise анимация улёта ставится на паузу (window.__riseHold), драйвер прокручивает её по долям пути и снимает экран
+  const hold = []; let used = 0; window.__riseHold = hold
+  new MutationObserver(ms => { for (const m of ms) { const el = m.target; if (m.attributeName === 'data-rise' && el.hasAttribute('data-rise') && !el.__held && used < N) { el.__held = 1; used++; const an = el.getAnimations().filter(a => a.effect?.getKeyframes?.().some(k => 'translate' in k && 'opacity' in k)); an.forEach(a => a.pause()); hold.push({ el, an, at: performance.now() }) } } }).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-rise'] })
+}, Number(E.SHOTRISE))
 const page = await ctx.newPage()
 const cdp = await ctx.newCDPSession(page)
 await cdp.send('Performance.enable')
+let pageOff = 0 // сдвиг часов страницы (performance.now) от Date.now() драйвера: слои пишутся в шкале страницы
+const layers = [] // LAYERS=1 — дерево слоёв (CDP LayerTree): при каждом изменении — сколько слоёв, сколько из них рисуют содержимое и их суммарная площадь (CSS px²)
+if (E.LAYERS === '1') { await cdp.send('LayerTree.enable'); cdp.on('LayerTree.layerTreeDidChange', ev => { const L = ev.layers ?? []; layers.push([Date.now() - pageOff, L.length, L.filter(l => l.drawsContent).length, Math.round(L.filter(l => l.drawsContent).reduce((s, l) => s + l.width * l.height, 0)), L.map(l => [l.backendNodeId ?? 0, Math.round(l.width), Math.round(l.height), l.drawsContent ? 1 : 0])]) }) }
 if (E.PAINT_RECTS === '1') { await cdp.send('DOM.enable'); await cdp.send('Overlay.enable'); await cdp.send('Overlay.setShowPaintRects', { result: true }) } // PAINT_RECTS=1 (вместе с SHOTS=1) — на снимках зелёным подсвечено то, что браузер перекрашивал: видно, какая область экрана красится каждый кадр
 page.on('pageerror', e => console.log('PAGEERROR', e.message, String(e.stack).split('\n').slice(0, 4).join(' | ')))
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 const log = [], metrics = [], shots = new Set(), TRACE = (E.TRACE || '').split(',').filter(Boolean)
-let tracing = null, AT = E.AT ? E.AT.split(':') : null
+let shotN = 0, tracing = null, AT = E.AT ? E.AT.split(':') : null
 const shot = async name => { if (!SHOTS || shots.has(name)) return; shots.add(name); await page.screenshot({ path: `${OUT}/${NAME}-${name}.png` }) }
 const snap = async sid => { const m = await cdp.send('Performance.getMetrics'); metrics.push({ sid, at: Date.now(), m: Object.fromEntries(m.metrics.map(x => [x.name, x.value])) }) }
 await page.goto(`${BASE}?seed=r1&ask=voice&only=stages&lines=1&meaning=1&perf=1${E.PROBE === '1' ? '&probe=1' : ''}${E.UNDER === '1' ? '&under=1' : ''}${E.DEBUG === '0' ? '&debug=0' : ''}${E.QS ?? ''}`) // QS='&rudelay=9000' — доп. параметры стенда
 await page.waitForSelector('[data-testid="rotate-start"]:not([disabled])', { timeout: 30000 })
 if (E.CSS) await page.addStyleTag({ content: E.CSS }) // CSS='…' — пробные стили поверх сборки (опыты «что стоит времени»)
 await sleep(800)
+pageOff = Date.now() - await page.evaluate(() => performance.now())
 if (CPU > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU })
 await snap('start')
 await page.tap('[data-testid="rotate-start"]') // касание, а не клик мышью: от клика в Chromium остаётся «курсор», и каждый сдвиг слоёв под ним стоит проверки попадания (HitTest ≈ 40 мс/с при CPU 4×) — на телефоне курсора нет
@@ -68,12 +76,19 @@ let again = null, skipA = 2, wrongA = 1, skipB = 2, skipMia = 0, hits = 0, lastS
 const pillsNow = () => page.evaluate(() => [...document.querySelectorAll('.wlPill[data-held]:not([data-fail]):not([data-lock]):not([data-rise])')].map(el => { const r = el.getBoundingClientRect(); return { top: r.top, h: r.height } }).filter(p => p.top > 80 && p.top < 640))
 const say = w => page.evaluate(x => { window.__sayQueue.length = 0; window.__sayQueue.push(x) }, w)
 while (Date.now() - t0 < SECS * 1000) {
+  if (E.SHOTRISE && shotN < Number(E.SHOTRISE) && await page.evaluate(() => window.__riseHold.length > 0)) { // серия улёта: доли пути 0 … 0,97 (анимация на паузе), потом улёт продолжается
+    const info = await page.evaluate(() => { const h = window.__riseHold.shift(); const a = h.an[0]; const t = a.effect.getComputedTiming(), kf = a.effect.getKeyframes().length; window.__cur = h; return { end: t.endTime, kf, delay: t.delay } })
+    shotN++
+    for (const pr of [0, 0.1, 0.2, 0.35, 0.5, 0.65, 0.8, 0.95]) { await page.evaluate(([p, end]) => { window.__cur.an.forEach(a => { a.currentTime = p * end }) }, [pr, info.end]); await page.screenshot({ path: `${OUT}/${NAME}-rise${shotN}-${String(Math.round(pr * 100)).padStart(3, '0')}.png` }) }
+    console.log(`серия ${shotN}: кадров анимации ${info.kf}, длительность ${info.end} мс, задержка ${info.delay}`)
+    await page.evaluate(() => { window.__cur.an.forEach(a => a.play()) })
+  }
   const st = await page.evaluate(() => ({ sid: document.querySelector('[data-testid="wl"]')?.dataset.sid ?? null, hit: !!document.querySelector('[data-testid="race-mia-hit"]'), lines: window.__log.splice(0) }))
   for (const l of st.lines) log.push(l)
   const sid = st.sid
   if (sid !== lastSid) {
     lastSid = sid; sidAt = Date.now(); console.log(`${String(Date.now() - t0).padStart(7)} стадия ${sid}`); await snap(sid)
-    if (TRACE.includes(sid) && !tracing) { tracing = sid; if (E.TRACE_DELAY) await new Promise(r => setTimeout(r, Number(E.TRACE_DELAY))) /* TRACE_DELAY=мс — трасса начинается позже входа в стадию (поймать ПЕРЕХОД в следующую: TRACE=sprint-ann TRACE_DELAY=3000); драйвер это время не отвечает на пилюли */; await browser.startTracing(page, { categories: ['devtools.timeline', 'disabled-by-default-devtools.timeline', 'disabled-by-default-devtools.timeline.stack', 'v8.execute', 'disabled-by-default-v8.cpu_profiler', ...(E.TRACE_INV === '1' ? ['disabled-by-default-devtools.timeline.invalidationTracking'] : [])] }) /* TRACE_INV=1 — ещё и кто именно требует пересчёта стилей */; setTimeout(async () => { writeFileSync(`${OUT}/${NAME}-trace-${tracing}.json`, await browser.stopTracing()); tracing = null }, Number(E.TRACE_MS || 10000)) } // TRACE=sprint,boss — трасса Chromium первых 10 с стадии (разбор: что именно стоит времени)
+    if (TRACE.includes(sid) && !tracing) { tracing = sid; if (E.TRACE_DELAY) await new Promise(r => setTimeout(r, Number(E.TRACE_DELAY))) /* TRACE_DELAY=мс — трасса начинается позже входа в стадию (поймать ПЕРЕХОД в следующую: TRACE=sprint-ann TRACE_DELAY=3000); драйвер это время не отвечает на пилюли */; await browser.startTracing(page, { categories: ['devtools.timeline', 'disabled-by-default-devtools.timeline', 'disabled-by-default-devtools.timeline.stack', 'v8.execute', 'disabled-by-default-v8.cpu_profiler', ...(E.TRACE_GPU === '1' ? ['gpu', 'viz', 'cc', 'disabled-by-default-gpu.service'] : []), ...(E.TRACE_INV === '1' ? ['disabled-by-default-devtools.timeline.invalidationTracking'] : [])] }) /* TRACE_INV=1 — ещё и кто именно требует пересчёта стилей */; setTimeout(async () => { writeFileSync(`${OUT}/${NAME}-trace-${tracing}.json`, await browser.stopTracing()); tracing = null }, Number(E.TRACE_MS || 10000)) } // TRACE=sprint,boss — трасса Chromium первых 10 с стадии (разбор: что именно стоит времени)
     if (/3$/.test(sid ?? '') && !miaSids.has(sid)) { miaSids.add(sid); if (miaSids.size === 2) skipMia = 1 } // второй «Допрос»: одно слово пропущено — Мия уходит одна, коробка остаётся
   }
   if (AT && sid === AT[0] && Date.now() - sidAt > Number(AT[1])) { const src = readFileSync(AT[2], 'utf8'); AT = null; console.log('AT:', JSON.stringify(await page.evaluate(`(async () => { ${src} })()`), null, 1)) } // AT=sid:мс:файл — в стадии sid через мс выполнить в странице тело функции из файла и напечатать ответ (разовые замеры)
@@ -110,8 +125,10 @@ while (Date.now() - t0 < SECS * 1000) {
   await sleep(80)
 }
 await snap('end')
+const layerNames = {} // LAYERS=1: номер узла → «тег.класс» (кто держит слой)
+if (E.LAYERS === '1') { await cdp.send('DOM.enable'); for (const id of new Set(layers.flatMap(l => l[4].map(x => x[0])))) { if (!id) continue; try { const { node } = await cdp.send('DOM.describeNode', { backendNodeId: id }); const c = (node.attributes ?? []).findIndex(x => x === 'class'); layerNames[id] = node.nodeName.toLowerCase() + (c >= 0 ? '.' + node.attributes[c + 1].split(' ').join('.') : '') } catch { layerNames[id] = '?' } } }
 const perf = await page.evaluate(() => window.__perf)
 const tail = await page.evaluate(() => window.__log.splice(0)); for (const l of tail) log.push(l)
-writeFileSync(`${OUT}/${NAME}.json`, JSON.stringify({ cfg: { CPU, WEAK, PROBE: E.PROBE === '1', UNDER: E.UNDER === '1', DEBUG: E.DEBUG !== '0', EXAM, finished: lastSid === 'summary', secs: Math.round((Date.now() - t0) / 1000) }, perf, log, metrics }))
+writeFileSync(`${OUT}/${NAME}.json`, JSON.stringify({ layers, layerNames, cfg: { CPU, WEAK, PROBE: E.PROBE === '1', UNDER: E.UNDER === '1', DEBUG: E.DEBUG !== '0', EXAM, finished: lastSid === 'summary', secs: Math.round((Date.now() - t0) / 1000) }, perf, log, metrics }))
 console.log(`готово: ${OUT}/${NAME}.json, стадия в конце ${lastSid}, кадров ${perf.f.length}, строк журнала ${log.length}`)
 await ctx.close(); await browser.close()

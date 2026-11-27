@@ -47,6 +47,11 @@
    пилюлями, стоящими в пуле после неё; на широкой ленте «Фраз» все пилюли на одной дорожке — это было видно. Теперь data-rise и подсвеченная верная перед взлётом (data-hot) — z-index 1: выше всех пилюль (у них auto) и затемнений
    .wlFade (auto), ниже подписей, панели и Пита (2 … 8). Контекст наложения — .wl (position: fixed); .wlField его не создаёт, поэтому правило работает и для широких пилюль, и для трёх дорожек «Пинг-понга». */
 .wlPill[data-rise], .wlPill[data-hot] { z-index: 1; }
+/* УЛЁТ НА СЛАБОМ — «заморозка» (2026-11-27, журнал Android: кадры улёта без скрипта, тяжесть в слоях и покраске): принятая пилюля залита целиком и больше не меняется, поэтому лишние слои ей ни к чему. В миг улёта (data-rise) снимаются
+   слои клипа, заливки (пул чистит её will-change), линии уровня и тёмной подписи — всё рисуется в ОДИН слой пилюли, который летит translate + opacity; линия уровня у полной пилюли невидима и скрыта совсем. Вид тот же: сплошная капсула с тёмной подписью. */
+.wlField.wl--lite .wlPill[data-held][data-rise] .wlPillClip, .weak-device .wlField .wlPill[data-held][data-rise] .wlPillClip { transform: none; } /* перебивает постоянный слой клипа (правило ниже, .wlField:not(.wl--safe) .wlPill[data-held] .wlPillClip) специфичностью */
+.wl--lite .wlPill[data-rise] .wlPillInkIn, .weak-device .wlPill[data-rise] .wlPillInkIn { will-change: auto; }
+.wl--lite .wlPill[data-rise] .wlPillSparks, .weak-device .wlPill[data-rise] .wlPillSparks { display: none; }
 .wlPillClip { position: absolute; inset: var(--gap); border-radius: 999px; overflow: hidden; z-index: 1; } /* z-index: жидкость (непрозрачная) лежит НАД светлой подписью пилюли (::after, маска «Скажи») — поверх жидкости видна её тёмная копия (word-lane-pill-ink.css) */
 /* ПОСТОЯННЫЙ СЛОЙ ОТСЕЧЕНИЯ (2026-11-26, владелец, iPhone: «в момент заполнения часть пилюли исчезла»; в журнале «[pill]» в этот момент: +live, вставлен набор пузырей, тело «видна», кадры ровные — по стилям и DOM всё на месте,
    остаётся композитор iOS). Заливка — композитный слой (will-change ставит пул), а её отсечение формой капсулы держал НЕкомпозитный предок со скруглением (overflow: hidden + border-radius): Safari строит для такого

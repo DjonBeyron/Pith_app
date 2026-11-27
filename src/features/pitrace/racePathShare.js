@@ -26,3 +26,5 @@ export const praiseAllowed = share => !known(share) || share < PRAISE_MAX_SHARE 
 export const isLateShare = share => known(share) && share >= LATE_SHARE
 export const jabAllowed = share => !known(share) || share < JAB_MAX_SHARE
 export const flySimple = share => known(share) && share >= FLY_SIMPLE_SHARE
+/** Простой улёт верной пилюли: доля ≥ FLY_SIMPLE_SHARE ИЛИ слабое устройство (2026-11-27, «лаги в улетающих пилюлях» на слабом Android: на слабом улетают так все — одна анимация translate + opacity, без сжатия, наклона, хлопка; замер: композитор −24 % за окно ответа) */
+export const riseSimple = (share, weak = false) => weak === true || flySimple(share)

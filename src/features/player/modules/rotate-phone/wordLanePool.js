@@ -204,6 +204,7 @@ export function createPool(root) {
       try { l.anim.cancel() } catch { /* уже снята */ }
       l.anim = null; l.rise = a
       parts[k].el.setAttribute('data-rise', '1')
+      if (isWeakDevice() || root.classList?.contains?.('wl--lite')) parts[k].fill.style.willChange = '' // слабое устройство: принятая пилюля полна и не меняется — слой заливки не нужен, всё рисуется в одном слое пилюли (word-lane-pill.css, «заморозка»)
       paintFill(k, 1)
       a.finished?.then(() => { if (live.get(k)?.rise === a) give(k) }).catch(() => { /* снята раньше (give / смена сцены) */ })
       return a

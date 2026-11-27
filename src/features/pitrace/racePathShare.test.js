@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pathShare, shareOfLogical, praiseAllowed, isLateShare, jabAllowed, flySimple, PRAISE_MAX_SHARE, LATE_SHARE, JAB_MAX_SHARE, FLY_SIMPLE_SHARE } from './racePathShare.js'
+import { pathShare, shareOfLogical, praiseAllowed, isLateShare, jabAllowed, flySimple, riseSimple, PRAISE_MAX_SHARE, LATE_SHARE, JAB_MAX_SHARE, FLY_SIMPLE_SHARE } from './racePathShare.js'
 
 describe('доля пути пилюли', () => {
   it('проход A (сверху вниз): доля — низ пилюли / высота экрана', () => {
@@ -26,5 +26,9 @@ describe('доля пути пилюли', () => {
     expect(isLateShare(0.79)).toBe(false); expect(isLateShare(0.8)).toBe(true)
     expect(jabAllowed(0.849)).toBe(true); expect(jabAllowed(0.85)).toBe(false)
     expect(flySimple(0.79)).toBe(false); expect(flySimple(0.8)).toBe(true)
+  })
+  it('riseSimple: на слабом устройстве улёт простой при любой доле (и без неё), на обычном — только от FLY_SIMPLE_SHARE', () => {
+    expect(riseSimple(0.3, true)).toBe(true); expect(riseSimple(null, true)).toBe(true)
+    expect(riseSimple(0.79, false)).toBe(false); expect(riseSimple(0.8, false)).toBe(true); expect(riseSimple(0.3)).toBe(false)
   })
 })

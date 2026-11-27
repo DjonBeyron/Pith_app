@@ -46,7 +46,7 @@ describe('один залп искр и одна цифра XP на повтор
 
   it('движок зовёт полный щелчок только у последнего защёлкнутого куска повтора (ученик) и у договорённого (диктор)', () => {
     const eng = read('./useWordLanePills.js')
-    expect(eng).toContain('{ full: e.full, simple: flySimple(e.rep.share), rect: e.rect }')
+    expect(eng).toContain('{ full: e.full, simple: riseSimple(e.rep.share, isWeakDevice()), rect: e.rect }')
     expect(eng).toContain('{ full: lastPiece }')
   })
 

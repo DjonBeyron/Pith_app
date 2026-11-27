@@ -7,7 +7,7 @@ import { startPerfProbe } from '/src/shared/lib/appPerfProbe.js'
 export function setupPerf(params) {
   window.__log = []; window.__logN = 0
   const add = gameJournal.add
-  gameJournal.add = (...a) => { window.__logN++; if (typeof a[0] === 'string') window.__log.push([Math.round(performance.now() * 10) / 10, a.length === 1 ? a[0] : a.join(' ')]); return add(...a) }
+  gameJournal.add = (...a) => { window.__logN++; if (typeof a[0] === 'string' && /"res":"win"/.test(a[0])) console.timeStamp('WIN'); /* метка в трассе Chromium: окно верного ответа (perf-winpaint.mjs) */ if (typeof a[0] === 'string') window.__log.push([Math.round(performance.now() * 10) / 10, a.length === 1 ? a[0] : a.join(' ')]); return add(...a) }
   if (params.get('probe') === '1') startPerfProbe()
   if (params.get('under') === '1') {
     const shell = document.createElement('div'); shell.className = 'shellV2'; shell.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;z-index:1;background:#0e1013'
