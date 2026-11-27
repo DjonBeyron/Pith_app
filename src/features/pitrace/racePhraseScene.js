@@ -19,7 +19,7 @@ import { createSaid } from './racePhraseSaid.js'
 import { createSayView } from './racePhraseSayView.js'
 import { createSayTrace } from './racePhraseSayTrace.js'
 import { earlyAtMs } from './racePhraseEarly.js'
-import { RISE_DELAY_MS, RISE_MS } from '../player/modules/rotate-phone/wordLaneRise.js'
+import { RISE_DELAY_MS, RISE_MS } from '../player/modules/rotate-phone/wordLaneRise.js'; import { BURST_WIDE_END_MS } from '../player/modules/rotate-phone/wordLaneBubbles.js'
 import { mountMask } from './racePhraseMaskView.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { isLate } from './raceExtraRound.js'
@@ -133,9 +133,10 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
     log(`[phrases] круг ${cfg.round} ${ROUND_LOG[cfg.mode] ?? cfg.mode}, ход ${t.idx + 1}/${turns.length}${passTag()}: цель ${q(t.target.text)}${cfg.mode === 'say' ? '' : ` кандидаты ${t.cands.map(c => q(c.cap)).join(' | ')}`} итог ${lineOf(res)}${cfg.mode === 'say' ? '' : `; остальные едут: ${rest.length}`}`)
     const r = rep()
     if (kind === 'win') {
-      pool.attr(tg.k, 'data-lock'); markPartial(pool, tg.k, cfg.mode === 'say' ? res.ratio : 1); pool.flashLane(LANE); snap(pool.el(tg.k), LANE, { full: true })
+      pool.attr(tg.k, 'data-lock'); markPartial(pool, tg.k, cfg.mode === 'say' ? res.ratio : 1); pool.flashLane(LANE); const out = snap(pool.el(tg.k), LANE, { full: true }) // out — сколько пузырей вылетело
       const rect = pool.el(tg.k)?.getBoundingClientRect?.() ?? null
-      if (pool.rise(tg.k, { xp: !res.noXp })) { tg.gone = true; dropMask(tg.mask, RISE_DELAY_MS + RISE_MS + 100) }
+      const lift = out > 0 ? BURST_WIDE_END_MS : RISE_DELAY_MS // пузыри вылетели и исчезли — только потом пилюля улетает (без них)
+      if (pool.rise(tg.k, { xp: !res.noXp, delay: lift })) { tg.gone = true; dropMask(tg.mask, lift + RISE_MS + 100) }
       fx().win?.(0, rect, { last: true, count: 1, ...r })
     } else fx().fail?.({ rep: r })
     phase = 'after'; at = now()

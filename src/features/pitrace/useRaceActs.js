@@ -14,7 +14,7 @@ import { useRaceSwitch } from './useRaceSwitch.js'
 import { takeoffOn, playTakeoffAfter } from './raceTakeoffSound.js'
 import { rewardMs } from '../player/modules/rotate-phone/wordLaneNotes.js'
 import { ALL_GOOD_IDS } from './raceGood.js'
-import { createSoft, softStage, failIsWeak } from './raceSoft.js'; import { isLateShare } from './racePathShare.js'
+import { failIsWeak } from './raceSoft.js'; import { createSoftSay } from './raceSoftWait.js'; import { isLateShare } from './racePathShare.js'
 import { useRaceSpeech, speakTranslation } from './useRaceSpeech.js'
 import { createRuJournal } from './raceRuLog.js'
 import { createSurfaceWait } from './raceDiveWait.js'
@@ -63,7 +63,8 @@ export function useRaceActs(args) {
   const miaPlate = useMiaPlate({ talk: miaTalk, m: miaView.mia, stage: running }) // плашка Мии: «Допрос» — когда Мия уже на коробке, до конца церемонии; экзамен — пока она говорит за кадром, до прыжка (mia/useMiaPlate.js)
   useMiaEnter({ running, at, mb, mspeech, setMiaView, log: pLog }) // эпизод «Мия»: вход на стадию (очередь речи — раньше расчёта времени стадии, mia/useMiaEnter.js)
   const rh = useRehearsalActs(on && args.cat ? { ...args, sayLine: sayTr, cat: { ...args.cat, busyLeft: () => Math.max(args.cat.busyLeft(), speech.pendingMs(), running?.mia === 'ann' ? 0 : mspeech.leftMs()) }, countWait: () => (mspeech.pending() > 0 || revBack.busy ? 1 : 0) } : args) // расписание реплик этапа знает, что похвала ещё впереди
-  const softRef = useRef(null) // мягкие реплики на слабом слове (raceSoft.js): состояние одной игры
+  const softRef = useRef(null) // мягкие реплики на слабом слове (raceSoftWait.js): состояние одной игры
+  useEffect(() => { softRef.current?.clear(stage === 'run' ? 'смена стадии' : 'пауза или выход') }, [stage, running?.sid]) // пауза / смена стадии снимает ожидание реплики: после «Продолжить» она не звучит
   const praiseRef = useRef(null) // похвала, которую reduceRace назначил на этот зачёт (apply → claim)
   const demo = useRacePhraseDemo({ on, cat: args.cat, sayLine, sayText, lines, rate }) // демо-ход «Скажи» на живой пилюле (racePhraseDemoTurn.js): голос и ворота для сцены
   const [box] = useState(makeBox) // s — актуальное состояние (читает nextIdx без перерисовки), hinted — подсказка голосом сказана на этом промахе (raceState.makeBox)
@@ -185,12 +186,8 @@ export function useRaceActs(args) {
   }, [leftByWin, running, at, nextIdx, jump, mspeech])
   if (!on) return rh
   const pitBusy = () => Math.max(args.cat?.busyLeft?.() ?? 0, sw.pendingMs(), mspeech.leftMs()) // сколько мс Пит (и Мия) ещё РЕАЛЬНО говорят (без «занят надолго» секвенсора речи: тот держит LOCK_MS)
-  const weakSay = (st, idx, why) => { // слабое слово (raceSoft.js): раз в 3–4 слабых — мягкая реплика Пита, если Пит и речь свободны; зовётся ДО speech.claim / pillGone (они занимают секвенсор)
-    if (!softStage(st) || leftByWin) return
-    const id = (softRef.current ??= createSoft(plan?.seed)).weak(`${st.sid}:${idx}`); if (!id) return
-    if (pitBusy() > 0 || speech.holdMs() > 0) { pLog(`[soft] слабое слово ${idx + 1} (${why}): реплика «${id}» пропущена — Пит занят`); return }
-    pLog(`[soft] слабое слово ${idx + 1} (${why}): мягкая реплика «${id}»${sayRef.current.sayLine?.(id) ? '' : ' не сказана (нет озвучки или кулдаун)'}`)
-  }
+  const softOf = () => (softRef.current ??= createSoftSay({ seed: plan?.seed, log: pLog }))
+  const weakSay = (st, idx, why) => { if (!leftByWin) softOf().arm(st, idx, why) } // слабое слово (raceSoft.js): только записать; реплика — когда пилюля слова ушла (gone ниже, raceSoftWait.js)
   return {
     ...rh, result, race: view, mia: miaView, miaCap, miaTalk, miaDemo, miaAlarm, miaPlate, nextIdx, afterCount: switchWait(examEnd(boxFree.afterCount)), miaStuck: boxFree.onStuck, miaTry: boxFree.onTry, miaBoxHit: boxFree.onHit, // конец финала ждёт снятия коробки с Пита; Мия выпрыгнула одна / касание коробки (RaceMia)
     boss: { zone: z => { miaEvent({ t: 'zone', zone: z, idx: mb.zi, stage: running }); if (z === 'slow') redAlarm() } }, // zone — слово отыграно в зоне // финал «Шкала памяти»: слово отыграно в зоне (шкала → машина Мии: пять красных — Пит остаётся внутри)
@@ -220,6 +217,8 @@ export function useRaceActs(args) {
         else speech.translation(0) // говорить нечего: пилюля выезжает сразу
       }))
     },
+    /** Пилюля слова info.idx полностью ушла (движок: конец улёта / уход за нижний край / всплытие, wordLaneRepGone.js): мягкая реплика Пита, если она записана и Пит свободен, а следующей пилюли на экране нет */
+    gone(info) { if (!running || leftByWin) return; const id = softOf().gone(running, info, pitBusy() > 0 || speech.holdMs() > 0); if (id && !sayRef.current.sayLine?.(id)) pLog(`[soft] реплика «${id}» не сказана (нет озвучки или кулдаун)`) },
     /** Пилюля выехала (движок: 'spawn'): первая после перехода закрывает строку журнала «[start] переход …» */
     spawn: () => tr.pill(),
     /** Пит ещё занят (мс): секвенсор запрещает перевод до отступа после похвалы (LOCK_MS), иначе — реплики и перевод (cat.busyLeft) */

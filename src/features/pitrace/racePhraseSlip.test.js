@@ -68,6 +68,6 @@ describe('вид и XP', () => {
   it('заливка неполной фразы — строго 80 %', () => { expect(fillTo({ ratio: 0.75, n: 4 })).toBe(PARTIAL_FILL); expect(PARTIAL_FILL).toBe(0.8) })
   it('проводка: XP не начисляется при res.noXp, пилюля летит вверх, а не в счётчик', () => {
     expect(readFileSync(new URL('../player/modules/rotate-phone/useWordLaneFlow.js', import.meta.url), 'utf8')).toContain('rep.last && !rep.res?.noXp')
-    expect(readFileSync(new URL('./racePhraseScene.js', import.meta.url), 'utf8')).toContain('pool.rise(tg.k, { xp: !res.noXp })')
+    expect(readFileSync(new URL('./racePhraseScene.js', import.meta.url), 'utf8')).toContain('pool.rise(tg.k, { xp: !res.noXp, delay: lift })')
   })
 })
