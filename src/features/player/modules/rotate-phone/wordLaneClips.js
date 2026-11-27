@@ -10,7 +10,7 @@ import { webAudioOn, closeGameCtx } from '../../../../shared/lib/gameAudioCtx.js
 import { stopGameBuffers } from '../../../../shared/lib/gameBufferPlay.js'
 import { monoOf, speechOfUrl, decodeBytes, fetchBlob, measureSpeech, dropFetched, dropBuffers, bufferOfUrl } from './wordLaneFetch.js'
 import { sliceToWav, spanKey } from './wordLaneWav.js'
-import { wordBuffer, wordBufferMs as bufferMsOf, wordBufferInfo, playWordBuffer, registerWordBuffer, forgetWordBuffers, dropSoundBuffers } from './wordLaneBuffers.js'
+import { wordBuffer, bufferProfile, wordBufferMs as bufferMsOf, wordBufferInfo, playWordBuffer, registerWordBuffer, forgetWordBuffers, dropSoundBuffers } from './wordLaneBuffers.js'
 import { ensureSlots, currentSlots, setSlotsState, slotsState, wake, attach, rewakeSlots, playSlot, slotInfo, slotHasUrl, releaseSlots } from './wordLaneSlots.js'
 
 export { monoOf, speechOfUrl } // скачивание и измерение озвучки — wordLaneFetch.js (качать можно ещё в тапе, до создания слотов)
@@ -117,6 +117,8 @@ export function wordSlotInfo(key) {
 }
 /** Есть ли готовая озвучка куска (буфер или слот с подгруженным звуком) */
 export const hasWordSlot = key => !!wordBuffer(wordSlotKey(key)) || slotHasUrl(wordSlotKey(key))
+/** Профиль начала озвучки (громкость окнами, первый звук, самая долгая тишина) по ключу слова — журнал «[audio] профиль начала …»; null — буфера нет */
+export const wordProfile = key => bufferProfile(wordBuffer(wordSlotKey(key)))
 /** Длительность озвучки куска по буферу, мс при скорости rate (0 — буфера нет) */
 export const wordBufferMs = (key, rate = 1) => bufferMsOf(wordSlotKey(key), rate)
 

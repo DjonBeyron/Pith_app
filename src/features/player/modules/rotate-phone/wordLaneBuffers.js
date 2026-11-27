@@ -20,6 +20,19 @@ export const wordBufferMs = (key, rate = 1) => { const b = wordBuffer(key); retu
 /** Состояние слота-буфера для диагностики: { buffer: true, ms, ctx } или null, если буфера нет */
 export const wordBufferInfo = key => { const b = wordBuffer(key); return b ? { buffer: true, ms: Math.round(b.duration * 1000), ctx: gameCtxState() } : null }
 
+/** Профиль начала звука для журнала («Мия: „жжж“, тишина, потом слово», 2026-11-27): громкость (дБ от полной шкалы) окнами по winMs первых maxMs мс буфера + самая длинная тишина (< −55 дБ) внутри этого куска — видно, есть ли в файле «всплеск — пауза — слово» ещё ДО игры. null — нет данных */
+export function bufferProfile(buffer, { winMs = 100, maxMs = 2000, floorDb = -55 } = {}) {
+  const ch = buffer?.getChannelData?.(0), sr = buffer?.sampleRate
+  if (!ch?.length || !sr) return null
+  const win = Math.max(1, Math.round((sr * winMs) / 1000)), n = Math.min(Math.floor(ch.length / win), Math.ceil(maxMs / winMs))
+  const db = []
+  for (let w = 0; w < n; w++) { let s = 0; for (let i = w * win; i < (w + 1) * win; i++) s += ch[i] * ch[i]; const r = Math.sqrt(s / win); db.push(r > 1e-5 ? Math.round(20 * Math.log10(r)) : -99) }
+  let best = { from: 0, len: 0 }, cur = null
+  db.forEach((v, i) => { if (v < floorDb) { cur ??= { from: i, len: 0 }; cur.len += 1; if (cur.len > best.len) best = cur } else cur = null })
+  const first = db.findIndex(v => v >= floorDb)
+  return { db, first: first < 0 ? null : first * winMs, quiet: best.len ? { from: best.from * winMs, ms: best.len * winMs } : null, winMs }
+}
+
 let rateBoost = 1
 /** «Гонка с Питом», «Спуск»: слова и куски играют быстрее скорости голоса урока в k раз (1 — как обычно); директор включает на время раунда и снимает после */
 export const setRateBoost = k => { rateBoost = k > 0 ? k : 1 }

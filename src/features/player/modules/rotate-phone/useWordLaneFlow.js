@@ -118,7 +118,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       }
     },
     mouth(level, code) { catApi?.current?.mouth(level, code) }, hear(level) { catApi?.current?.hear?.(level); if (dbg.enabled && isStudentStage(stages[sRef.current.idx])) dbg.gate(level > 0) }, // mouth — голос Пита (диктор); hear — микрофон: только голова, рот не трогает; gate: голос после ворот
-    peek(ms) { catApi?.current?.peek?.(ms) }, pitLeft: () => rh.pitLeft(), pitBusy: () => rh.pitBusy?.() ?? 0, // pitLeft: Пит ещё говорит — новая пилюля ждёт (репетиция)
+    peek(ms) { catApi?.current?.peek?.(ms) }, pitLeft: () => rh.pitLeft(), pitBusy: () => rh.pitBusy?.() ?? 0, switching: () => !!rh.switching?.(), // pitLeft: Пит ещё говорит — новая пилюля ждёт (репетиция)
     sayText(text, opts) { // «Различи»: звучит слово пилюли (верное или запутыватель) — из библиотеки слов, нет её — без звука; рот кота по буквам слова
       const r = opts?.ru ? transRow(text) : libRow(text); if (opts?.ru && !r) return; dbg.note('word') // opts.ru — перевод «Разгона» (useRaceActs.pre): только озвучка из библиотеки (ключ ru:…), нет её — молча, без голоса системы
       const sp = speechOfUrl(r?.row.url), k = rate > 0 ? rate : 1, file = wordBufferMs(r?.key) || (Number(r?.row.duration) > 0 ? Number(r.row.duration) * 1000 : 0)
@@ -142,7 +142,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   useEffect(() => { handlersRef.current = handlers })
   const [fx] = useState(() => ({
     win: (...a) => handlersRef.current.win(...a), miss: (...a) => handlersRef.current.miss(...a), claim: (...a) => handlersRef.current.claim(...a), fail: (...a) => handlersRef.current.fail(...a),
-    mouth: (...a) => handlersRef.current.mouth(...a), hear: (...a) => handlersRef.current.hear(...a), peek: (...a) => handlersRef.current.peek(...a), pre: (...a) => handlersRef.current.pre(...a), spawn: (...a) => handlersRef.current.spawn(...a), say: (...a) => handlersRef.current.say(...a), sayText: (...a) => handlersRef.current.sayText(...a), finished: (...a) => handlersRef.current.finished(...a), pitLeft: () => handlersRef.current.pitLeft(), pitBusy: () => handlersRef.current.pitBusy(),
+    mouth: (...a) => handlersRef.current.mouth(...a), hear: (...a) => handlersRef.current.hear(...a), peek: (...a) => handlersRef.current.peek(...a), pre: (...a) => handlersRef.current.pre(...a), spawn: (...a) => handlersRef.current.spawn(...a), say: (...a) => handlersRef.current.say(...a), sayText: (...a) => handlersRef.current.sayText(...a), finished: (...a) => handlersRef.current.finished(...a), pitLeft: () => handlersRef.current.pitLeft(), pitBusy: () => handlersRef.current.pitBusy(), switching: () => handlersRef.current.switching(),
   }))
 
   const finish = useCallback(() => {

@@ -93,7 +93,7 @@ voskRuntime.getModel = () => ({ KaldiRecognizer: Rec })
 voskRuntime.evict = () => true; voskRuntime.expect = () => {}
 // Русская модель: тоже заглушка (?ru=0 — «не скачана», проход B пойдёт тапом); переключение моделей отрабатывает по-настоящему (evict / acquire / expect), модель-заглушка отдаётся сразу
 for (const k of ['acquire']) voskRuntimeRu[k] = () => () => {}
-voskRuntimeRu.whenSettled = async () => ({ ok: true }); voskRuntimeRu.warmNow = () => {}; voskRuntimeRu.evict = () => true; voskRuntimeRu.expect = () => {}
+voskRuntimeRu.whenSettled = async () => { const d = Number(params.get('rudelay') || 0); if (d) await new Promise(r => setTimeout(r, d)); return { ok: true } }; /* ?rudelay=мс — русская модель грузится столько (iPhone ≈ 2200, Android ≈ 9000) */ voskRuntimeRu.warmNow = () => {}; voskRuntimeRu.evict = () => true; voskRuntimeRu.expect = () => {}
 voskRuntimeRu.checkCached = async () => params.get('ru') !== '0'
 voskRuntimeRu.getModel = () => ({ KaldiRecognizer: Rec })
 

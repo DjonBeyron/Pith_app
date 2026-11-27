@@ -10,3 +10,9 @@
 .wlPill[data-arrow], .wl[data-mia] .wlPill[data-arrow] { filter: none; text-shadow: none; }
 /* v3.3.285 (владелец: «такой же вид пилюль разворота везде в игре, как в режиме Мии»): серия «огонь» (.wl[data-streak='fire'] .wlPill, race-sprint.css) красила их оранжевым свечением и вне Мии — перебиваем её (и слабое устройство) специфичностью: у пилюль разворота свечения нет никогда */
 .wl[data-race] .wlPill[data-arrow][data-cap], .weak-device .wl[data-race] .wlPill[data-arrow][data-cap] { box-shadow: none; filter: none; }
+/* v3.3.385 (владелец 2026-11-27: «Пит молчит, пока слух переключается — пусть всё идёт синхронно с анимацией»): слух ещё не переключился — пилюли разворота стоят в центре и мягко «дышат» (scale + стрелка), пока модель не готова (data-wait, raceReverseTurn.js); только transform/opacity на трёх пилюлях */
+@keyframes wlRevWait { from { scale: 1; } to { scale: 1.07; } }
+@keyframes wlRevWaitArrow { from { opacity: 0.45; } to { opacity: 0.95; } }
+.wlPill[data-arrow][data-wait] { animation: wlRevWait 0.8s ease-in-out infinite alternate; }
+.wlPill[data-arrow][data-wait]::after { animation: wlRevWaitArrow 0.8s ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) { .wlPill[data-arrow][data-wait], .wlPill[data-arrow][data-wait]::after { animation: none; } }

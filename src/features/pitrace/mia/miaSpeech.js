@@ -19,7 +19,7 @@ export const MIC_MUTE_PAD_MS = 600
 export const WORD_MS = 1300      // запас на слово, которое Пит говорит следом за репликой (cue.word: экзамен, «это значит» + верное слово)
 export const MAX_PIT_TRIES = 40     // сколько раз пробуем реплику Пита (шаг 300 мс ≈ 12 с), пока он занят переводами и репликами игры: дальше пропускаем, очередь не стоит
 
-export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout, play = () => false, has = () => false, bufferMs = () => 0, hold = null, snap = () => '', onCaption = () => {}, onSpeak = () => {}, log = () => {}, trace = scenePush } = {}) { // trace — трасса сцены («Таймлайн игры»): начало и конец реплики Мии; только запись, не бросает
+export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout, play = () => false, has = () => false, bufferMs = () => 0, hold = null, snap = () => '', onCaption = () => {}, onSpeak = () => {}, log = () => {}, probe = null, trace = scenePush } = {}) { // trace — трасса сцены («Таймлайн игры»): начало и конец реплики Мии; только запись, не бросает
   const src = { lines: null, cat: null, listener: null } // свежие реплики, кот и слушатель кладёт use() (из эффекта хука: рефы в рендере читать нельзя)
   let queue = [], timer = 0, playing = null, endAt = 0, capTimer = 0, seq = 0, playAt = 0
   const caption = (c, ms, why = '') => { clearTimer(capTimer); onCaption(c); if (c) { try { log(`[mia] подпись реплики ${c.key.split(':')[1]}${why ? ` — ${why}` : ''}: ${Math.round(ms)} мс`) } catch { /* журнал не мешает */ } } capTimer = c ? setTimer(() => onCaption(null), ms + CAPTION_TAIL_MS) : 0 } // подпись реплики над Мией; журнал — почему она появилась (владелец: «плашка с текстом за Мией, озвучивать нечего»)
@@ -72,7 +72,7 @@ export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout,
     trace('line-start', { who: 'mia', id: c.id, text, ms: Math.round(ms), ...(voiced ? {} : { silent: true }) })
     if (voiced) {
       let started = false
-      const ok = play(key, res => { if (!started && res?.play !== 'ok' && res?.play !== 'started') { caption({ key: `${++seq}:${c.id}`, who, text }, ms, `звук не стартовал (${res?.play ?? 'нет ответа'})`) } }, () => { started = true; log(`[mia] звук ${c.id} стартовал: ${snap()}`) }, end)
+      const ok = play(key, res => { if (!started && res?.play !== 'ok' && res?.play !== 'started') { caption({ key: `${++seq}:${c.id}`, who, text }, ms, `звук не стартовал (${res?.play ?? 'нет ответа'})`) } }, () => { started = true; log(`[mia] звук ${c.id} стартовал: ${snap()}`); try { probe?.({ id: c.id, key, ms }) } catch { /* диагностика не мешает звуку */ } }, end)
       if (!ok) caption({ key: `${++seq}:${c.id}`, who, text }, ms, 'слот не принял звук')
     } else timer = setTimer(done, ms)
   }

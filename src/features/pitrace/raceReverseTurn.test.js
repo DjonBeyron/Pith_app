@@ -2,7 +2,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { miaColorOn } from './mia/miaTint.js'
-import { runReverseTurn, revBack, TURN_EVENT, REV_MS, REV_ARRIVE_MS, REV_PAUSE_MS, REV_TURN_MS, REV_LEAVE_MS, REV_BACK_LEAD_MS } from './raceReverseTurn.js'
+import { runReverseTurn, revBack, REV_WAIT_POLL_MS, TURN_EVENT, REV_MS, REV_ARRIVE_MS, REV_PAUSE_MS, REV_TURN_MS, REV_LEAVE_MS, REV_BACK_LEAD_MS, REV_HOLD_CAP_MS } from './raceReverseTurn.js'
+import { stageTiming } from '../rehearsal/rehearsalCountdown.js'
+import { revTurnLatestMs, revTimes } from './raceReverseTimes.js'
 import { DECEL_MS } from '../player/modules/rotate-phone/wordLaneConveyor.js'
 import { afterLeaveSpeech, LEAVE_MAX_POLLS } from './mia/miaLeave.js'
 
@@ -54,6 +56,46 @@ describe('разворот в реверс', () => {
   })
 })
 
+describe('разворот ждёт переключения слуха (v3.3.385)', () => {
+  it('модель уже готова к повороту (iPhone ≈ 2 с): тайминг прежний, ожидания нет', () => {
+    const r = rig(); r.run({ hold: () => false }); r.timers[T.still + 0].fn()
+    const probe = r.timers[1]; expect(probe.ms).toBe(REV_ARRIVE_MS + REV_PAUSE_MS); const n = r.timers.length; probe.fn()
+    expect(r.timers.slice(n).map(t => t.ms)).toEqual([0, REV_TURN_MS / 2, REV_TURN_MS, REV_TURN_MS + REV_LEAVE_MS + 40])
+    expect(r.calls.some(c => c[0] === 'attr' && c[2] === 'data-wait')).toBe(false)
+  })
+  it('модель ещё грузится (Android ≈ 9 с): пилюли стоят в центре (data-wait), поворот и отъезд ждут готовности и идут от неё', () => {
+    let busy = true; const r = rig(); r.run({ hold: () => busy }); const n0 = r.timers.length; r.timers[1].fn()
+    expect(r.calls.filter(c => c[0] === 'attr' && c[2] === 'data-wait' && c[3] === true).length).toBe(3)
+    expect(r.els.every(e => e.animations.length === 1)).toBe(true) // не вращаются и не уезжают
+    const poll = () => r.timers.at(-1); expect(poll().ms).toBe(REV_WAIT_POLL_MS)
+    poll().fn(); poll().fn(); expect(r.els.every(e => e.animations.length === 1)).toBe(true) // всё ещё ждём
+    busy = false; const n = r.timers.length; poll().fn()
+    expect(r.calls.filter(c => c[0] === 'attr' && c[2] === 'data-wait' && c[3] === false).length).toBe(3)
+    expect(r.timers.slice(n).map(t => t.ms)).toEqual([0, REV_TURN_MS / 2, REV_TURN_MS, REV_TURN_MS + REV_LEAVE_MS + 40]); expect(n0).toBe(2) // до готовности запланированы только торможение и проба стоянки: поворот и отъезд не стоят в очереди
+    r.timers[n].fn(); expect(r.els.every(e => e.animations[1].frames[1].rotate === '180deg')).toBe(true)
+  })
+  it('потолок ожидания: модель так и не готова — через REV_HOLD_CAP_MS разворачиваемся сами', () => {
+    const now = vi.spyOn(performance, 'now'); now.mockReturnValue(1000)
+    const r = rig(); r.run({ hold: () => true }); r.timers[1].fn(); now.mockReturnValue(1000 + REV_HOLD_CAP_MS + 1)
+    const n = r.timers.length; r.timers.at(-1).fn(); expect(r.timers.length).toBe(n + 4); now.mockRestore()
+  })
+  it('revTurnLatestMs: поворот, отъезд и возврат в пул укладываются в стадию — ожидание модели план не удлиняет', () => {
+    const hold = 6500, v = 1.28, T = revTimes(v); expect(revTurnLatestMs(hold, v) + REV_TURN_MS + T.leave + 40).toBeLessThan(hold); expect(revTurnLatestMs(hold, v)).toBeGreaterThan(T.arrive + REV_PAUSE_MS) // стадия с репликой Пита: есть запас сверх приезда (≈ 0,8 с в журнале iPhone)
+    expect(revTurnLatestMs(REV_MS, 1)).toBeLessThan(REV_ARRIVE_MS + REV_PAUSE_MS + 1) // стадия без реплики: запаса нет, поворот как раньше
+  })
+  it('после реплики про разворот нет пустого хвоста: у стадии без плашки minMs = 0 (iPhone v3.3.384: 1,37 с тишины после «переключаюсь на русский»)', () => {
+    const base = { lead: 250, busyMs: 2000, lineMs: 3657, pause: 600, hasLine: true, quiet: true }
+    const was = stageTiming({ ...base, minMs: 1100 }).holdMs, now = stageTiming({ ...base, minMs: 0 }).holdMs
+    expect(was - (250 + 2000 + 20 + 3657)).toBeGreaterThan(1300); expect(now).toBe(250 + 2000 + 3657 + 600); expect(was - now).toBeGreaterThanOrEqual(700)
+  })
+  it('проводка: слух читает fx.switching из директора, стадия ждёт через useSwitchWait, у пилюли data-wait сбрасывается в пуле, у стадии разворота нет фиксированного хвоста ms', () => {
+    expect(rd('./useRaceActs.js')).toContain("switching: () => sw.state() === 'switching'"); expect(rd('./useRaceActs.js')).toContain('rh.holdMs({ ...st, ms: 0 })')
+    expect(rd('../player/modules/rotate-phone/useWordLanePills.js')).toContain('hold: back ? null : () => !!fxRef.current?.switching?.()')
+    expect(rd('../player/modules/rotate-phone/wordLanePool.js')).toContain("'data-wait'"); expect(rd('./useRaceActs.js')).toContain('revTurnLatestMs(running.revHoldMs')
+    expect(rd('../../styles/player/modules/race-reverse.css')).toContain('data-wait')
+  })
+})
+
 describe('разворот назад (церемония Мии после B)', () => {
   it('пилюли приезжают снизу (data-arrow = up) и уезжают вниз; узор дорожек возвращается вниз (data-up снят); busy снимается при возврате в пул', () => {
     const r = rig(); r.root.attrs['data-up'] = ''; revBack.busy = true; r.run({ back: true })
@@ -100,7 +142,7 @@ describe('стадия разворота и уход Мии', () => {
   })
 })
 
-import { revTimes, clampSpeed, REV_SPEED_MIN, REV_SPEED_MAX, REV_RAMP_PCT } from './raceReverseTimes.js'
+import { clampSpeed, REV_SPEED_MIN, REV_SPEED_MAX, REV_RAMP_PCT } from './raceReverseTimes.js'
 import { SPEED, ENTER_Y } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 describe('разворот идёт со скоростью конвейера (v3.3.277)', () => {
   it('равномерная часть приезда — ровно на скорости конвейера SPEED·k; у Мии (быстрее) разворот короче, у медленного — длиннее; множитель зажат', () => {

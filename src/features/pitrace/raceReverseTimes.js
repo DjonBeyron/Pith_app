@@ -14,6 +14,9 @@ export const convSpeed = { v: 1 } // множитель скорости кон�
 
 export const clampSpeed = s => Math.min(REV_SPEED_MAX, Math.max(REV_SPEED_MIN, Number(s) > 0 ? Number(s) : 1))
 
+/** Самый поздний момент (мс от начала стадии), когда пилюли ещё могут начать поворот, не растягивая стадию: holdMs — сколько стадия держится, дальше поворот + отъезд + возврат в пул (+ запас). Пилюли ждут слух не дольше этого срока: анимация подстраивается под реальную загрузку модели, но план не удлиняется (плашка и ноты прохода B идут параллельно с остатком загрузки) */
+export const revTurnLatestMs = (holdMs, speed = convSpeed.v) => holdMs - REV_TURN_MS - revTimes(speed).leave - 40 - 100
+
 /** Времена разворота (мс) при множителе скорости speed: arrive / leave — приезд и отъезд, lead — до конца поворота (с него стартует отъезд), total — вся стадия с запасом; linear — равномерная часть приезда / отъезда */
 export function revTimes(speed = convSpeed.v) {
   const v = SPEED * clampSpeed(speed), path = Math.abs(REV_MID_Y - ENTER_Y)

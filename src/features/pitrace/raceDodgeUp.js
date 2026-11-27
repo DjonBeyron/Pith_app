@@ -10,18 +10,20 @@ import { pLog } from '../../shared/lib/debug.js'
 export const ZONE_Y = 34       // слово ещё внизу (логическая высота y — от выезда снизу вверх): пока y < ZONE_Y, оно в зоне головы и от него уворачиваются
 const CLEAR = 0.4              // доля ширины головы, на которую слово не должно заходить (как в raceDodge: кончики ушей и усов)
 
-/** Куда встать голове шириной headW (% ширины), стоящей в x, чтобы выезжающие слова (xs — их центры по x, %) не задели: x — прежний (чисто) или ближайший чистый / самый далёкий от слов. */
-export function awayX(xs, x, headW) {
+/** Куда встать голове шириной headW (% ширины), стоящей в x, чтобы выезжающие слова (xs — их центры по x, %) не задели: x — прежний (чисто) или ближайший чистый / самый далёкий от слов.
+ *  nextX — дорожка СЛЕДУЮЩЕГО слова (оно выедет следом, дорожки ступени известны заранее): из чистых мест предпочитаем те, что и от неё чисты, — иначе Пит отпрыгивал ровно туда, где через миг выезжало следующее слово (владелец 2026-11-27, чаще после паузы: «Продолжить» перезапускает выезд, прежняя цель Пита пропадала) */
+export function awayX(xs, x, headW, nextX = null) {
   const need = PILL_W / 2 + headW * CLEAR
   const dist = c => (xs.length ? Math.min(...xs.map(p => Math.abs(p - c))) : Infinity)
   if (dist(x) >= need) return x
   const half = headW / 2 + 2
   const cands = [DODGE_EDGE, laneX(0, headW), 50, laneX(2, headW), 100 - DODGE_EDGE, laneX(1, headW)].map(c => Math.min(100 - half + headW * 0.25, Math.max(half - headW * 0.25, c)))
   const clean = cands.filter(c => dist(c) >= need).sort((a, b) => Math.abs(a - x) - Math.abs(b - x))
-  return clean[0] ?? cands.reduce((best, c) => (dist(c) > dist(best) ? c : best), cands[0])
+  const free = nextX == null ? clean : clean.filter(c => Math.abs(c - nextX) >= need)
+  return (free[0] ?? clean[0]) ?? cands.reduce((best, c) => (dist(c) > dist(best) ? c : best), cands[0])
 }
 
-export function createDodgeUp({ cat, peek = () => {}, log = pLog, now = () => performance.now(), quick }) {
+export function createDodgeUp({ cat, peek = () => {}, log = pLog, now = () => performance.now(), quick, lanes = [], from = 0 }) { // lanes — дорожки слов ступени по порядку выезда, from — с какого слова идёт ступень («Продолжить» после паузы): откуда считать «следующее»
   const svg = cat?.querySelector('.wlCatSvg')
   if (!svg) return null
   const { headW } = measureHead(cat)
@@ -34,7 +36,8 @@ export function createDodgeUp({ cat, peek = () => {}, log = pLog, now = () => pe
       if (n - peekAt >= 250) { peekAt = n; peek(700) } // ступень идёт — голова на виду всё время (как у прямого конвейера)
       const low = list.filter(p => p.state === 'fly' && p.y < ZONE_Y)
       if (!low.length) return
-      const x = awayX(low.map(p => LANE_X[p.lane] ?? 50), depth.x, headW)
+      const nl = lanes[Math.max(from, ...list.map(p => p.rep + 1))] // дорожка слова, которое выедет следом (после «Продолжить» — от текущего состояния пилюль, не от плана до паузы)
+      const x = awayX(low.map(p => LANE_X[p.lane] ?? 50), depth.x, headW, nl != null ? LANE_X[nl] ?? 50 : null)
       if (Math.abs(x - depth.x) < 0.5 || now() - last < 120) return
       last = now()
       cat.dataset.dodgeX = String(x)

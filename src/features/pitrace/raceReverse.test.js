@@ -37,6 +37,19 @@ describe('обратный конвейер', () => {
     const y = awayX([LANE_X[0], LANE_X[2]], 27, 50) // слова слева и справа: единственное свободное место — центр не годится, берём самое далёкое
     expect(typeof y).toBe('number'); expect(ZONE_Y).toBeGreaterThan(0)
   })
+  it('Пит не прыгает туда, где выедет следующее слово (v3.3.385, «уворачивается ровно туда, где выходит пилюля»)', () => {
+    expect(awayX([LANE_X[1]], 50, 50)).toBeLessThan(20) // без учёта следующего — влево, на дорожку 1
+    expect(awayX([LANE_X[1]], 50, 50, LANE_X[0])).toBeGreaterThan(80) // следующее выедет слева — уходим вправо
+    expect(awayX([LANE_X[1]], 50, 50, LANE_X[2])).toBeLessThan(20) // следующее справа — влево
+    expect(awayX([LANE_X[0]], 27, 50, LANE_X[1])).toBeGreaterThan(80) // центр занят следующим — дальше вправо, а не в центр
+    expect(awayX([LANE_X[1]], 50, 50, LANE_X[1])).toBeLessThan(20) // следующее на той же дорожке, что и нынешнее: выбор прежний
+    expect(awayX([LANE_X[0], LANE_X[2]], 50, 50, LANE_X[1])).toBeGreaterThan(0) // свободных мест нет — не ломаемся (берём прежнее решение)
+  })
+  it('проводка: привод получает дорожки ступени и «с какого слова» (после паузы — от текущих пилюль), следующее слово считается от выехавших', () => {
+    const up = rd('./raceDodgeUp.js'), pills = rd('../player/modules/rotate-phone/useWordLanePills.js')
+    expect(pills).toContain('createDodgeUp({ cat: root.parentElement?.querySelector(\'.wlCat\'), peek: ms => fxRef.current?.peek?.(ms), lanes: step.reps.map(r => r.lane), from: scene.from ?? 0 })')
+    expect(up).toContain('lanes[Math.max(from, ...list.map(p => p.rep + 1))]'); expect(up).toContain('awayX(low.map(p => LANE_X[p.lane] ?? 50), depth.x, headW, nl != null')
+  })
   it('проводка: пул ставит data-up и считает экранную высоту зеркально, движок передаёт up: step.reverse, привод — createDodgeUp, узор дорожек бежит вверх', () => {
     const pool = rd('../player/modules/rotate-phone/wordLanePool.js'), pills = rd('../player/modules/rotate-phone/useWordLanePills.js')
     expect(pool).toContain("el.setAttribute('data-up', '1')"); expect(pool).toContain('l.up ? mirrorY(flightY(l.anim)) : flightY(l.anim)'); expect(pool).not.toContain('mirrorY(RISE_END_Y)'); expect(pool).toContain('startRise(parts[k].el, scr(l), RISE_DELAY_MS, RISE_END_Y)')

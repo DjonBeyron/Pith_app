@@ -3,7 +3,9 @@ import { pLog } from '../../../shared/lib/debug.js'
 import { scenePush } from '../../../shared/lib/sceneTrace.js'
 import { audioPulse } from '../../../shared/lib/gameAudioPulse.js'
 import { gameMicHold } from '../../../shared/lib/gameMicHold.js'
-import { playWordSlot, hasWordSlot, wordBufferMs } from '../../player/modules/rotate-phone/wordLaneClips.js'
+import { peekGameCtx } from '../../../shared/lib/gameAudioCtx.js'
+import { createMiaProbe } from '../mia/miaProbe.js'
+import { playWordSlot, hasWordSlot, wordBufferMs, wordProfile } from '../../player/modules/rotate-phone/wordLaneClips.js'
 import { createMiaSpeech, miaGap } from '../mia/miaSpeech.js'
 import { DEMO_START, DEMO_IDS, demoPlan, revealAtMs } from './bossScale.js'
 import { byeAtMs } from './lineWordAt.js'
@@ -22,7 +24,7 @@ export function useExamSpeech(lines, onTalk = null) { // onTalk(c) — Мия н
   const [miaCap, setMiaCap] = useState(null)
   const [api] = useState(() => {
     const src = { lines: null, onEnd: null, onTalk: null, cap: false, word: 0 } // свежие реплики и обработчик конца кладёт use() (из эффектов); cap — подпись неозвученной реплики сейчас на экране
-    const sp = createMiaSpeech({ play: playWordSlot, has: hasWordSlot, bufferMs: wordBufferMs, hold: gameMicHold, snap: audioPulse, onCaption: c => { src.cap = !!c; setMiaCap(c) }, log: pLog,
+    const sp = createMiaSpeech({ play: playWordSlot, has: hasWordSlot, bufferMs: wordBufferMs, hold: gameMicHold, snap: audioPulse, onCaption: c => { src.cap = !!c; setMiaCap(c) }, log: pLog, probe: createMiaProbe({ enabled: () => true, profileOf: wordProfile, ctxTime: () => peekGameCtx()?.currentTime ?? null, log: pLog }),
       trace: (k, d) => { scenePush(k, d); if (k === 'line-end' && d?.who === 'mia' && !d.why) { try { src.onEnd?.(d.id) } catch (e) { pLog(`[mia] конец реплики ${d.id}: сбой обработчика (${e?.message ?? e})`) } } },
       onSpeak: c => {
         src.onTalk?.(c)

@@ -54,7 +54,7 @@ const log = [], metrics = [], shots = new Set(), TRACE = (E.TRACE || '').split('
 let tracing = null, AT = E.AT ? E.AT.split(':') : null
 const shot = async name => { if (!SHOTS || shots.has(name)) return; shots.add(name); await page.screenshot({ path: `${OUT}/${NAME}-${name}.png` }) }
 const snap = async sid => { const m = await cdp.send('Performance.getMetrics'); metrics.push({ sid, at: Date.now(), m: Object.fromEntries(m.metrics.map(x => [x.name, x.value])) }) }
-await page.goto(`${BASE}?seed=r1&ask=voice&only=stages&lines=1&meaning=1&perf=1${E.PROBE === '1' ? '&probe=1' : ''}${E.UNDER === '1' ? '&under=1' : ''}${E.DEBUG === '0' ? '&debug=0' : ''}`)
+await page.goto(`${BASE}?seed=r1&ask=voice&only=stages&lines=1&meaning=1&perf=1${E.PROBE === '1' ? '&probe=1' : ''}${E.UNDER === '1' ? '&under=1' : ''}${E.DEBUG === '0' ? '&debug=0' : ''}${E.QS ?? ''}`) // QS='&rudelay=9000' — доп. параметры стенда
 await page.waitForSelector('[data-testid="rotate-start"]:not([disabled])', { timeout: 30000 })
 if (E.CSS) await page.addStyleTag({ content: E.CSS }) // CSS='…' — пробные стили поверх сборки (опыты «что стоит времени»)
 await sleep(800)

@@ -68,7 +68,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
       const go = () => {
         const tail = pool.tail?.()
         if (back ? performance.now() - t0 < 300 || (fxRef.current?.pitBusy?.() ?? 0) > revTimes(sp).lead : tail != null && tail < 30 && performance.now() - t0 < wait + 800) { timer = setTimeout(go, back ? 100 : 60); return } // назад — за REV_BACK_LEAD_MS до конца диалогов Мии и Пита (пилюли приезжают и разворачиваются под её последнюю реплику, после неё нет тишины, владелец v3.3.270); вперёд — доезжающая пилюля прошлой ступени не мешает (не дольше 0,8 с)
-        stop = runReverseTurn({ pool, root, fast, back, speed: sp })
+        stop = runReverseTurn({ pool, root, fast, back, speed: sp, hold: back ? null : () => !!fxRef.current?.switching?.() })
       }
       timer = setTimeout(go, wait)
       return () => { clearTimeout(timer); stop(); revBack.busy = false; pool.giveAll() }
@@ -135,7 +135,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
       const t0 = performance.now()
       const off = levels?.subscribe(l => { raw = l })
       const blind = !step.labels.length
-      const dodger = dodgeRef.current && !tr ? (step.reverse ? createDodgeUp({ cat: root.parentElement?.querySelector('.wlCat'), peek: ms => fxRef.current?.peek?.(ms) }) : createDodgeDrive({ cat: root.parentElement?.querySelector('.wlCat'), lanes: step.reps.map(r => r.lane), from: scene.from ?? 0, peek: ms => fxRef.current?.peek?.(ms) })) : null // «Говорю» гонки: Пит ныряет / прыгает к дорожке следующей пилюли (pitrace/raceDodgeDrive.js)
+      const dodger = dodgeRef.current && !tr ? (step.reverse ? createDodgeUp({ cat: root.parentElement?.querySelector('.wlCat'), peek: ms => fxRef.current?.peek?.(ms), lanes: step.reps.map(r => r.lane), from: scene.from ?? 0 }) : createDodgeDrive({ cat: root.parentElement?.querySelector('.wlCat'), lanes: step.reps.map(r => r.lane), from: scene.from ?? 0, peek: ms => fxRef.current?.peek?.(ms) })) : null // «Говорю» гонки: Пит ныряет / прыгает к дорожке следующей пилюли (pitrace/raceDodgeDrive.js)
       const decoys = [] // чужие пилюли тройки: { k (номер в пуле), lane, speed, born, end, hit }
       const shake = d => { const now = performance.now(), y = ENTER_Y + (SPEED * d.speed * (now - d.born)) / 1000; return y > 0 && y < EXIT_Y - 6 && now < d.end } // чужая пилюля ещё на экране?
       setApi(sceneApi, {
