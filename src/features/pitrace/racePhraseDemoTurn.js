@@ -11,7 +11,7 @@ import { createPeek, lineReached } from './racePhrasePeek.js'
 import { ENTER_Y } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { createFillView, approachFillFast } from '../player/modules/rotate-phone/wordLaneFillView.js'
 import { edgeAt } from './racePhraseFill.js'
-import { RISE_DELAY_MS, RISE_MS } from '../player/modules/rotate-phone/wordLaneRise.js'
+import { RISE_DELAY_MS, RISE_MS } from '../player/modules/rotate-phone/wordLaneRise.js'; import { BURST_WIDE_END_MS } from '../player/modules/rotate-phone/wordLaneBubbles.js'
 import { mountMask } from './racePhraseMaskView.js'
 import { runDemoScript, heardUpTo, demoPlan } from './racePhraseDemo.js'
 import { phraseWords } from './racePhraseData.js'
@@ -69,8 +69,8 @@ export function createDemoTurn({ pool, lane, phrase, kit, show, snap = () => {},
     if (k != null && !risen) {
       risen = true
       say(`взлёт: y ${Math.round(y() ?? 0)} % (у головы — ${Math.round(riseY)} %), ${since()} мс от начала`)
-      pool.attr(k, 'data-lock'); pool.flashLane?.(lane); snap(pool.el(k), lane, { full: true })
-      if (pool.rise(k)) dropMask(RISE_DELAY_MS + RISE_MS + 100)
+      pool.attr(k, 'data-lock'); pool.flashLane?.(lane); const out = snap(pool.el(k), lane, { full: true }), lift = out > 0 ? BURST_WIDE_END_MS : RISE_DELAY_MS // пузыри вылетели и исчезли — потом улёт без них
+      if (pool.rise(k, { delay: lift })) dropMask(lift + RISE_MS + 100)
     }
     timers.push(setTimer(done, AFTER_RISE_MS))
   }

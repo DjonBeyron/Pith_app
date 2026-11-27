@@ -21,6 +21,8 @@ export const BUB_MIN_DEPTH = 7      // самый верхний пузырь: �
 export const BUB_SPAN = 0.6         // глубина кластера — не больше этой доли длины пилюли…
 export const BUB_SPAN_PX = 118      // …и не больше стольких px
 export const BURST_MS = 600         // вылет: 600…920 мс
+export const BURST_WIDE_MS = 240    // широкая пилюля «Скажи» (владелец 2026-11-27: «пузырьки вылетели и исчезли, пилюля полетела без них»): вылет короткий, 240…300 мс + до 20 мс задержки
+export const BURST_WIDE_END_MS = 340 // к этому мигу пузырей широкой пилюли уже нет (вылет кончился, набор убран): улёт стартует не раньше (racePhraseScene, racePhraseDemoTurn → pool.rise({ delay }))
 const owners = new WeakMap()        // пилюля → её пул пузырей (для хлопка: wordLaneSnap.snapPill знает только узел пилюли)
 
 const lcg = seed => { let s = seed >>> 0; return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296 } }
@@ -130,7 +132,8 @@ export function createBubbles({ off = isWeakDevice, sets = BUB_SETS, count = BUB
     const dMax = Math.max(...live.map(x => x.h.d))
     const now = live.map(x => { const st = cs(x.n); return { transform: st?.transform, opacity: st ? Number(st.opacity) : 1 } }) // все чтения — до первой записи
     s.out = true; spent.add(el); s.box.setAttribute('data-out', '1')
-    s.anims = live.map((x, i) => x.n.animate(burstFrames(x.h, geo, { from: now[i], a: rnd(), b: rnd() }), { duration: Math.round(BURST_MS + rnd() * 320), delay: Math.round((x.h.d / dMax) * 70), fill: 'both' }))
+    const wide = !!geo.wide // широкая: короткий вылет, чтобы пилюля стартовала БЕЗ пузырей (BURST_WIDE_END_MS)
+    s.anims = live.map((x, i) => x.n.animate(burstFrames(x.h, geo, { from: now[i], a: rnd(), b: rnd() }), wide ? { duration: Math.round(BURST_WIDE_MS + rnd() * 60), delay: Math.round((x.h.d / dMax) * 20), fill: 'both' } : { duration: Math.round(BURST_MS + rnd() * 320), delay: Math.round((x.h.d / dMax) * 70), fill: 'both' }))
     const done = () => { if (s.out && s.owner === el) release(s) }
     Promise.all(s.anims.map(a => a?.finished ?? Promise.resolve())).then(done, done)
     return live.length

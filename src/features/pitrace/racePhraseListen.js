@@ -13,7 +13,7 @@ import { createGame2Listener } from '../game2/game2Listen.js'
 import { createWordListener } from '../player/modules/rotate-phone/wordLaneListen.js'
 import { createDraftHold, PEAK_MIN, DRAFT_KEEP_MS } from './racePhraseDraftHold.js'
 import { createTailHold, cutTail, holdLast, tailWait, TAIL_HOLD_MS, TAIL_LAST_STABLE_MS } from './racePhraseTailHold.js'
-import { unglue } from './racePhraseGlue.js'; import { createSticky } from './racePhraseSticky.js'
+import { unglue } from './racePhraseGlue.js'; import { createSticky } from './racePhraseSticky.js'; import { orHits } from './racePhraseOrHits.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { scorePhrases, pickPhrase, unionWords, earLine, PHRASE_OK, PHRASE_GAP, cleanHeard as clean, normPhrases as norm } from './racePhraseScore.js'
 import { GATE_RMS } from '../../shared/lib/vosk/voskGate.js'
@@ -147,7 +147,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
     if (wordByWord && (draft || settled) && (current || !curRaw.includes('[unk]'))) promoteHeld() // только по черновику / паузе: ИТОГ захода сам решает судьбу черновых слов (v3.3.322, журнал 13:03: черновик «are you», итог «are [unk]» — «you» подтвердилось за миг до отката; v3.3.321 — то же с заходом из одного «[unk]»)
     const heard = heardNow()
     if (!heard && !(wordByWord && (curRaw.includes('[unk]') || [...sent.values()].some(g => g.size)))) return false // проход 1 идёт дальше и с пустым услышанным: v3.3.318 — заход из одного «[unk]» откатывает черновые слова (журнал 10:23: «you» → «[unk]», а «you» осталось); v3.3.320 — подтверждённые слова живут в sent, а не в тексте прошлых заходов (неполная фраза закрывается по паузе)
-    let scores = score(heard, draft && curDraft)
+    let scores = score(heard, draft && curDraft); if (!wordByWord && current && heard !== current) scores = orHits(scores, score(current)) // v3.3.385: проход 2 — слова нового захода не затеняются старым текстом (racePhraseOrHits.js)
     if (wordByWord && draft && /\[unk\]\s+[^\s[]/.test(curRaw)) { // v3.3.311: перед словом в заходе «[unk]» («[unk] from») — чужое слово, сопоставленное со словом цели: новые слова черновиком не принимаем (и фразу не засчитываем), ждём итог захода
       scores = scores.map(s => { const b = baseOf(s.key), hits = s.hits.map((h, i) => h && i < b), ok = hits.filter(Boolean).length; if (ok < s.ok && !blockedLogged) { blockedLogged = true; log(`[phrase-ear] новые слова в заходе с «[unk]» перед ними — черновиком не принимаю, жду итог ${rel()}`) } if (ok < s.ok && !unkTimer) { const mine = gen; unkTimer = setTimer(() => { unkTimer = 0; if (mine !== gen || disposed || !curDraft || !current) return; log(`[phrase-ear] слово за «[unk]» ждёт итог ${UNK_FINAL_MS} мс (черновик «${current}») — прошу итог захода ${rel()}`); ear?.stop?.() }, UNK_FINAL_MS) } return { ...s, hits, ok, ratio: hits.length ? ok / hits.length : 0 } })
     }

@@ -122,6 +122,7 @@ export function createPool(root) {
       const a = parts[k].el.animate([{ ...pos(from), opacity: 1 }, { ...pos(to), opacity: 1, offset: 0.2 }, { ...pos(to), opacity: 1, offset: 0.82 }, { ...pos(to), opacity: 0 }], { duration: ms, easing: 'ease-out', fill: 'both' })
       l.anim = a; l.linger = true
       a.finished?.then(() => { if (live.get(k) === l) give(k) }).catch(() => { /* снята раньше (give / смена сцены) */ })
+      return a // конец всплытия — «пилюля ушла» (wordLaneRepGone.js)
     },
     /** Подпись внутри пилюли (data-cap): «Гонка с Питом» — перевод, при промахе английское слово; пусто — подпись снята */
     cap: setCap,
@@ -194,12 +195,12 @@ export function createPool(root) {
      * Взлёт принятой пилюли: полёт вниз снимается (положение — по его часам), заливка доводится до края, через RISE_DELAY_MS пилюля улетает вверх (wordLaneRise.js); когда взлёт кончился — give.
      * Пилюля после этого вне логики конвейера (в игре ученика движок отпускает её из своих рук). Возвращает анимацию или null, если взлетать нечему (нет полёта, уже взлетела, не выдана).
      */
-    rise(k, { xp = false, simple = false } = {}) { // simple — верное слово на ≥ FLY_SIMPLE_SHARE пути: простой улёт прямо вверх (startRiseSimple, одна анимация) // xp — верная пилюля даёт XP: счётчик пульсирует, когда она на 90 % за экраном (полёта в счётчик нет)
+    rise(k, { xp = false, simple = false, delay = RISE_DELAY_MS } = {}) { // delay — пауза перед взлётом: у широкой пилюли с пузырями улёт ждёт конца их вылета (wordLaneBubbles.BURST_WIDE_END_MS) // simple — верное слово на ≥ FLY_SIMPLE_SHARE пути: простой улёт прямо вверх (startRiseSimple, одна анимация) // xp — верная пилюля даёт XP: счётчик пульсирует, когда она на 90 % за экраном (полёта в счётчик нет)
       const l = live.get(k)
       if (!l?.anim || l.rise) return null
       const game = root.closest?.('.wl')
-      const a = simple ? startRiseSimple(parts[k].el, scr(l), RISE_END_Y) : startRise(parts[k].el, scr(l), RISE_DELAY_MS, RISE_END_Y) // верная улетает ВВЕРХ по старой синусоиде и в реверсе (замечание владельца v3.3.270)
-      if (xp && game) setTimeout(() => game.dispatchEvent(new globalThis.CustomEvent(XP_PULSE_EVENT)), simple ? XP_ARRIVE_SIMPLE_MS : XP_ARRIVE_MS) // пилюля почти покинула экран — пульс счётчика
+      const a = simple ? startRiseSimple(parts[k].el, scr(l), RISE_END_Y) : startRise(parts[k].el, scr(l), delay, RISE_END_Y) // верная улетает ВВЕРХ по старой синусоиде и в реверсе (замечание владельца v3.3.270)
+      if (xp && game) setTimeout(() => game.dispatchEvent(new globalThis.CustomEvent(XP_PULSE_EVENT)), simple ? XP_ARRIVE_SIMPLE_MS : XP_ARRIVE_MS + delay - RISE_DELAY_MS) // пилюля почти покинула экран — пульс счётчика
       try { l.anim.cancel() } catch { /* уже снята */ }
       l.anim = null; l.rise = a
       parts[k].el.setAttribute('data-rise', '1')

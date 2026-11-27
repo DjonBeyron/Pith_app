@@ -52,7 +52,7 @@ describe('обратный конвейер', () => {
   })
   it('проводка: пул ставит data-up и считает экранную высоту зеркально, движок передаёт up: step.reverse, привод — createDodgeUp, узор дорожек бежит вверх', () => {
     const pool = rd('../player/modules/rotate-phone/wordLanePool.js'), pills = rd('../player/modules/rotate-phone/useWordLanePills.js')
-    expect(pool).toContain("el.setAttribute('data-up', '1')"); expect(pool).toContain('l.up ? mirrorY(flightY(l.anim)) : flightY(l.anim)'); expect(pool).not.toContain('mirrorY(RISE_END_Y)'); expect(pool).toContain('startRise(parts[k].el, scr(l), RISE_DELAY_MS, RISE_END_Y)')
+    expect(pool).toContain("el.setAttribute('data-up', '1')"); expect(pool).toContain('l.up ? mirrorY(flightY(l.anim)) : flightY(l.anim)'); expect(pool).not.toContain('mirrorY(RISE_END_Y)'); expect(pool).toContain('startRise(parts[k].el, scr(l), delay, RISE_END_Y)')
     expect(pills).toContain('up: !!step.reverse'); expect(pills).toContain('step.reverse ? createDodgeUp(')
     expect(rd('../../styles/player/modules/word-lane-lane-run.css')).toContain('.wl[data-up] .wlLanes i::before { transform: translate3d(0, calc(var(--run-p, 0px) - var(--run-y, 0px))')
     expect(rd('../player/modules/rotate-phone/WordLaneGame.jsx')).toContain("data-up={laneUp(f) ? '' : undefined}")

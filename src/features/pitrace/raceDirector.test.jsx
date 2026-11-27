@@ -1,4 +1,5 @@
 import { SOFT_IDS } from './raceSoft.js'
+import * as softMod from './raceSoftWait.js'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { createElement } from 'react'
@@ -83,7 +84,8 @@ describe('useRaceActs: директор гонки поверх директор
     expect(sayLine.mock.calls.map(c => c[0])).toEqual([st.good[0].id])
     const t = probe('catch'); t.rh.rec('miss', { idx: i }); expect(t.sayLine).not.toHaveBeenCalled() // промах при живой пилюле — не слабое слово: Пит не говорит под руку
     const tr = probe('catch'), trap = st.words.findIndex(w => w.trap); if (trap >= 0) { tr.rh.rec('fail', { idx: trap }); expect(tr.sayLine).not.toHaveBeenCalled() } // ловушка пропущена верно — слабым не считается
-    const w = probe('catch'); w.rh.rec('fail', { idx: i }); expect(w.sayLine.mock.calls.map(c => c[0]).filter(id => SOFT_IDS.includes(id))).toHaveLength(1) // «не успел» на первом слабом слове — мягкая реплика (raceSoft.js)
+    const w = probe('catch'); w.rh.rec('fail', { idx: i }); expect(w.sayLine.mock.calls.map(c => c[0]).filter(id => SOFT_IDS.includes(id))).toHaveLength(0) // «не успел»: реплика НЕ в событии слабого слова — пилюля ещё уходит (владелец 2026-11-27)
+    vi.advanceTimersByTime(1500); w.rh.gone({ idx: i, why: 'fail', out: 0 }); expect(w.sayLine.mock.calls.map(c => c[0]).filter(id => SOFT_IDS.includes(id))).toHaveLength(1) // …а когда ушла полностью (raceSoftWait.js)
   })
   it('перед выездом пилюли Пит говорит: в разгоне — русский перевод (ru), в «Слушай и лови» — английское слово (hold: Пит занят); без озвучки — молча', () => {
     const sp = probe('sprint'); sp.rh.pre({ cap: 'learn', say: 'учиться' }) // тап: на пилюле английское слово, а говорит Пит перевод (rep.say)
@@ -155,5 +157,32 @@ describe('useRaceActs: директор гонки поверх директор
     expect(src).toContain("setRateBoost(descent ? DESCENT_RATE : 1)"); expect(src).toContain('reportRace({ plan, race: box.s })'); expect(src).toContain("pLog(`[race] ${r.log}`)")
     expect(src).toContain("res.gold ? 'race_done_gold' : 'race_done'")
     expect(read('../rehearsal/useRehearsalActs.js')).toContain("running?.type !== 'summary' || race") // итог гонки не считает директор репетиции
+  })
+})
+
+describe('мягкие реплики Пита — только после ухода пилюли (владелец 2026-11-27)', () => {
+  const soft = c => c.sayLine.mock.calls.map(x => x[0]).filter(id => SOFT_IDS.includes(id))
+  const weak = (p, i, claimed = false) => { if (claimed) { p.rh.claim({ idx: i }, 1500, 70, 0.9); p.rh.rec('win', { idx: i, last: true }) } else p.rh.rec('fail', { idx: i }) }
+  const idx = p => p.stages.find(s => s.sid === 'catch').words.findIndex(w => !w.trap)
+  it('верно на ≥ 80 % пути: в события claim и win реплики нет, после конца улёта (gone) — есть; чужое слово не запускает', () => {
+    vi.useFakeTimers(); const p = probe('catch'), i = idx(p); weak(p, i, true)
+    expect(soft(p)).toHaveLength(0); vi.advanceTimersByTime(1500); p.rh.gone({ idx: i + 1, why: 'rise', out: 0 }); expect(soft(p)).toHaveLength(0)
+    p.rh.gone({ idx: i, why: 'rise', out: 0 }); expect(soft(p)).toHaveLength(1); p.rh.gone({ idx: i, why: 'rise', out: 0 }); expect(soft(p)).toHaveLength(1) // второй раз — тишина
+  })
+  it('следующая пилюля уже на экране (out > 0) или Пит занят — пропуск, счёт слабых идёт', () => {
+    vi.useFakeTimers(); const p = probe('catch'), i = idx(p); weak(p, i); vi.advanceTimersByTime(1500); p.rh.gone({ idx: i, why: 'fail', out: 1 }); expect(soft(p)).toHaveLength(0)
+    const q = probe('catch', { cat: { busyLeft: () => 900, praiseTakeoff: vi.fn() } }), j = idx(q); weak(q, j); vi.advanceTimersByTime(1500); q.rh.gone({ idx: j, why: 'fail', out: 0 }); expect(soft(q)).toHaveLength(0)
+  })
+  it('пауза / смена стадии снимает ожидание: gone после «Продолжить» молчит', () => {
+    const { createSoftSay } = softMod, log = vi.fn(), w = createSoftSay({ seed: 's', log }), st = { type: 'student', act: 'catch', sid: 'catch' }
+    w.arm(st, 0, 'не успел'); expect(SOFT_IDS).toContain(w.pending()); w.clear('пауза'); expect(w.pending()).toBeNull()
+    expect(w.gone(st, { idx: 0, out: 0 }, false)).toBeNull(); expect(log.mock.calls.some(c => /снята: пауза/.test(c[0]))).toBe(true)
+    w.arm(st, 1, 'не успел'); expect(w.gone({ ...st, sid: 'other' }, { idx: 1, out: 0 }, false)).toBeNull() // другая стадия
+  })
+  it('устарело (> SOFT_STALE_MS) — пропуск; в журнале «после ухода пилюли (N мс после claim)»', () => {
+    let t = 1000; const { createSoftSay, SOFT_STALE_MS } = softMod, log = vi.fn(), st = { type: 'student', act: 'catch', sid: 'catch' }
+    const w = createSoftSay({ seed: 's', log, now: () => t }); w.arm(st, 0, 'верно на 82 % пути'); t += 930
+    expect(SOFT_IDS).toContain(w.gone(st, { idx: 0, out: 0 }, false)); expect(log.mock.calls.at(-1)[0]).toMatch(/после ухода пилюли \(930 мс после claim\)/)
+    const v = createSoftSay({ seed: 's', log, now: () => t }); v.arm(st, 0, 'x'); t += SOFT_STALE_MS + 1; expect(v.gone(st, { idx: 0, out: 0 }, false)).toBeNull()
   })
 })

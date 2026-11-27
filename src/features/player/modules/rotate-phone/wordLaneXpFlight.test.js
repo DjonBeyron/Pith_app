@@ -38,7 +38,7 @@ describe('награда без полёта в счётчик (wordLaneRiseXp, 
   })
   it('пилюля взлетает старым взлётом вверх (startRise), а не в счётчик', () => {
     const pool = readFileSync(new URL('./wordLanePool.js', import.meta.url), 'utf8')
-    expect(pool).toContain('startRise(parts[k].el, scr(l), RISE_DELAY_MS, RISE_END_Y)'); expect(pool).not.toContain('startRiseXp'); expect(pool).toContain('XP_ARRIVE_MS)')
+    expect(pool).toContain('startRise(parts[k].el, scr(l), delay, RISE_END_Y)'); expect(pool).not.toContain('startRiseXp'); expect(pool).toContain('XP_ARRIVE_MS + delay - RISE_DELAY_MS)')
   })
 })
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { createBubbles, bubbleHomes, bubblesAt, bubblePos, burstFrames, burstBubbles, BUB_COUNT, BUB_SETS, BUB_BOB, BUB_SWAY } from './wordLaneBubbles.js'
+import { createBubbles, bubbleHomes, bubblesAt, bubblePos, burstFrames, burstBubbles, BUB_COUNT, BUB_SETS, BUB_BOB, BUB_SWAY, BURST_WIDE_MS, BURST_WIDE_END_MS } from './wordLaneBubbles.js'
 import { surfaceAt, halfAt, lineAt, SURF_PX, TIP_PX } from './wordLaneLevel.js'
 import { createPool, POOL } from './wordLanePool.js'
 import { snapPill, burstOrigin } from './wordLaneSnap.js'
@@ -234,5 +234,17 @@ describe('вёрстка пузырей', () => {
     const idx = readFileSync(fileURLToPath(new URL('../../../../index.css', import.meta.url)), 'utf8')
     expect(idx).toContain("@import './styles/player/modules/word-lane-bubbles.css';")
     expect(idx).not.toContain('word-lane-jets.css')
+  })
+})
+
+describe('широкая пилюля: пузырьки вылетают коротко и исчезают до улёта (v3.3.385)', () => {
+  it('вылет 240…300 мс + задержка ≤ 20 мс — конец не позже BURST_WIDE_END_MS; у вертикальной по-прежнему 600…920; к концу набор убран, анимаций не осталось', async () => {
+    for (const [geo, short] of [[WIDE[0], true], [VERT[0], false]]) {
+      const { pill, bubs } = rig(), p = pill()
+      bubs.level(p, 0.8, geo, 't', true); bubs.level(p, 1, geo, 'translateY(0.0%)', true); const box = p.querySelector('.wlBubs'); expect(burstBubbles(p)).toBe(BUB_COUNT); const ends = box.children.map(n => n.anims[0].opts.duration + n.anims[0].opts.delay)
+      if (short) { expect(Math.max(...ends)).toBeLessThanOrEqual(BURST_WIDE_END_MS); expect(Math.min(...ends)).toBeGreaterThanOrEqual(BURST_WIDE_MS) } else expect(Math.min(...ends)).toBeGreaterThanOrEqual(600)
+      box.children.forEach(n => n.anims[0].finish()); await new Promise(r => setTimeout(r, 0))
+      expect(p.querySelector('.wlBubs')).toBeNull(); expect(box.children.every(n => n.anims[0].cancel.mock.calls.length === 1)).toBe(true) // убраны и сняты: getAnimations() пуст
+    }
   })
 })
