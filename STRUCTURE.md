@@ -3915,6 +3915,7 @@ A2 из `PLAN_NEW_USER.md`. Чистая модель без React и сети: 
 | `_stand/race/perf-moment.mjs` | Покадровая картина моментов Мии по замеру `perf-run.mjs` |
 | `_stand/race/perf-events.mjs`, `perf-paint.mjs` | Замер производительности игры: выжимка событий трассы (что шло в длинных кадрах) / сводка «что перекрашивается» из трассы Chromium (v3.3.378) |
 | `_stand/race/vite.perf.config.mjs`, `perfStand.js`, `perf-run.mjs`, `perf-report.mjs`, `perf-trace.mjs` | Замер производительности игры на прод-сборке стенда: прогон полной игры, сводка по этапам «до → после», разбор трассы Chromium |
+| `src/features/pitrace/racePhraseStick1128.test.js` | Тесты: заливка «Скажи» втыкается на пропущенном слове (пропущено первое, среднее, последнее; сказано позже) и отходит от края, если зачёта нет |
 | `src/shared/lib/microFreeze.js` | Учёт микро-фризов (кадры ≥ 25 мс) в окне −100…+500 мс вокруг выезда, улёта и «слово принято», строка `[micro]` в журнал |
 | `src/shared/lib/microFreeze.test.js` | Тесты учёта микро-фризов |
 | `_stand/race/perf-micro.mjs` | Окна микро-фризов по замеру `perf-run.mjs`, сравнение «до / после» |
