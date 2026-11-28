@@ -5,12 +5,16 @@
 //    сказанным проявляется целым словом до 20 % (racePhrasePeek.js; до первого слова подсказки нет); неверное слово (racePhraseWrongWord.js) — рывок кромки красным (racePhraseNudge.js),
 //    заливка не меняется, журнал «[fill] неверное слово «…», ждём «…»» (onWrong — racePhraseSayTrace.wrong).
 //  • Проход 2 — текст открыт ВСЕГДА (маску не трогаем), подсказки и рывка нет; заливка по словам одним движением, без ступенек (racePhraseGlide.js). Итог фразы (done) — 100 % в обоих проходах.
-import { fillGoal } from './racePhraseFill.js'
+import { fillGoal, edgeAt, LAST_WORD_CAP } from './racePhraseFill.js'
 import { createPeek, lineReached } from './racePhrasePeek.js'
 import { createGlide } from './racePhraseGlide.js'
 import { createWrongWord, WRONG_GAP_MS } from './racePhraseWrongWord.js'
 import { createNudge } from './racePhraseNudge.js'
 import { phraseWords } from './racePhraseData.js'
+
+// ЗАЛИТО ДО КРАЯ БЕЗ ЗАЧЁТА (2026-11-28, владелец v3.3.394: «полностью заполнился, но не улетал — это вводит в заблуждение»): все слова сказаны (линия у LAST_WORD_CAP), а слух фразу не принял за FULL_WAIT_MS — линия отходит к границе
+// перед последним словом: у края пилюля стоит только пока зачёт вот-вот придёт (обычно 0–400 мс). Принят итог — доезд до 100 % и взлёт как всегда; проверка слуха не меняется.
+export const FULL_WAIT_MS = 800
 
 const white = heard => { const m = new Map(); for (let i = 0; heard.has(i); i++) m.set(i, true); return m } // проход 1: сказанное слово — целиком (замечание владельца: «слово полностью белое»), только непрерывный префикс — как линия
 
@@ -24,6 +28,7 @@ export function createSayView({ pass, text, n, mask, log = () => {}, nudge = nul
   const glide = two ? createGlide({ n, log }) : null
   const wrong = createWrongWord({ words: phraseWords(text) }) // подпись неверного слова — в обоих проходах (v3.3.277: в проходе 2 её не было), рывок кромки — только в проходе 1
   const jerk = !two && nudge ? createNudge({ mark: nudge, el, log }) : null
+  let fullAt = null, backed = false // fullAt — когда цель впервые дошла до LAST_WORD_CAP без итога; backed — линия отведена (журнал один раз)
   let said = new Map(), jerkAt = -Infinity, redAt = null // redAt — номер слова, красного сейчас (для журнала «красное снято»)
   return {
     /** Слово цели услышано (gone — откат, проход 1): heard — Map номер слова → подтверждено ли (сцена уже обновила) */
@@ -38,7 +43,12 @@ export function createSayView({ pass, text, n, mask, log = () => {}, nudge = nul
     /** Цель заливки на кадр: words — слова для заливки прохода 1 (Map, racePhraseFill.markWord), done — итог фразы */
     goal({ t, words, done }) {
       const edges = mask?.edges() ?? null
-      return two ? glide.goal({ t, edges, done }) : fillGoal({ words, n, done, edges })
+      const g = two ? glide.goal({ t, edges, done }) : fillGoal({ words, n, done, edges })
+      if (done || n < 2 || g < LAST_WORD_CAP - 1e-9) { fullAt = null; if (backed && !done) { backed = false } return g }
+      fullAt ??= t
+      if (t - fullAt < FULL_WAIT_MS) return g
+      if (!backed) { backed = true; log(`[fill] слова все сказаны, зачёта нет ${Math.round(t - fullAt)} мс — заливка не стоит у края, отхожу к границе перед последним словом`) }
+      return edgeAt(n - 1, n, edges)
     },
     /** Кадр: проявление подсказки; неверное слово (пока нет итога) — рывок кромки */
     frame(t, done = false, fill = 1) {

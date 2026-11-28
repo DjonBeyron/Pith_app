@@ -156,7 +156,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
     const n = phraseWords(turn().target.text).length || 1, ratio = Math.min(1, said.count() / n), wbw = turn().pass !== 2, v = edgeVerdict({ grace, t, lit: said.count(), n, canHold: !!pool.hold, wbw, last: said.last() })
     const head = `[phrases] круг ${cfg.round} ${ROUND_LOG[cfg.mode]}, ход ${turn().idx + 1}/${turns.length}${passTag()}: пилюля у края без итога —`
     if (v === 'hold') { grace = t; log(`${head} ход продлён на ${graceMs({ grace: t, wbw, last: said.last() })} мс (черновик ${Math.round(ratio * 100)} %)`) }
-    else if (v === 'draft') { log(`${head} итог по черновику ${Math.round(ratio * 100)} %, нечисто`); fin = { at: t, extra: { ...(turn().pass === 2 ? passTwoRes(ratio, said.times()) : { ratio }), clean: false, late: true }, word: said.last(), to: fillTo({ ratio, n, edges: sv?.edges() }) } }
+    else if (v === 'draft') { log(`${head} итог по черновику ${Math.round(ratio * 100)} %, нечисто`); fin = { at: t, extra: { ...(turn().pass === 2 ? passTwoRes(ratio, said.times()) : { ratio }), clean: false, late: true }, word: said.last(), to: fillTo({ ratio, n, edges: sv?.edges(), heard: said.heard() }) } }
     else if (v === 'fail') resolve('fail', { ratio })
   }
 
@@ -166,7 +166,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
     if (e?.phraseKey !== turn().target.key || !(e.ratio >= PHRASE_OK)) return
     const n = phraseWords(turn().target.text).length || 1
     const ratio = Math.min(1, Math.max(e.ratio, said.count() / n))
-    fin = { at: now(), extra: { ...(turn().pass === 2 ? passTwoRes(ratio, said.times()) : { ratio, clean: ratio >= 1 }), late: isLate(target()?.y) }, word: said.last(), to: fillTo({ ratio, n, edges: sv?.edges() }) } // word — последнее услышанное слово (журнал «→ 100 %»); проход 2: ещё и без остановок; взлёт — когда заливка доехала (tick)
+    fin = { at: now(), extra: { ...(turn().pass === 2 ? passTwoRes(ratio, said.times()) : { ratio, clean: ratio >= 1 }), late: isLate(target()?.y) }, word: said.last(), to: fillTo({ ratio, n, edges: sv?.edges(), heard: said.heard() }) } // word — последнее услышанное слово (журнал «→ 100 %»); проход 2: ещё и без остановок; взлёт — когда заливка доехала (tick)
     target()?.mask?.set(said.heard(), true); if (isPartial(ratio)) target()?.mask?.keepWrong?.(said.heard()); trace.phrase(ratio)
   }
 

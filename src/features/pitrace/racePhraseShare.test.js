@@ -11,6 +11,12 @@ describe('racePhraseShare', () => {
     expect(fillTo({ ratio: 0.75, n: 4 })).toBe(PARTIAL_FILL); expect(PARTIAL_FILL).toBe(0.8)
     expect(fillTo({ ratio: 0.75, n: 4, edges: [0.2, 0.5, 0.9, 1] })).toBe(0.8)
     expect(fillTo({ ratio: 9 / 10, n: 10 })).toBe(0.8); expect(fillTo({ ratio: 5 / 6, n: 6 })).toBe(0.8)
+    // 2026-11-28: с известными услышанными словами — граница перед первым несказанным (линия «втыкается» на пропущенном слове)
+    const h = ks => new Map(ks.map(k => [k, true]))
+    expect(fillTo({ ratio: 0.75, n: 4, heard: h([0, 1, 3]) })).toBeCloseTo(0.5, 5) // пропущено 3-е слово («meet»)
+    expect(fillTo({ ratio: 0.75, n: 4, heard: h([1, 2, 3]) })).toBe(0) // пропущено первое — линия не двигается
+    expect(fillTo({ ratio: 0.75, n: 4, heard: h([0, 1, 2]) })).toBeCloseTo(0.75, 5) // пропущено последнее
+    expect(fillTo({ ratio: 0.75, n: 4, heard: h([0, 2, 3]), edges: [0.2, 0.5, 0.9, 1] })).toBe(0.2) // по границам слов на пилюле
     expect(isPartial(0.75)).toBe(true); expect(isPartial(1)).toBe(false)
   })
   it('B: доезд идёт к to, взлёт — когда заливка дошла до to', () => {

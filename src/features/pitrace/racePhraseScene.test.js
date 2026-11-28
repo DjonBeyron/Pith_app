@@ -21,8 +21,7 @@ describe('сцена широкой ленты: круг 2 «Скажи»', () =
     stubSay('nice to'); s.go(600); expect(p.fill).toBeCloseTo(0.5, 2) // два слова — две полные доли, «аванс» после первого слова не перелетает
     s.go(1400); expect(p.fill).toBeCloseTo(0.5, 2)
     expect(s.fx.win).not.toHaveBeenCalled()
-    stubSay('nice to you'); s.go(16); expect(s.fx.win).not.toHaveBeenCalled() // итог: заливка сначала доезжает до 100 %
-    s.go(500); expect(s.fx.win).toHaveBeenCalledTimes(1); expect(p.fill).toBeCloseTo(0.8, 2) // фраза принята по 3 словам из 4 — заливка доезжает строго до 80 %, не до 100 % (владелец, v3.3.275)
+    stubSay('nice to you'); s.go(500); expect(s.fx.win).toHaveBeenCalledTimes(1); expect(p.fill).toBeCloseTo(0.5, 2) // принята по 3 словам из 4 («meet» пропущено) — заливка втыкается на пропущенном слове (граница после «to»), а не 80 % и не 100 % (владелец, 2026-11-28)
     expect(s.fx.win.mock.calls[0][2].res).toMatchObject({ ok: true, ratio: 0.75, clean: false })
     expect(p.attrs.has('data-partial')).toBe(true) // D: взлёт янтарным, не по всем словам
     s.run.stop()
