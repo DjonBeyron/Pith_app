@@ -12,14 +12,17 @@ const run = async () => {
 }
 const alive = r => [...new Set(r.words.filter(w => !w.gone).map(w => w.index))].sort()
 
+// Решение владельца 2026-11-28 отменило часть сценария 27.11: слова ПОСЛЕ пропущенного первого («trying to learn» без «I'm») не хранятся — после «i'm» засчитано только оно, «trying to learn» нужно сказать заново.
 describe('проход 2: повтор после неполного захода', () => {
-  it('первый заход без «I\'m» не засчитан, слова 2–4 услышаны', async () => {
-    const r = await run(); expect(r.got).toEqual([]); expect(alive(r)).toEqual([1, 2, 3]); r.l.stop()
+  it('первый заход без «I\'m» не засчитан, слов нет вовсе (слова после пропуска не хранятся)', async () => {
+    const r = await run(); expect(r.got).toEqual([]); expect(alive(r)).toEqual([]); r.l.stop()
   })
-  it('«i\'m» нового захода доходит до сцены сразу, а не с последним словом повтора', async () => {
+  it('«i\'m» нового захода доходит до сцены сразу и один; «trying to learn» заново — зачёт целиком', async () => {
     const r = await run()
     r.cur().cb.onPartial('i'); r.advance(213); r.cur().cb.onPartial("i'm")
-    expect(alive(r)).toEqual([0, 1, 2, 3]); expect(r.got.map(g => g.ratio)).toEqual([1]) // раньше: слова 0 не было до «i'm trying to learn», зачёт — только с ним
+    expect(alive(r)).toEqual([0]); expect(r.got).toEqual([])
+    r.cur().cb.onPartial("i'm trying"); expect(alive(r)).toEqual([0, 1]); expect(r.got).toEqual([])
+    r.cur().cb.onPartial("i'm trying to learn"); expect(alive(r)).toEqual([0, 1, 2, 3]); expect(r.got.map(g => g.ratio)).toEqual([1])
     r.l.stop()
   })
   it('orHits: слово сказано, если сказано хоть в одном разборе; ratio пересчитан', () => {

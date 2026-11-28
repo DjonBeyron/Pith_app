@@ -13,7 +13,7 @@ import { createGame2Listener } from '../game2/game2Listen.js'
 import { createWordListener } from '../player/modules/rotate-phone/wordLaneListen.js'
 import { createDraftHold, PEAK_MIN, DRAFT_KEEP_MS } from './racePhraseDraftHold.js'
 import { createTailHold, cutTail, holdLast, tailWait, TAIL_HOLD_MS, TAIL_LAST_STABLE_MS } from './racePhraseTailHold.js'
-import { unglue } from './racePhraseGlue.js'; import { createSticky } from './racePhraseSticky.js'; import { orHits } from './racePhraseOrHits.js'
+import { unglue } from './racePhraseGlue.js'; import { createSticky, stickyScore } from './racePhraseSticky.js'; import { orHits } from './racePhraseOrHits.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { scorePhrases, pickPhrase, unionWords, earLine, PHRASE_OK, PHRASE_GAP, cleanHeard as clean, normPhrases as norm } from './racePhraseScore.js'
 import { GATE_RMS } from '../../shared/lib/vosk/voskGate.js'
@@ -74,7 +74,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
   let disposed = false
 
   const baseOf = key => { const g = sent.get(key); let k = 0; while (g?.get(k) === true) k++; return k } // сколько слов с начала подтверждено итогом (непрерывно)
-  const score = (heard, open = false) => (wordByWord ? scorePhrases(phrases, heard, { strict: true, base: baseOf, open }) : sticky.merge(scorePhrases(phrases, heard, true), key => phrases.find(p => p.key === key)?.words ?? [])) // проход 1 — строгая цепочка (strictHits, v3.3.306): неверное слово линию не двигает, слова за ним не запоминаются; проход 2 — по порядку (orderedHits). Прежний комментарий: слова только по порядку (racePhraseScore.orderedHits) в ОБОИХ проходах (v3.3.302, журнал владельца: «nice you meet to» засчитало фразу на 100 %, заливка дошла до конца); раньше проход 2 считал набором слов, порядок не важен
+  const score = (heard, open = false) => (wordByWord ? scorePhrases(phrases, heard, { strict: true, base: baseOf, open }) : stickyScore(sticky, phrases, heard, open)) // ОБА прохода — строгая цепочка (strictHits): слово засчитано, только если оно ожидаемое (первое не сказанное); неверное / пропущенное слово линию стопорит, слова ПОСЛЕ него не хранятся (владелец 2026-11-28: «упёрся в неверное, дальше ничего не воспринималось, потом верное слово, остальные — сказать снова»); проход 2 — ещё и «липкое» начало (racePhraseSticky.js)
   const heardNow = (cur = current) => { const t = now(); past = past.filter(p => t - p.at <= (wordByWord ? JOIN_WBW_MS : JOIN_MS)); return [...past.filter(p => !wordByWord || p.at >= cutAt).map(p => p.text), cur].filter(Boolean).join(' ') }
   const clearState = () => { hold.clear(); sticky.clear(); tail.clear(); clearTimer(tailTimer); tailTimer = 0; clearTimer(unkTimer); unkTimer = 0; clearTimer(loneTimer); loneTimer = 0; tailLogged = false; curDraft = false; noiseLogged = false; progressed = false; curRaw = ''; past = []; cutAt = -Infinity; cutVisit = false; current = ''; sent = new Map(); clearTimer(settleTimer); settleTimer = 0; clearTimer(quietTimer); quietTimer = 0; clearTimer(gateTimer); gateTimer = 0; clearTimer(muteTimer); muteTimer = 0; throughBy = ''; throughAt = null; firstAt = null; zero = now(); sameAt = -Infinity; pauseMax = 0 }
   const quietMs = () => quietLimit(pauseMax, wordByWord)

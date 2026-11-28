@@ -20,7 +20,7 @@ describe('createPhraseListener', () => {
     expect(r.got).toEqual([{ phraseKey: 'nice to meet you', ratio: 1, heard: 'nice to meet you' }])
     const meet = r.words.filter(w => w.phraseKey === 'nice to meet you').map(w => w.index)
     expect(meet).toEqual([0, 1, 2, 3])
-    expect(r.words.filter(w => w.phraseKey === 'nice to see you').map(w => w.index)).toEqual([0, 1, 3])
+    expect(r.words.filter(w => w.phraseKey === 'nice to see you').map(w => w.index)).toEqual([0, 1]) // «see» не сказано — «you» после него не хранится (владелец 2026-11-28)
     expect(r.logs.at(-1)).toMatch(/\[phrase-ear\] кандидаты .* услышал «nice to meet you» · лучший «nice to meet you» ratio 1\.00/)
     expect(r.cur().stopped + r.cur().cancelled).toBeGreaterThan(0) // заход закрыт…
     r.advance(10); await flush()
@@ -189,9 +189,7 @@ describe('createPhraseListener', () => {
     const g = rig([P.meet, P.from]); await flush() // затвор открылся раньше 150 мс — запрос отменён
     voice(g, 400); g.cur().cb.onPartial('where are'); voice(g, 300); g.advance(300); g.cur().opts.onGate(false, 0.001)
     g.advance(100); g.cur().opts.onGate(true, 0.04); g.advance(200); expect(g.cur().stopped).toBe(0)
-    const m = rig([P.meet, P.from]); await flush() // не хватает середины, последнее слово есть — итог по затвору без голоса после черновика
-    voice(m, 600); m.advance(150); m.cur().cb.onPartial('where you from'); m.advance(150); m.cur().opts.onGate(false, 0.001); m.advance(GATE_CLOSE_FINAL_MS)
-    expect(m.cur().stopped).toBe(1); expect(m.logs.find(x => x.includes('итог запрошен'))).toContain('последнее слово есть')
-    r.l.stop(); q.l.stop(); g.l.stop(); m.l.stop()
+    // «не хватает середины, последнее слово есть» (старый случай 'ends') отменён решением владельца 2026-11-28: слова после пропуска не хранятся — «where you from» это только «where»
+    r.l.stop(); q.l.stop(); g.l.stop()
   })
 })

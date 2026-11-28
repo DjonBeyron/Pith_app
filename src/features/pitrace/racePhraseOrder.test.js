@@ -74,13 +74,13 @@ describe('слушатель прохода 1: по порядку и откат
     q.r.cur().cb.onPartial('nice to'); expect(q.r.words.some(e => e.index === 2)).toBe(false); expect(q.line()).toBe(0.46)
     q.r.l.stop()
   })
-  it('порядок: «to nice» — только «nice»; проход 2 — как раньше, без отката и без порядка', async () => {
+  it('порядок: «to nice» — только «nice»; проход 2 — тоже по порядку: «meet» вперёд не хранится (2026-11-28)', async () => {
     const c = chain(); await flush()
     c.r.cur().cb.onPartial('to nice'); expect(c.r.words.filter(e => e.phraseKey === P.meet.key).map(e => e.index)).toEqual([0]); expect(c.line()).toBe(0.38)
     c.r.l.stop()
     const two = rig([P.meet, P.from]); await flush()
     two.cur().cb.onPartial('meet'); two.cur().cb.onPartial('nice')
-    expect(two.words.filter(e => e.phraseKey === P.meet.key)).toEqual([{ phraseKey: P.meet.key, index: 2, text: 'meet', draft: true }, { phraseKey: P.meet.key, index: 0, text: 'nice', draft: true }])
+    expect(two.words.filter(e => e.phraseKey === P.meet.key)).toEqual([{ phraseKey: P.meet.key, index: 0, text: 'nice', draft: true }]) // «meet» до «nice» — слово вперёд, не слышится
     two.l.stop()
   })
 })
