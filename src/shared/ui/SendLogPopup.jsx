@@ -13,7 +13,7 @@ const STOP = { onPointerDown: halt, onPointerUp: halt, onTouchStart: halt, onTou
 
 export default function SendLogPopup({ value, onChange, withLogs, onWithLogs, append, onAppend, onSend, onCancel }) {
   const ref = useRef(null)
-  useEffect(() => { const el = ref.current; if (!el) return; el.focus(); try { el.setSelectionRange(el.value.length, el.value.length) } catch { /* курсор останется в начале */ } }, []) // курсор — в конец: текст может начинаться с подставленного адреса блока таймлайна
+  useEffect(() => { const el = ref.current; if (!el) return; try { el.setSelectionRange(el.value.length, el.value.length) } catch { /* курсор останется в начале */ } }, []) // фокус на поле НЕ ставим (владелец 2026-11-28): на смартфоне клавиатура не должна выскакивать сразу при открытии попапа — поле открывается по тапу; курсор — в конец: текст может начинаться с подставленного адреса блока таймлайна
   // Закрытие попапа (Отмена / Отправить / Esc / фон / размонтирование родителем): поле теряет фокус ЯВНО до удаления из DOM. Кнопки не отбирают фокус (keepFocus), и на iPhone диктовка клавиатуры оставалась
   // активной вместе с удалённым полем — iOS держал микрофон и аудиосессию, «Продолжить» получал мёртвый вывод («звук занят», журнал владельца v3.3.394, iPhone 12 mini)
   useLayoutEffect(() => { const el = ref.current; return () => { try { el?.blur() } catch { /* поле уже убрано */ } } }, [])
