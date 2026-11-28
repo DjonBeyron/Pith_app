@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { edgeScale, edgeFrames, startFlight, EDGE_SCALE, EDGE_ZONE, edgeScaleAt, FLIGHT_MS, ANIM_MS } from './wordLaneMotion.js'
 import { ENTER_Y, EXIT_Y } from './wordLaneTimeline.js'
-import { missPill, snapPill, POP_EDGE_FRAMES, SOFT_MISS_MS } from './wordLaneSnap.js'
+import { missPill, snapPill, POP_EDGE_FRAMES, SOFT_MISS_MS, SOFT_MISS_SHAKE_MS, SOFT_MISS_TINT_MS } from './wordLaneSnap.js'
 
 // «Гонка с Питом»: масштаб летящих вниз пилюль (точка расширения edge, по умолчанию выкл) и тихий промах (quiet): микро-анимация без полос.
 const read = f => readFileSync(new URL(f, import.meta.url), 'utf8')
@@ -48,12 +48,23 @@ describe('масштаб пилюль у краёв (edge)', () => {
 })
 
 describe('тихий промах (data-quiet)', () => {
-  it('неверное слово: дрожь и красная обводка 200 мс на самой пилюле, без data-wrong (полос) и без вспышки внутри', () => {
+  it('неверное слово: дрожь, красная обводка ≥ 0,5 с (v3.3.399: 200 мс было не заметить) и лёгкий налив; без data-wrong (полос)', () => {
     const p = el(['data-quiet']); missPill(p)
     expect(p.setAttribute).not.toHaveBeenCalled(); expect(p.animate).toHaveBeenCalledTimes(2)
-    for (const c of p.animate.mock.calls) expect(c[1].duration).toBe(SOFT_MISS_MS)
-    expect(SOFT_MISS_MS).toBe(200)
+    expect(p.animate.mock.calls.map(c => c[1].duration)).toEqual([SOFT_MISS_SHAKE_MS, SOFT_MISS_MS])
+    expect(SOFT_MISS_MS).toBeGreaterThanOrEqual(500); expect(SOFT_MISS_SHAKE_MS).toBeLessThan(SOFT_MISS_MS)
     expect(JSON.stringify(p.animate.mock.calls.map(c => c[0]))).not.toMatch(/filter/)
+    const ring = p.animate.mock.calls[1][0]
+    expect(ring.filter(k => k.outline.includes(',1)')).length).toBeGreaterThanOrEqual(2) // обводка полностью красная на двух кадрах подряд — держится, а не мигает
+  })
+  it('налив: красный слой внутри клипа заливки гаснет за SOFT_MISS_TINT_MS и убирается; без клипа — не падает', () => {
+    const made = []
+    vi.stubGlobal('document', { createElement: () => { const n = { style: {}, remove: vi.fn(), animate: vi.fn(() => ({ finished: Promise.resolve() })) }; made.push(n); return n } })
+    const host = { appendChild: vi.fn() }
+    const p = { ...el(['data-quiet']), querySelector: () => host }; missPill(p)
+    expect(host.appendChild).toHaveBeenCalledTimes(1); expect(made[0].animate.mock.calls[0][1].duration).toBe(SOFT_MISS_TINT_MS)
+    vi.unstubAllGlobals()
+    expect(() => missPill(el(['data-quiet']))).not.toThrow()
   })
   it('обычная пилюля (другие раунды, репетиция): data-wrong и красная вспышка — как было', () => {
     const p = el(); missPill(p)

@@ -33,10 +33,13 @@ export const POP_FRAMES = [
 /** Хлопок пилюли с масштабом полёта (data-edge, «Гонка»): без явных кадров 1 в начале и конце — они берутся из-под анимации, пилюля не прыгает с 0,85 на 1 */
 export const POP_EDGE_FRAMES = [{ scale: 1.12, offset: 0.38 }, { scale: 0.985, offset: 0.74 }]
 
-/** Микро-анимация неверного слова на пилюле «Разгона» (data-quiet): дрожь и красная вспышка обводки, 200 мс; без полос, без filter */
-export const SOFT_MISS_MS = 200
-export const SOFT_MISS_SHAKE = [{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)', offset: 0.25 }, { transform: 'translateX(5px)', offset: 0.55 }, { transform: 'translateX(-2px)', offset: 0.8 }, { transform: 'translateX(0)' }]
-export const SOFT_MISS_RING = [{ outline: '3px solid rgba(255,93,115,0)', outlineOffset: '0px' }, { outline: '3px solid rgba(255,93,115,0.95)', outlineOffset: '0px', offset: 0.3 }, { outline: '3px solid rgba(255,93,115,0)', outlineOffset: '0px' }]
+/** Неверное слово на пилюле «Разгона» (data-quiet): дрожь, красная обводка и лёгкий красный налив; без полос, без filter. v3.3.399 (владелец, журнал v3.3.398: «нет красной индикации»): прежние 200 мс
+ *  (пик обводки на 60-й мс, 12 кадров) на iPhone легко пропустить — обводка теперь держится ≈ 0,65 с (4 px, яркая 0,4 с), налив гаснет за 0,45 с; условия показа не менялись */
+export const SOFT_MISS_SHAKE_MS = 260
+export const SOFT_MISS_MS = 650
+export const SOFT_MISS_TINT_MS = 450
+export const SOFT_MISS_SHAKE = [{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)', offset: 0.2 }, { transform: 'translateX(6px)', offset: 0.45 }, { transform: 'translateX(-3px)', offset: 0.7 }, { transform: 'translateX(0)' }]
+export const SOFT_MISS_RING = [{ outline: '4px solid rgba(255,93,115,0)', outlineOffset: '0px' }, { outline: '4px solid rgba(255,93,115,1)', outlineOffset: '0px', offset: 0.1 }, { outline: '4px solid rgba(255,93,115,1)', outlineOffset: '0px', offset: 0.6 }, { outline: '4px solid rgba(255,93,115,0)', outlineOffset: '0px' }]
 
 /** Откуда бьёт запасной залп щелчка (у пилюли нет пузырей): из края, в который упёрлась жидкость (щелчок идёт в кадре, где заливка дошла до 100 %), по направлению заливки. Вертикальная пилюля — из верхней кромки вверх;
  *  широкая «Фраз» (заливка слева направо) — из правого торца вправо-вверх (раньше — из всей верхней кромки, мимо линии заливки). r — рамка пилюли на экране */
@@ -77,9 +80,11 @@ export function snapPill(pill, k, { full = true, simple = false, rect = null } =
  *  (word-lane-pill-wrong.css), пока не защёлкнулась (data-lock) или не вернулась в пул (clean в wordLanePool.js) */
 export function missPill(pill) {
   if (!pill) return
-  if (pill.hasAttribute?.('data-quiet')) { // «Разгон»: только микро-анимация на пилюле (дрожь + красная обводка 200 мс), без data-wrong (полос) и вспышки внутри
-    pill.animate(SOFT_MISS_SHAKE, { duration: SOFT_MISS_MS, easing: 'ease-out' })
+  if (pill.hasAttribute?.('data-quiet')) { // «Разгон»: дрожь + красная обводка + лёгкий налив, без data-wrong (полос)
+    pill.animate(SOFT_MISS_SHAKE, { duration: SOFT_MISS_SHAKE_MS, easing: 'ease-out' })
     pill.animate(SOFT_MISS_RING, { duration: SOFT_MISS_MS, easing: 'ease-out' })
+    const clip = pill.querySelector?.('.wlPillClip')
+    if (clip) flash(clip, 'inset:0;border-radius:999px;background:rgba(255,93,115,0.35);', [{ opacity: 1 }, { opacity: 0 }], SOFT_MISS_TINT_MS)
     return
   }
   pill.setAttribute?.('data-wrong', '1')
