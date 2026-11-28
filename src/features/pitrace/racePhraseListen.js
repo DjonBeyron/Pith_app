@@ -11,7 +11,7 @@
 // накопленное, в том числе прошлые заходы в окне JOIN_MS: фраза, которую Пит прочитал между ходами, в новый ход не попадает.
 import { createGame2Listener } from '../game2/game2Listen.js'
 import { createWordListener } from '../player/modules/rotate-phone/wordLaneListen.js'
-import { createDraftHold, PEAK_MIN, DRAFT_KEEP_MS } from './racePhraseDraftHold.js'
+import { createDraftHold, PEAK_MIN, DRAFT_KEEP_MS } from './racePhraseDraftHold.js'; import { voiceWrong } from './racePhraseVoiceWrong.js'
 import { createTailHold, cutTail, holdLast, tailWait, TAIL_HOLD_MS, TAIL_LAST_STABLE_MS } from './racePhraseTailHold.js'
 import { unglue } from './racePhraseGlue.js'; import { createSticky, stickyScore } from './racePhraseSticky.js'; import { orHits } from './racePhraseOrHits.js'
 import { pLog } from '../../shared/lib/debug.js'
@@ -201,7 +201,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       const breath = kind === 'final' && wordByWord && !text && !curRaw.includes('[unk]') && Number(data?.voiceMs) >= LONG_VOICE_MS // пустой итог после сплошного долгого звука — выдох, не слово
       if (breath) dropDrafts(`пустой итог после ${Math.round(Number(data.voiceMs))} мс сплошного звука — выдох / шум, не слово`)
       const got = decide(false, kind === 'partial')
-      if (kind === 'final' && wordByWord && !breath && !progressed && !hold.noise() && hold.peak() >= PEAK_MIN) { log(`[phrase-ear] голос (пик ${hold.peak().toFixed(3).replace('.', ',')}) без нового слова цели — неверное слово ${rel()}`); onEar?.({ kind: 'wrong', why: 'voice', peak: hold.peak() }) } // v3.3.311 (владелец: «осталось последнее слово, я говорил любое другое — пилюля стояла и молчала»): речь была, нового слова нет — красное ожидаемое слово и рывок
+      const vw = voiceWrong({ kind, wordByWord, text, breath, progressed, anySaid: [...sent.values()].some(g => g.size), noise: hold.noise(), voiced: hold.voiced(), peak: hold.peak(), voiceMs: data?.voiceMs == null ? null : Number(data.voiceMs) }); if (vw) { log(`[phrase-ear] голос (пик ${hold.peak().toFixed(3).replace('.', ',')}) без ${vw.soft ? 'слов цели на первом слове — красное без рывка' : 'нового слова цели — неверное слово'} ${rel()}`); onEar?.({ kind: 'wrong', ...vw }) } // v3.3.401: мягкое красное на первом слове при громком голосе без слов цели (racePhraseVoiceWrong.js)  // v3.3.311 (владелец: «осталось последнее слово, я говорил любое другое — пилюля стояла и молчала»): речь была, нового слова нет — красное ожидаемое слово и рывок
       if (quietWanted(got, wordByWord) && kind === 'partial') quiet(mine) // середины нет — тоже: «from» только итогом, а «you» пришло вместе с ним (голоса после черновика нет)
       else if (got === 'through' && kind === 'final' && !wordByWord) { through('по итогу'); decide(true) } // ученик договорил до последнего слова, а середину уже не скажет — ждать нечего
       else if (got === 'through') { throughBy = kind === 'final' ? 'по итогу' : 'по черновику'; settleLast = true; settle(SETTLE_LAST_MS, mine) } // черновик ещё может достроиться до полного

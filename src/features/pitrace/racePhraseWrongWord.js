@@ -13,6 +13,7 @@ import { normForms } from './racePhraseForms.js'
 
 export const WRONG_GAP_MS = 700
 const VOICE = '[voice]'
+export const VOICE_SOFT = '[voice?]' // громкий голос, а Vosk не вернул НИ ОДНОГО слова цели на первом слове (v3.3.401, racePhraseVoiceWrong.js): красное слово без рывка, не «неверное слово»
 export const SHOWN_GAP_MS = 350 // подпись неверного слова — не чаще
 export const TAIL_STABLE_MS = 350 // последнее (ещё говорящееся) слово черновика, не меняясь столько, годится для подписи — не ждём следующего слова (v3.3.285; v3.3.314: было 200 — журнал владельца: первый черновик Vosk «is» / «in» / «a» переписывался на верное слово через 260–270 мс, а красное и рывок уже срабатывали)
 
@@ -34,7 +35,7 @@ export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
   let prior = 0, closing = false // prior — сколько слов по порядку было сказано к концу ПРОШЛОГО захода: их повтор в новом заходе — неверное слово (v3.3.314, владелец: «не засчитывает неверное, иногда вообще игнор» — журнал: «to» вместо «tomorrow» молчало 3,3 с до итога)
   return {
     ear(e) {
-      if (e?.kind === 'wrong') { queue.push({ w: VOICE, prev: null, next: null }); return } // голос без нового слова цели (слушатель, итог захода): неверное слово без текста
+      if (e?.kind === 'wrong') { queue.push({ w: e.soft ? VOICE_SOFT : VOICE, prev: null, next: null, soft: !!e.soft }); return } // голос без нового слова цели (слушатель, итог захода): неверное слово без текста
       if (e?.kind !== 'partial' && e?.kind !== 'final') return
       let real = false
       const ws = String(e.raw ?? e.text ?? '').toLowerCase().split(/\s+/).filter(w => { if (!w) return false; if (w !== '[unk]') { real = true; return true } return real }) // «[unk]» — слово вне словаря (громкое «is» вместо «are» → «where [unk]») — неверное слово, но только ПОСЛЕ настоящего слова захода: одинокий «[unk]» — шум (журнал v3.3.307: «[unk]» из тишины дал красное и рывок без единого слова)
@@ -63,11 +64,11 @@ export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
       const q = queue; queue = []
       const expect = words[k], far = said.size ? words[Math.max(...said.keys()) + 1] : null
       if (expect == null) return null
-      const bad = q.find(({ w, prev, next }) => !fitsWord(w, expect) && !(far != null && fitsWord(w, far)) && !words.some(x => sameWord(w, x)) && !formPart(w, words, prev, next))
+      const bad = q.find(({ w, prev, next, soft }) => !soft && !fitsWord(w, expect) && !(far != null && fitsWord(w, far)) && !words.some(x => sameWord(w, x)) && !formPart(w, words, prev, next))
       // v3.3.282 (владелец, «where you from» вместо «where are you from»): исключаем только слова, УЖЕ стоящие в порядке (до ожидаемого k); слово «вперёд» («you», услышанное вместо «are») само в said, но подпись над «are» ему нужна
       const again = w => !sameWord(w, expect) && words.slice(0, was).some(x => sameWord(w, x)) // повтор слова из прошлых заходов: «to» при ожидаемом «tomorrow» — не «начало слова», а неверное
       const shown = (stable ? [...q, stable] : q).find(({ w, prev, next }) => (!fitsWord(w, expect) || again(w)) && !words.slice(was, k).some(x => sameWord(w, x)) && !formPart(w, words, prev, next)) // v3.3.314: исключаем слова, сказанные В ЭТОМ заходе (was…k); повтор слова из прошлых заходов — неверное. Для подписи над словом правило мягче (v3.3.272): любое слово, не подходящее ожидаемому, — и слово цели не на своём месте («where you from» — «you» вместо «are»)
-      if (shown && t - lastShownAt >= SHOWN_GAP_MS) { lastShownAt = t; shownWord = shown.w; lastShown = shown.w === VOICE ? null : shown.w; if (shown === stable) stable.used = true }
+      if (shown && t - lastShownAt >= SHOWN_GAP_MS) { lastShownAt = t; shownWord = shown.w; lastShown = shown.w === VOICE || shown.w === VOICE_SOFT ? null : shown.w; if (shown === stable) stable.used = true }
       if (bad == null || t - lastAt < gap) return null
       lastAt = t
       return { word: bad.w, expect }

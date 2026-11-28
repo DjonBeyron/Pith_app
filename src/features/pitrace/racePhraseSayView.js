@@ -8,7 +8,7 @@
 import { fillGoal, edgeAt, LAST_WORD_CAP } from './racePhraseFill.js'
 import { createPeek, lineReached } from './racePhrasePeek.js'
 import { createGlide } from './racePhraseGlide.js'
-import { createWrongWord, WRONG_GAP_MS } from './racePhraseWrongWord.js'
+import { createWrongWord, WRONG_GAP_MS, VOICE_SOFT } from './racePhraseWrongWord.js'
 import { createNudge } from './racePhraseNudge.js'
 import { phraseWords } from './racePhraseData.js'
 
@@ -58,9 +58,10 @@ export function createSayView({ pass, text, n, mask, log = () => {}, nudge = nul
       if (wrong?.retracted()) mask?.unwrong?.() // итог захода не подтвердил слово из черновика — подпись «сказано вместо» снимаем
       let kw = 0; while (said.has(kw)) kw++ // первое несказанное слово — его и красим
       const mark = why => { if (mask?.missing?.(kw)) { redAt = kw; log(`[fill] ${why}: «${phraseWords(text)[kw] ?? ''}» красным`) } } // v3.3.305 (владелец): над пилюлей ничего не пишем, ожидаемое слово — красным на своём месте
-      if (shown) mark(`сказано «${shown}»`)
+      const soft = shown === VOICE_SOFT && !miss // громкий голос без слов цели: красное слово, но без рывка (мягче, чем при распознанном неверном слове)
+      if (shown) mark(soft ? 'громкий голос без слов цели' : `сказано «${shown}»`)
       if (miss && !done) { onWrong(miss.word, miss.expect); mark(`неверное слово «${miss.word}»`) } // неверное слово — красное ожидаемое слово
-      if ((shown || miss) && !done) { // рывок на КАЖДОЕ неверное слово (проход 1), в том числе слово цели не на своём месте («you» вместо «are»); в журнале — и когда он не сработал (проход 2 / частота), чтобы было видно «почему не дёрнулось»
+      if ((shown || miss) && !soft && !done) { // рывок на КАЖДОЕ неверное слово (проход 1), в том числе слово цели не на своём месте («you» вместо «are»); в журнале — и когда он не сработал (проход 2 / частота), чтобы было видно «почему не дёрнулось»
         const why = miss ? `неверное слово «${miss.word}»` : `сказано «${shown}»`
         if (!jerk) log(`[fill] рывка нет (проход 2): ${why}`)
         else if (t - jerkAt >= WRONG_GAP_MS) { jerkAt = t; log(`[fill] рывок кромки: ${why}, заливка ${Number(fill).toFixed(2).replace('.', ',')}`); jerk.fire(fill) }
