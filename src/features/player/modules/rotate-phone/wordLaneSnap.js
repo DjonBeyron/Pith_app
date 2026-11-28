@@ -76,17 +76,20 @@ export function snapPill(pill, k, { full = true, simple = false, rect = null } =
   return out
 }
 
+/** Мягкий промах без полос и без data-wrong: дрожь 260 мс, красная обводка ≈ 0,65 с, слабый красный налив 0,45 с («Разгон» и проход 2 «Скажи», v3.3.402). Слабое устройство: без налива (лишний слой), обводка и дрожь остаются; filter нет */
+export function softMissPill(pill, tint = !isWeakDevice()) {
+  if (!pill?.animate) return
+  pill.animate(SOFT_MISS_SHAKE, { duration: SOFT_MISS_SHAKE_MS, easing: 'ease-out' })
+  pill.animate(SOFT_MISS_RING, { duration: SOFT_MISS_MS, easing: 'ease-out' })
+  const clip = tint ? pill.querySelector?.('.wlPillClip') : null
+  if (clip) flash(clip, 'inset:0;border-radius:999px;background:rgba(255,93,115,0.35);', [{ opacity: 1 }, { opacity: 0 }], SOFT_MISS_TINT_MS)
+}
+
 /** Промах ученика: красная вспышка и короткая дрожь пилюли (transform: translateX — положение пилюли живёт в свойстве translate и в этой анимации не участвует). Пилюля остаётся помеченной data-wrong — косые полоски
  *  (word-lane-pill-wrong.css), пока не защёлкнулась (data-lock) или не вернулась в пул (clean в wordLanePool.js) */
 export function missPill(pill) {
   if (!pill) return
-  if (pill.hasAttribute?.('data-quiet')) { // «Разгон»: дрожь + красная обводка + лёгкий налив, без data-wrong (полос)
-    pill.animate(SOFT_MISS_SHAKE, { duration: SOFT_MISS_SHAKE_MS, easing: 'ease-out' })
-    pill.animate(SOFT_MISS_RING, { duration: SOFT_MISS_MS, easing: 'ease-out' })
-    const clip = pill.querySelector?.('.wlPillClip')
-    if (clip) flash(clip, 'inset:0;border-radius:999px;background:rgba(255,93,115,0.35);', [{ opacity: 1 }, { opacity: 0 }], SOFT_MISS_TINT_MS)
-    return
-  }
+  if (pill.hasAttribute?.('data-quiet')) { softMissPill(pill, true); return } // «Разгон»: дрожь + красная обводка + лёгкий налив, без data-wrong (полос)
   pill.setAttribute?.('data-wrong', '1')
   pill.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)', offset: 0.2 }, { transform: 'translateX(6px)', offset: 0.4 }, { transform: 'translateX(-3px)', offset: 0.6 }, { transform: 'translateX(0)' }], { duration: 560, easing: 'ease-out' })
   const clip = pill.querySelector('.wlPillClip')

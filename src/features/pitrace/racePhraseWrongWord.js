@@ -15,6 +15,7 @@ export const WRONG_GAP_MS = 700
 const VOICE = '[voice]'
 export const VOICE_SOFT = '[voice?]' // громкий голос, а Vosk не вернул НИ ОДНОГО слова цели на первом слове (v3.3.401, racePhraseVoiceWrong.js): красное слово без рывка, не «неверное слово»
 export const SHOWN_GAP_MS = 350 // подпись неверного слова — не чаще
+export const TAIL_FAST_MS = 200 // проход 2 «Скажи» (v3.3.402, журнал v3.3.401: красное первого слова шло 260–360 мс после черновика и на движущейся пилюле терялось): слово ЦЕЛИ не на своём месте («you» вместо «Nice») Vosk не переписывает в другое — хвост стоит столько
 export const TAIL_STABLE_MS = 350 // последнее (ещё говорящееся) слово черновика, не меняясь столько, годится для подписи — не ждём следующего слова (v3.3.285; v3.3.314: было 200 — журнал владельца: первый черновик Vosk «is» / «in» / «a» переписывался на верное слово через 260–270 мс, а красное и рывок уже срабатывали)
 
 const low = w => normForms(String(w ?? '')).toLowerCase().replace(/^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu, '')
@@ -30,7 +31,7 @@ export const formPart = (heard, words, prev = null, next = null) => {
 }
 
 /** → { ear(e), check(said, t) }. words — слова фразы-цели (phraseWords). ear — событие слуха { kind: 'partial' | 'final', text }; check — на кадре: said — Map сказанных номеров слов, → { word, expect } или null */
-export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
+export function createWrongWord({ words, gap = WRONG_GAP_MS, fast = false }) { // fast — проход 2: хвост-слово цели годится для подписи за TAIL_FAST_MS
   let seen = 0, first = null, tail = null, queue = [], lastAt = -Infinity, lastShownAt = -Infinity, shownWord = null, lastShown = null, retract = false
   let prior = 0, closing = false // prior — сколько слов по порядку было сказано к концу ПРОШЛОГО захода: их повтор в новом заходе — неверное слово (v3.3.314, владелец: «не засчитывает неверное, иногда вообще игнор» — журнал: «to» вместо «tomorrow» молчало 3,3 с до итога)
   return {
@@ -45,7 +46,7 @@ export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
       seen = Math.max(0, done)
       // последнее слово черновика ещё может меняться — для подписи (не рывка) берём его, когда оно не меняется TAIL_STABLE_MS (v3.3.285: красное сразу по первому неверному слову)
       const last = e.kind === 'partial' && ws.length ? ws[ws.length - 1] : null
-      if (!last) tail = null; else if (!tail || tail.w !== last || tail.i !== ws.length - 1) tail = { w: last, prev: ws[ws.length - 2] ?? null, next: null, i: ws.length - 1, at: null, used: false }
+      if (!last) tail = null; else if (!tail || tail.w !== last || tail.i !== ws.length - 1) tail = { w: last, prev: ws[ws.length - 2] ?? null, next: null, i: ws.length - 1, at: null, used: false, ms: fast && words.some(x => sameWord(last, x)) ? TAIL_FAST_MS : TAIL_STABLE_MS }
       if (e.kind === 'final') { if (lastShown && !ws.includes(lastShown)) retract = true; lastShown = null; seen = 0; first = null; tail = null; closing = true } // v3.3.302 (журнал владельца: «я сказал where is, сверху зачёркнуто you»): подпись взята из черновика, а итог захода этого слова не содержит — это был шум черновика, подпись снимается
     },
     /** Слово для подписи над ожидаемым (мягкое правило, раз на кадр после check): строка или null */
@@ -55,7 +56,7 @@ export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
     check(said, t) {
       shownWord = null
       if (tail && tail.at == null) tail.at = t
-      const stable = tail && !tail.used && t - tail.at >= TAIL_STABLE_MS ? tail : null
+      const stable = tail && !tail.used && t - tail.at >= tail.ms ? tail : null
       let k = 0
       while (said.has(k)) k++
       const was = prior

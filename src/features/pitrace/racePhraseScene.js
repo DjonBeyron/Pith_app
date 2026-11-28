@@ -12,7 +12,7 @@
 // ДЕМО и ДВА ПРОХОДА «Скажи»: у step.phrases.demo перед первым ходом — демо-ход на живой пилюле (racePhraseDemoTurn.js; голос и ворота директора — fx.pre с rep.demo → e.demo(kit)); ход с pass 2 — та же фраза открытым текстом (data-pass='2', маска целиком и не закрывается; заливка по словам одним движением — racePhraseGlide.js через racePhraseSayView.js; уровень микрофона заливку не двигает ни в одном проходе), зачёт «без остановок» по моментам первых услышанных слов (said.times, racePhrasePasses.passTwoRes).
 // Итог хода уходит директору в rep.res: { ok, late, confusedWith, ratio, clean, smooth?, maxPause? }; журнал «[phrases] круг 2 «Скажи» (голос), ход N/M, проход P/2: цель … итог …». Все ходы — fx.finished.
 import { ENTER_Y, EXIT_Y, SPEED, LISTEN_Y_MIN, LISTEN_Y_MAX, LOCK_MS } from '../player/modules/rotate-phone/wordLaneTimeline.js'
-import { snapPill } from '../player/modules/rotate-phone/wordLaneSnap.js'
+import { snapPill, softMissPill } from '../player/modules/rotate-phone/wordLaneSnap.js'
 import { createFillView, approachFillFast } from '../player/modules/rotate-phone/wordLaneFillView.js'
 import { finishDue, edgeVerdict, graceMs } from './racePhraseFill.js'
 import { createSaid } from './racePhraseSaid.js'
@@ -73,7 +73,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
     const p = { k, cand, j, y: ENTER_Y, gone: false, spent: false, mask: cfg.mode === 'say' ? mountMask(pool.el(k), cand.text ?? cand.cap) : null }
     if (p.mask) masks.add(p.mask)
     if (p.mask && turn()?.pass === 2) { pool.attr(k, 'data-pass', '2'); p.mask.set(new Map(), true) } // проход 2: вся фраза открыта (и остаётся открытой), своя рамка
-    if (p.mask) { trace.spawn(now(), pool.el(k)); if (cand.right) sv = createSayView({ pass: turn()?.pass ?? 1, text: cand.text ?? cand.cap, n: phraseWords(turn().target.text).length, mask: p.mask, log, nudge: on => pool.attr(p.k, 'data-nudge', on), el: pool.el(p.k), onWrong: trace.wrong }) }
+    if (p.mask) { trace.spawn(now(), pool.el(k)); if (cand.right) sv = createSayView({ pass: turn()?.pass ?? 1, text: cand.text ?? cand.cap, n: phraseWords(turn().target.text).length, mask: p.mask, log, nudge: on => pool.attr(p.k, 'data-nudge', on), el: pool.el(p.k), onWrong: trace.wrong, onRed: () => softMissPill(pool.el(p.k)) }) }
     pills.push(p)
     return p
   }

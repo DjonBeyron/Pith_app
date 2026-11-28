@@ -15,6 +15,7 @@ import { phraseWords } from './racePhraseData.js'
 // ЗАЛИТО ДО КРАЯ БЕЗ ЗАЧЁТА (2026-11-28, владелец v3.3.394: «полностью заполнился, но не улетал — это вводит в заблуждение»): все слова сказаны (линия у LAST_WORD_CAP), а слух фразу не принял за FULL_WAIT_MS — линия отходит к границе
 // перед последним словом: у края пилюля стоит только пока зачёт вот-вот придёт (обычно 0–400 мс). Принят итог — доезд до 100 % и взлёт как всегда; проверка слуха не меняется.
 export const FULL_WAIT_MS = 800
+export const RED_SIGNAL_GAP_MS = 700
 
 const white = heard => { const m = new Map(); for (let i = 0; heard.has(i); i++) m.set(i, true); return m } // проход 1: сказанное слово — целиком (замечание владельца: «слово полностью белое»), только непрерывный префикс — как линия
 
@@ -22,14 +23,14 @@ const white = heard => { const m = new Map(); for (let i = 0; heard.has(i); i++)
  * → { word(index, heard, t), ear(e), goal({ t, words, done }), frame(t, done), peekIndex(), stop() }. pass — 1 | 2, text — фраза, n — слов, mask — маска пилюли (racePhraseMaskView) или null;
  * nudge(on) — поставить / снять data-nudge на пилюле, el — её узел (animationend); onWrong(word, expect) — журнал неверного слова
  */
-export function createSayView({ pass, text, n, mask, log = () => {}, nudge = null, el = null, onWrong = () => {} }) {
+export function createSayView({ pass, text, n, mask, log = () => {}, nudge = null, el = null, onWrong = () => {}, onRed = null }) {
   const two = pass === 2
   const peek = !two && mask ? createPeek({ mask, text }) : null
   const glide = two ? createGlide({ n, log }) : null
-  const wrong = createWrongWord({ words: phraseWords(text) }) // подпись неверного слова — в обоих проходах (v3.3.277: в проходе 2 её не было), рывок кромки — только в проходе 1
+  const wrong = createWrongWord({ words: phraseWords(text), fast: two }) // подпись неверного слова — в обоих проходах (v3.3.277: в проходе 2 её не было), рывок кромки — только в проходе 1
   const jerk = !two && nudge ? createNudge({ mark: nudge, el, log }) : null
   let fullAt = null, backed = false // fullAt — когда цель впервые дошла до LAST_WORD_CAP без итога; backed — линия отведена (журнал один раз)
-  let said = new Map(), jerkAt = -Infinity, redAt = null // redAt — номер слова, красного сейчас (для журнала «красное снято»)
+  let said = new Map(), jerkAt = -Infinity, redAt = null, redSigAt = -Infinity // redSigAt — когда в последний раз давали сигнал уровня пилюли (RED_SIGNAL_GAP_MS) // redAt — номер слова, красного сейчас (для журнала «красное снято»)
   return {
     /** Слово цели услышано (gone — откат, проход 1): heard — Map номер слова → подтверждено ли (сцена уже обновила) */
     word(index, heard, t, gone = false) {
@@ -57,7 +58,7 @@ export function createSayView({ pass, text, n, mask, log = () => {}, nudge = nul
       const miss = wrong?.check(said, t), shown = wrong?.shown()
       if (wrong?.retracted()) mask?.unwrong?.() // итог захода не подтвердил слово из черновика — подпись «сказано вместо» снимаем
       let kw = 0; while (said.has(kw)) kw++ // первое несказанное слово — его и красим
-      const mark = why => { if (mask?.missing?.(kw)) { redAt = kw; log(`[fill] ${why}: «${phraseWords(text)[kw] ?? ''}» красным`) } } // v3.3.305 (владелец): над пилюлей ничего не пишем, ожидаемое слово — красным на своём месте
+      const mark = why => { if (mask?.missing?.(kw)) { redAt = kw; log(`[fill] ${why}: «${phraseWords(text)[kw] ?? ''}» красным`); if (two && onRed && t - redSigAt >= RED_SIGNAL_GAP_MS) { redSigAt = t; onRed() } } } // проход 2 (v3.3.402): красное слово на движущейся пилюле не видно — первое появление даёт сигнал всей пилюле (красная обводка, дрожь, слабый налив), не чаще раза в RED_SIGNAL_GAP_MS; заливку и рывок не трогает // v3.3.305 (владелец): над пилюлей ничего не пишем, ожидаемое слово — красным на своём месте
       const soft = shown === VOICE_SOFT && !miss // громкий голос без слов цели: красное слово, но без рывка (мягче, чем при распознанном неверном слове)
       if (shown) mark(soft ? 'громкий голос без слов цели' : `сказано «${shown}»`)
       if (miss && !done) { onWrong(miss.word, miss.expect); mark(`неверное слово «${miss.word}»`) } // неверное слово — красное ожидаемое слово
