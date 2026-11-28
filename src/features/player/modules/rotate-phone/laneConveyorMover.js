@@ -39,7 +39,7 @@ export function loopMover(col, { steps = false } = {}) {
     const a = col.animate(frames(100), { pseudoElement: '::before', duration: 100, easing: 'linear', iterations: Infinity, fill: 'both' })
     if (a?.effect?.pseudoElement !== '::before') { a?.cancel?.(); return null }
     a.pause()
-    let per = 100, rate = 0, dpr = 1, pxs = 0, n = 0
+    let per = 100, rate = 0, dpr = 1, pxs = 0, n = 0, dirUp = false
     const ease = () => { // «Реже»: easing steps(n, end) на том же композиторном слое — кадр перерисовывается только при смене шага; скорость растёт через playbackRate, как раньше
       if (!steps || !(pxs > 0)) return
       const k = stepsFor(per, pxs, dpr)
@@ -53,7 +53,12 @@ export function loopMover(col, { steps = false } = {}) {
         if (rate !== 0 && Math.abs(r - rate) < rate * 0.04) return
         a.playbackRate = r; if (rate === 0) a.play(); rate = r; pxs = pxPerSec; ease()
       },
-      setUp(up) { a.effect.updateTiming({ direction: up ? 'reverse' : 'normal' }) },
+      setUp(up) { // смена направления без скачка: при reverse тот же currentTime даёт 1 − p, поэтому отражаем время внутри периода — узор остаётся на месте и едет в другую сторону (журнал iPhone 2026-11-28)
+        if (up === dirUp) return
+        const t = a.currentTime; dirUp = up
+        a.effect.updateTiming({ direction: up ? 'reverse' : 'normal' })
+        if (typeof t === 'number' && per > 0) { try { a.currentTime = per - (((t % per) + per) % per) } catch { /* время не ставится — останется прежнее */ } }
+      },
       stop() { try { a.cancel() } catch { /* уже снята */ } },
     }
   } catch { return null }

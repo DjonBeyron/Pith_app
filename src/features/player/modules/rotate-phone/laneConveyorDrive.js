@@ -72,8 +72,13 @@ export function createConveyorDrive({
   const up = () => game?.hasAttribute?.('data-up') === true // обратный конвейер: в CSS сдвиг «период − y» (word-lane-lane-run.css), у «двигателя» его считает привод
   const shift = (i, y) => {
     if (!movers[i]) { put(i, '--run-y', pxText(y)); return }
-    const v = up() ? P - y : y
-    if (shown[i].move !== v) { shown[i].move = v; movers[i].set(v) }
+    const S = shown[i], u = up(), raw = u ? -y : y, mod = x => ((x % P) + P) % P
+    // Разворот (data-up) при стоящих дорожках: сдвиг «P − y» вместо «y» перекидывал узор на P − 2y — видимый скачок на iPhone (журнал 2026-11-28). Теперь при смене направления запоминаем смещение S.off так, чтобы узор остался
+    // ровно там, где стоял, и поехал в обратную сторону от этого места (фаза сохраняется, слой и анимация те же — ничего не пересоздаётся).
+    if (S.upSeen !== undefined && S.upSeen !== u && S.move !== undefined && P > 0) { const o = mod(S.move - raw); S.off = o < 1e-6 || P - o < 1e-6 ? 0 : o }
+    S.upSeen = u
+    const v = S.off ? mod(raw + S.off) : u ? P - y : y
+    if (S.move !== v) { S.move = v; movers[i].set(v) }
   }
   const loop_ = i => { // слабое устройство: период и направление — только когда сменились; скорость (px/с = dvh/с × доля дорожки × высота / 100) — мувер сам отсекает шаги меньше 4 %
     const m = loops[i], S = shown[i]

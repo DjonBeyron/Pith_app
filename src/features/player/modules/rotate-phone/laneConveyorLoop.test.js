@@ -26,6 +26,13 @@ describe('loopMover: бесконечный сдвиг слоя, 1 мс = 1 px',
     m.setUp(true); expect(a.timing.direction).toBe('reverse')
     m.stop(); expect(a.cancelled).toBe(true)
   })
+  it('смена направления (разворот в реверс) отражает время внутри периода: узор остаётся на месте и едет назад без скачка', () => {
+    const col = fakeCol(), m = loopMover(col), a = col.calls[0]
+    m.setPeriod(400); a.currentTime = 100 // видимое положение при normal: 100/400
+    m.setUp(true); expect(a.timing.direction).toBe('reverse'); expect(a.currentTime).toBe(300) // при reverse положение 1 − 300/400 = 100/400 — то же
+    m.setUp(true); expect(a.currentTime).toBe(300) // повторно то же направление — время не трогаем
+    m.setUp(false); expect(a.currentTime).toBe(100)
+  })
   it('нет animate — null (узор стоит)', () => { expect(loopMover({})).toBeNull() })
 })
 

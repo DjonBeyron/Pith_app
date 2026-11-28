@@ -14,7 +14,7 @@ export function catVisLine(root, sid, getCS = el => globalThis.getComputedStyle(
   const view = globalThis.innerHeight || 800
   const where = r.width === 0 ? 'нулевой размер' : r.top >= view - 40 ? 'за нижним краем (нырнул)' : r.bottom <= 0 ? 'за верхним краем' : 'на экране'
   const box = cat.style.visibility === 'hidden' ? ', под коробкой Мии' : ''
-  return `[cat-vis] стадия ${sid ?? '—'}: узел есть, opacity ${cs.opacity}/${ss?.opacity ?? '—'}, visibility ${cs.visibility}, transform ${ss?.transform ?? '—'}, translate ${ss?.translate ?? '—'}, ${where} (top ${Math.round(r.top)}, left ${Math.round(r.left)})${box}; dodge ${cat.dataset.dodge ?? '—'}, ${cat.classList.contains('wlCat--up') ? 'поднят' : 'опущен'}, пауза ${root.hasAttribute('data-paused') ? 'да' : 'нет'}`
+  return `[cat-vis] стадия ${sid ?? '—'}: узел есть, opacity ${cs.opacity}/${ss?.opacity ?? '—'}, visibility ${cs.visibility}, transform ${ss?.transform ?? '—'}, translate ${ss?.translate ?? '—'}, ${where} (top ${Math.round(r.top)}, left ${Math.round(r.left)})${box}; --wl-dx записан ${cat.style.getPropertyValue?.('--wl-dx') || '—'} (цель x ${cat.dataset.dodgeX ?? '—'}), dodge ${cat.dataset.dodge ?? '—'}, ${cat.classList.contains('wlCat--up') ? 'поднят' : 'опущен'}, пауза ${root.hasAttribute('data-paused') ? 'да' : 'нет'}`
 }
 
 export function useCatVisLog(rootRef, on, sid) {

@@ -77,6 +77,24 @@ describe('«двигатель» узора дорожки: сдвиг слоя 
     d.dispose()
   })
 
+  it('разворот на ходу и на стоящих дорожках не перекидывает узор: фаза сохраняется, дальше узор едет в обратную сторону (журнал iPhone 2026-11-28)', () => {
+    const f = field(), { d, moves, flipUp } = drive(f)
+    d.setArmed('111h')
+    let t = 0
+    for (let k = 0; k < 120; k++) d.frame(t += 16)
+    const n = moves[0].length, at = moves[0].at(-1)
+    expect(at).toBeGreaterThan(0)
+    f.game.attrs.add('data-up'); flipUp()
+    expect(moves[0].length).toBe(n) // в момент разворота положение узора то же — ни одной записи, скачка нет
+    for (let k = 0; k < 20; k++) d.frame(t += 16)
+    const P = (() => { const g = field({ up: true }), r = drive(g); return r.moves[0].at(-1) })() // период: у покоя в обратном конвейере сдвиг = P
+    const next = moves[0].at(-1), back = ((at - next) % P + P) % P, fwd = ((next - at) % P + P) % P
+    expect(back).toBeGreaterThan(0); expect(back).toBeLessThan(fwd) // сдвинулись назад (в обратную сторону), а не вперёд
+    f.game.attrs.delete('data-up'); flipUp() // и обратно: снова без скачка
+    expect(moves[0].at(-1)).toBe(next)
+    d.dispose()
+  })
+
   it('dispose снимает анимации «двигателя»', () => {
     const f = field(), { d, stops } = drive(f)
     d.dispose()

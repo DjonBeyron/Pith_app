@@ -42,8 +42,12 @@ export function createHeadDepth({
   let grace = 0, graceDone = false, waitT = 0, wasUp = isUp(), wasPaused = isPaused()
   const fx = ms => (fast ? 0 : ms)
   const mode = m => { if (cat.dataset.dodge !== m) cat.dataset.dodge = m }
-  const dx = x => { xW = x; const v = `${(((x - 50) / headW) * 100).toFixed(2)}%`; if (v !== dxS) { dxS = v; cat.style.setProperty('--wl-dx', v) } }
-  const dy = v => { if (v !== dyS) { dyS = v; cat.style.setProperty('--wl-dy', v) } }
+  // Переменную пишем и на .wlCat (её читает шлейф ::before), и прямо на <svg class="wlCatSvg"> (inline сильнее правила «--wl-dx: inherit»): iPhone-журнал 2026-11-28 — transform svg застрял на x первого
+  // нырка (-85,76 px = дорожка 1) на всех стадиях, хотя цель давно 50: WebKit не пересчитывал наследование незаследуемой @property от родителя. Прямая запись от наследования не зависит.
+  const svg = cat.querySelector?.('.wlCatSvg') ?? null
+  const put = (k, v) => { cat.style.setProperty(k, v); svg?.style?.setProperty?.(k, v) }
+  const dx = x => { xW = x; const v = `${(((x - 50) / headW) * 100).toFixed(2)}%`; if (v !== dxS) { dxS = v; put('--wl-dx', v) } }
+  const dy = v => { if (v !== dyS) { dyS = v; put('--wl-dy', v) } }
   const want = () => isUp() && !isPaused() && !hold && !wait
   const arm = (ms, fn) => { until = now() + fx(ms); timer = setTimer(() => { timer = 0; fn() }, fx(ms)) }
   const unwait = () => { if (wait && !isPaused()) { wait = false; if (waitT) clearTimer(waitT); waitT = 0 } }

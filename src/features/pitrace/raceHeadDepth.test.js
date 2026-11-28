@@ -26,6 +26,17 @@ function head({ up = true } = {}) {
 }
 
 describe('raceHeadDepth: одна правда по вертикали', () => {
+  it('--wl-dx / --wl-dy пишутся и на svg головы напрямую: x не зависит от наследования переменной (iPhone 2026-11-28: transform svg застрял на первом нырке)', () => {
+    const svgVars = {}
+    const svg = { style: { setProperty: (k, v) => { svgVars[k] = v } } }
+    const vars = {}
+    const cat = { dataset: {}, style: { getPropertyValue: () => '', setProperty: (k, v) => { vars[k] = v } }, classList: { add: () => {}, contains: () => true }, querySelector: sel => (sel === '.wlCatSvg' ? svg : null) }
+    const d = headDepth(cat, { x0: 50, headW: 50, isUp: () => true, isPaused: () => false, setTimer: () => 1, clearTimer: () => {} })
+    d.snap(27)
+    expect(svgVars['--wl-dx']).toBe('-46.00%'); expect(vars['--wl-dx']).toBe('-46.00%')
+    d.snap(50)
+    expect(svgVars['--wl-dx']).toBe('0.00%')
+  })
   it('нырок: вниз до конца → x под краем → выныривает; повторная цель во время нырка — тем же переходом', () => {
     const { d, c, vars, modes } = head()
     d.dive(27)

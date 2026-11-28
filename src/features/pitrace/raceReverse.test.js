@@ -45,6 +45,12 @@ describe('обратный конвейер', () => {
     expect(awayX([LANE_X[1]], 50, 50, LANE_X[1])).toBeLessThan(20) // следующее на той же дорожке, что и нынешнее: выбор прежний
     expect(awayX([LANE_X[0], LANE_X[2]], 50, 50, LANE_X[1])).toBeGreaterThan(0) // свободных мест нет — не ломаемся (берём прежнее решение)
   })
+  it('Пит уже слева, слово выезжает по центру — стоит: уворот влево «в стену» не запускается (журнал iPhone 2026-11-28: на экране Пит стоял слева, модель — в центре)', () => {
+    expect(awayX([LANE_X[1]], 14.5, 50, LANE_X[2])).toBe(14.5) // слово по центру, голова у левого края (чисто) — на месте
+    expect(awayX([LANE_X[1]], 85.5, 50, LANE_X[0])).toBe(85.5) // то же справа
+    expect(awayX([LANE_X[1]], 50, 50, LANE_X[2])).toBeLessThan(20) // из центра — в сторону, где следующее не выедет (это и есть законный уворот)
+    expect(awayX([LANE_X[0]], 27, 50, LANE_X[1])).toBeGreaterThan(80) // слово слева, Пит на левой дорожке, следующее в центре — вправо, не на дорожку слова
+  })
   it('проводка: привод получает дорожки ступени и «с какого слова» (после паузы — от текущих пилюль), следующее слово считается от выехавших', () => {
     const up = rd('./raceDodgeUp.js'), pills = rd('../player/modules/rotate-phone/useWordLanePills.js')
     expect(pills).toContain('createDodgeUp({ cat: root.parentElement?.querySelector(\'.wlCat\'), peek: ms => fxRef.current?.peek?.(ms), lanes: step.reps.map(r => r.lane), from: scene.from ?? 0 })')
