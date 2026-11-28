@@ -45,7 +45,8 @@ describe('хронология старта [start]', () => {
   it('окно хронологии: позже CHRON_WINDOW_MS и после отмены шаги не пишутся', () => {
     const { c, out, go } = mk()
     c.tap(); go(CHRON_WINDOW_MS + 1); expect(c.step('x', 'поздно')).toBeNull()
-    c.tap(); c.cancel(); expect(c.step('y', 'отменён')).toBeNull(); expect(out).toHaveLength(2)
+    c.tap(); c.cancel(); expect(c.step('y', 'отменён')).toBeNull(); expect(out).toHaveLength(4) // каждый тап — две строки: «[start] +0 мс …» и «[live] при тапе …» (liveAtStart.js)
+    expect(out.filter(s => s.startsWith('[live] при тапе «Начать»'))).toHaveLength(2)
   })
   it('самый долгий шаг считается от ответа на попап (раздумья человека в попапе — не шаг)', () => {
     expect(longestStep([{ name: 'tap', label: 'a', at: 0 }, { name: 'ask', label: 'b', at: 5000 }, { name: 'c', label: 'c', at: 5100 }, { name: 'd', label: 'd', at: 5150 }])).toEqual({ label: 'c', prev: 'b', ms: 100 })

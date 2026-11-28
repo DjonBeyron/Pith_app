@@ -28,5 +28,8 @@ export async function deadOutputFallback(d, { micOpened = false, renewOpts = {},
   const pr = await probeLive(d)
   const busy = pr.ok ? 'в типе auto вывод живой, в play-and-record мёртв — микрофон занят другим приложением' : 'вывод мёртв и в типе auto — звук держит другое приложение (звонок, запись)'
   step('probe-auto', `${busy}; audioSession=${d.session()}`)
+  // v3.3.396 (журнал владельца, iPhone: после диктовки в попапе комментария вывод мёртв и в play-and-record, и в auto, хотя поток микрофона «жив»): держать открытый поток бессмысленно — iOS не вернёт вывод, пока наша же запись
+  // активна. Поток закрываем по-настоящему (микрофон и индикатор отпущены); авто-повтор (quick) проверяет вывод без микрофона, а когда вывод ожил — просит тап «Продолжить» (getUserMedia только в жесте)
+  if (d.shutMic) { try { d.shutMic('вывод мёртв после всех повторов — отпускаем микрофон, откроем заново в следующем тапе') } catch { /* сбой закрытия не мешает итогу */ } step('mic-release', 'поток микрофона закрыт по-настоящему: следующий тап откроет его заново (getUserMedia в жесте)') }
   return { ok: false, probe: pr, tries: 0, busy, autoAlive: pr.ok, micOpened: opened }
 }

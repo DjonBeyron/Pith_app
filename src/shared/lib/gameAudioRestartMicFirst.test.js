@@ -15,7 +15,7 @@ function setup({ probes = [], active = true, micLine = 'live/ended (жив, вы
     voiceType: vi.fn(() => order.push('type')), recreateCtx: vi.fn(), unlockCtx: vi.fn(() => order.push('unlock')),
     stopBuffers: vi.fn(), started: () => 0, uiState: () => null, captures: () => [], markTap: vi.fn(),
     micLine: () => line, closeMic: vi.fn(), openMic: vi.fn(() => { order.push('gum'); if (openMic === 'granted') line = 'live'; return Promise.resolve(openMic) }),
-    consume: () => null, session: () => session, active: () => active, memo: {}, now: () => 0,
+    shutMic: vi.fn(), consume: () => null, session: () => session, active: () => active, memo: {}, now: () => 0,
     waitRunning: vi.fn(async () => ({ state: cur?.state ?? null, tries: 0, ms: 1 })),
     probe: vi.fn(async (_c, o) => { const ok = seq.length ? seq.shift() : true; order.push(`probe${o?.maxMs ? '-live' : ''}:${ok ? 'ok' : 'dead'}`); return ok ? { ok: true, ms: 40 } : { ok: false, ms: 300, why: 'пробный звук не доиграл' } }),
     log: vi.fn(), note: vi.fn(),
@@ -56,6 +56,8 @@ describe('«Продолжить»: дорожка ended / нет потока �
     expect(t.d.openMic).toHaveBeenCalledTimes(1) // микрофон уже открыт в начале тапа — запасной путь (а) не повторяет
     expect(t.order.slice(-2)).toEqual(['renew:auto', 'probe-live:ok'])
     expect(SOUND_BUSY_TEXT).toMatch(/занят другим приложением.*«Продолжить»/)
+    expect(t.d.shutMic).toHaveBeenCalledTimes(1) // v3.3.396: вывод мёртв и в auto — поток микрофона закрыт по-настоящему, следующий тап откроет заново
+    expect(r.steps).toContain('mic-release')
   })
   it('quick (авто-повтор без жеста): getUserMedia не зовётся, renew без повторов, без запасного пути; дорожки нет — tapAgain', async () => {
     const dead = setup({ micLine: 'ended', active: false, quick: true, probes: [false] })

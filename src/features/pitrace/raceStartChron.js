@@ -4,6 +4,7 @@
 // Когда голос Пита начался — строка-итог: «[start] итог: от входа в игру до голоса M мс (цель ≤ 400), от тапа «Говорю» до голоса N мс; самый долгий шаг — …» (пометка «ДОЛЬШЕ», если M > 400).
 // Строки идут через pLog — в журнал игры (gameJournal.js, «Скачать журнал» в шестерёнке). Хронология живёт CHRON_WINDOW_MS после тапа: позже шаги не пишутся (игра уже идёт). Чистая логика: часы и журнал — аргументами.
 import { pLog } from '../../shared/lib/debug.js'
+import { liveAtStartLine } from '../../shared/lib/liveAtStart.js'
 
 export const CHRON_WINDOW_MS = 20000 // столько мс после тапа «Начать» шаги ещё пишутся (попап + старт игры)
 export const START_VOICE_MS = 400    // цель: голос Пита не позже стольки мс после входа в игру (= raceStartTrace.RACE_ENTRY_LINE_MS)
@@ -30,6 +31,7 @@ export function createStartChron({ now = () => performance.now(), log = pLog } =
     tap() {
       t0 = now(); steps = [{ name: 'tap', label: 'тап «Начать»', at: 0 }]; seen = new Set(['tap']); done = false; picked = null
       say('[start] +0 мс тап «Начать» (жест): сцена с попапом, тихий прогрев')
+      say(liveAtStartLine('тапе «Начать»')) // что осталось живым от прошлой игры / страницы (liveAtStart.js)
     },
     /** Идёт ли запуск (тап был не дольше CHRON_WINDOW_MS назад) */
     active: () => t0 != null && now() - t0 <= CHRON_WINDOW_MS,

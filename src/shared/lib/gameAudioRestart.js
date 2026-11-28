@@ -22,7 +22,7 @@ import { gameCtxState, peekGameCtx, recreateGameCtx, unlockGameCtx } from './gam
 import { stopGameBuffers, startedCount } from './gameBufferPlay.js'
 import { soundCtxState } from './sounds.js'
 import { captureStates } from './vosk/voskCapture.js'
-import { micTracksLine, closeGameMic, openGameMic } from './gameMic.js'
+import { micTracksLine, closeGameMic, openGameMic, shutGameMic } from './gameMic.js'
 import { consumeRewake, markGameTap } from './gameAudioLife.js'
 import { waitCtxRunning, probeCtx } from './gameAudioCheck.js'
 import { renewAudioSession } from './gameAudioRenew.js'
@@ -34,7 +34,7 @@ import { pLog } from './debug.js'
 
 export const SOUND_DEAD_TEXT = 'Звук не вернулся, нажми «Продолжить» ещё раз. Не помогло — попробуй заблокировать и разблокировать экран'
 export const TAP_AGAIN_TEXT = 'Нажми «Продолжить» ещё раз'
-export const SOUND_BUSY_TEXT = 'Звук занят другим приложением (диктовка, звонок, запись). Закрой его или подожди пару секунд и нажми «Продолжить»'
+export const SOUND_BUSY_TEXT = 'Звук занят другим приложением (диктовка, звонок, запись): микрофон тоже мог остаться у него. Закрой его, подожди пару секунд — игра проверяет сама — и нажми «Продолжить»'
 export const REUSE_MS = 15000 // после tapAgain столько живой проверенный контекст не обновляем заново
 
 const sessionLine = (nav = globalThis.navigator) => { try { const s = nav?.audioSession; return s ? `${s.type ?? '—'}/${s.state ?? '—'}` : 'нет API' } catch { return 'недоступно' } }
@@ -45,7 +45,7 @@ const lastTapAgain = { at: null } // когда прошлый тап кончи
 const DEFAULTS = {
   ctxState: gameCtxState, peekCtx: peekGameCtx, recreateCtx: recreateGameCtx, unlockCtx: unlockGameCtx, renew: renewAudioSession, renewLive: renewUntilLive, voiceType: () => gameAudioSession.begin(),
   stopBuffers: stopGameBuffers, started: startedCount, uiState: soundCtxState, captures: captureStates, markTap: () => markGameTap(),
-  micLine: micTracksLine, closeMic: closeGameMic, openMic: openGameMic, consume: consumeRewake, session: sessionLine, active: activeNow,
+  micLine: micTracksLine, closeMic: closeGameMic, openMic: openGameMic, shutMic: why => shutGameMic(why), consume: consumeRewake, session: sessionLine, active: activeNow,
   waitRunning: waitCtxRunning, probe: probeCtx, log: pLog, note: gameAudioNote, now: () => performance.now(), memo: lastTapAgain,
 }
 
